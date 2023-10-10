@@ -40,7 +40,7 @@
                     $_GET['r'] == "listado-usuarios"
                 ) {
 
-                    include("paginas/" . $_GET['r'] . ".php");
+                    include("paginas/" . $_GET['c'] . "/" . $_GET['r'] . ".php");
                 } else {
                     include("paginas/404.php");
                 }
