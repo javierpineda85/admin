@@ -7,18 +7,18 @@
 
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title">Listado de usuarios</h3>
+                <h3 class="card-title">Listado de cursos</h3>
               </div>
               <!-- /.card-header -->
               <div class="card-body">
                 <table id="example1" class="table table-bordered table-striped">
                   <thead>
                   <tr>
-                    <th>Nombre</th>
-                    <th>Apellido</th>
-                    <th>email</th>
-                    <th>Cursos</th>
-                    <th>botones</th>
+                    <th>Curso</th>
+                    <th>Docente</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fecha Finalización</th>
+                    <th>Botones</th>
                   </tr>
                   </thead>
                   <tbody>

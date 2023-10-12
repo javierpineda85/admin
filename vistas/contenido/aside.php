@@ -73,13 +73,13 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="../layout/top-nav.html" class="nav-link">
+                <a href="index.php?r=listado-cursos&c=cursos" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Ver todos</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="../layout/top-nav-sidebar.html" class="nav-link">
+                <a href="index.php?r=crear-curso&c=cursos" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Agregar</p>
                 </a>
@@ -120,13 +120,13 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="../UI/general.html" class="nav-link">
+                <a href="index.php?r=listado-materias&c=materias" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Ver todas</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="../UI/icons.html" class="nav-link">
+                <a href="index.php?r=crear-materia&c=materias" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Crear</p>
                 </a>

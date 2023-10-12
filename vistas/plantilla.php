@@ -37,7 +37,13 @@
             if (isset($_GET['r'])) {
                 if (
                     $_GET['r'] == "crear-usuario" ||
-                    $_GET['r'] == "listado-usuarios"
+                    $_GET['r'] == "listado-usuarios" ||
+                    $_GET['r'] == "crear-curso" ||
+                    $_GET['r'] == "listado-cursos" ||
+                    $_GET['r'] == "editar-curso" ||
+                    $_GET['r'] == "listado-materias" ||
+                    $_GET['r'] == "crear-materia" 
+
                 ) {
 
                     include("paginas/" . $_GET['c'] . "/" . $_GET['r'] . ".php");
