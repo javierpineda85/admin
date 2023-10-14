@@ -1,4 +1,4 @@
-<?php include_once 'contenido/head.php' ;?>
+<?php include_once('contenido/head.php');?>
 
 <body class="hold-transition sidebar-mini">
 <!-- Site wrapper -->
@@ -6,12 +6,12 @@
 
   <!-- Navbar -->
 
-  <?php include_once'contenido/header.php'; ?>
+  <?php include_once('contenido/header.php'); ?>
 
   <!-- /.navbar -->
 
   <!-- Main Sidebar Container -->
-  <?php include_once'contenido/aside.php'; ?>
+  <?php include_once('contenido/aside.php'); ?>
 
   <!-- Content Wrapper. Contains page content -->
   <div class="content-wrapper">
@@ -62,7 +62,7 @@
   <!-- /.content-wrapper -->
 
   <footer class="main-footer">
-  <?php include_once'contenido/footer.php'; ?>
+  <?php include_once('contenido/footer.php'); ?>
   </footer>
 
   <!-- Control Sidebar -->
@@ -73,13 +73,9 @@
 </div>
 <!-- ./wrapper -->
 
-<!-- jQuery -->
-<script src="jquery/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
-<script src="js/bootstrap.bundle.min.js"></script>
-<!-- AdminLTE App -->
-<script src="js/adminlte.min.js"></script>
-<!-- AdminLTE for demo purposes -->
-<script src="js/demo.js"></script>
+<!-- scripts -->
+<?php include_once('contenido/scripts.php'); ?>
+
+
 </body>
 </html>
