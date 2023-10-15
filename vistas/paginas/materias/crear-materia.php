@@ -1,90 +1,113 @@
-       <!-- Default box -->
-       <div class="card">
-           <div class="card-header">
-               <h3 class="card-title">Crear nueva materia</h3>
+<?php
+$cursos = ControladorCursos::crtSeleccionarCurso(null, null);
+$usuarios = ControladorUsuarios::crtSeleccionarUsuario('rol', 'DOCENTE');
 
-               <div class="card-tools">
-                   <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                       <i class="fas fa-minus"></i>
-                   </button>
 
-               </div>
-           </div>
-           <div class="card-body">
-               <form action="">
+?>
 
-                   <!-- form start -->
-                   <!-- Main content -->
-                   <section class="content">
-                       <div class="row">
-                           <div class="col-md-6">
-                               <div class="card card-primary">
-                                   <div class="card-header">
-                                       <h3 class="card-title">General</h3>
+<!-- Default box -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Crear nueva materia</h3>
 
-                                       <div class="card-tools">
-                                           <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                               <i class="fas fa-minus"></i>
-                                           </button>
-                                       </div>
-                                   </div>
-                                   <div class="card-body">
-                                       <div class="form-group">
-                                           <label for="inputName">Título materia</label>
-                                           <input type="text" id="inputName" class="form-control">
-                                       </div>
-                                       <div class="form-group">
-                                           <label for="inputDescription">Descripción</label>
-                                           <textarea id="inputDescription" class="form-control" rows="4"></textarea>
-                                       </div>
-                                       <div class="form-group">
-                                           <label for="inputName">Seleccione al curso que pertenece:</label>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                <i class="fas fa-minus"></i>
+            </button>
 
-                                           <select class="custom-select" name="curso">
-                                               <option>option 1</option>
-                                               <option>option 2</option>
-                                               <option>option 3</option>
-                                               <option>option 4</option>
-                                               <option>option 5</option>
-                                           </select>
+        </div>
+    </div>
+    <div class="card-body">
 
-                                       </div>
-                                       <div class="form-group">
-                                           <label for="inputClientCompany">Docente a cargo:</label>
-                                           <input type="text" id="inputClientCompany" class="form-control">
-                                       </div>
-                                       <div class="form-group">
-                                           <label for="inputClientCompany">Tutor:</label>
-                                           <input type="text" id="inputClientCompany" class="form-control">
-                                       </div>
+        <!-- Main content -->
+        <section class="content">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">General</h3>
 
-                                   </div>
-                                   <!-- /.card-body -->
-                               </div>
-                               <!-- /.card -->
-                           </div>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- form start -->
 
-                       </div>
-                       <div class="row">
-                           <div class="col-12">
-                               <a href="#" class="btn btn-secondary">Cancelar</a>
-                               <input type="submit" value="Crear nuevo curso" class="btn btn-success float-right">
-                           </div>
-                       </div>
-                   </section>
-                   <!-- /.content -->
-           </div>
-           <!-- /.content-wrapper -->
-           <!-- /.card-footer -->
-           </form>
-       </div>
-       <!-- /.card -->
-       </form>
-       </div>
-       <!-- /.card-body -->
+                            <form action="" method="POST">
+                                <div class="form-group">
+                                    <label for="inputName">Título materia</label>
+                                    <input type="text" id="inputName" class="form-control" name="tituloSeccion">
+                                </div>
+                                <div class="form-group">
+                                    <label for="inputDescription">Descripción</label>
+                                    <textarea id="inputDescription" class="form-control" rows="4" name="contenidoSeccion"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inputName">Seleccione al curso que pertenece:</label>
 
-       </div>
-       <!-- /.card -->
+                                    <select class="custom-select" name="id_curso">
+                                        <?php foreach ($cursos as $campo => $valor) : ?>
+                                            <option value="<?php echo $valor["idCurso"]; ?>"><?php echo $valor['nombreCurso']; ?></option>
+                                        <?php endforeach ?>
+                                    </select>
 
-       </section>
-       <!-- /.content -->
+                                </div>
+                                <div class="form-group">
+                                    <label for="inputClientCompany">Docente a cargo:</label>
+                                    <select class="custom-select" name="docente">
+                                        <?php foreach ($usuarios as $campo => $valor) : ?>
+                                            <option value="<?php echo $valor["idUsuario"]; ?>"><?php echo $valor['nombreUsuario'] . " " . $valor['apellidoUsuario']; ?></option>
+                                        <?php endforeach ?>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inputClientCompany">Tutor:</label>
+                                    <select class="custom-select" name="tutor">
+                                        <option value="NULL" disabel selected>Este curso no tiene tutor </option>
+                                        <?php foreach ($usuarios as $campo => $valor) : ?>
+                                            <option value="<?php echo $valor["idUsuario"]; ?>"><?php echo $valor['nombreUsuario'] . " " . $valor['apellidoUsuario']; ?></option>
+                                        <?php endforeach ?>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <input type="reset" class="btn btn-primary" value="Cancelar">
+
+                                    <?php $registro =  ControladorMaterias::crtGuardarMateria(); ?>
+
+                                    <input type="submit" value="Crear nueva materia" class="btn btn-success float-right">
+
+                                </div>
+                                <div>
+                                    
+                                        <?php    
+                                                                         
+                                          if (isset($_SESSION['success_message'])) {
+                                             echo '<div class="alert alert-success alert-dismissible">
+                                                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                                                    <h5><i class="icon fas fa-check"></i></h5>' . $_SESSION['success_message'] .
+                                                    '</div>';
+                                         // Elimina el mensaje después de mostrarlo
+                                         unset($_SESSION['success_message']);
+                                        };
+                                        ?>
+                                    </div>
+                            </form>
+                            <!-- / end form -->
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+        <!-- / Main content -->
+
+    </div>
+    <!-- /.card-body -->
+
+</div>
+<!-- / Default box -->

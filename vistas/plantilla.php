@@ -43,7 +43,9 @@
                     $_GET['r'] == "editar-curso" ||
                     $_GET['r'] == "listado-materias" ||
                     $_GET['r'] == "crear-materia" ||
-                    $_GET['r'] == "perfil-usuario"
+                    $_GET['r'] == "perfil-usuario" ||
+                    $_GET['r'] == "bandeja-entrada" ||
+                    $_GET['r'] == "nuevo-mensaje"
 
                 ) {
 

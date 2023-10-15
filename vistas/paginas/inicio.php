@@ -1,3 +1,11 @@
+ <?php
+$cursos = ControladorCursos::crtSeleccionarCurso('count', null);
+$usuarios = ControladorUsuarios::crtSeleccionarUsuario('count', null);
+$materias = ControladorMaterias::crtSeleccionarMateria('count', null);
+
+
+?>
+
  <!-- Default box -->
  <div class="card">
      <div class="card-header bg-info">
@@ -15,62 +23,53 @@
                 <div class="row">
           <div class="col-lg-3 col-6">
             <!-- small box -->
-            <div class="small-box bg-info">
-              <div class="inner">
-                <h3>150</h3>
+            <div class="info-box shadow">
+              <span class="info-box-icon bg-primary"><i class="far fa-copy"></i></span>
 
-                <p>Cursos</p>
+              <div class="info-box-content">
+                <h3 class="info-box-text"><?php echo $cursos['totalCursos']; ?></h3>
+                <span class="info-box-number">Cursos creados</span>
               </div>
-              <div class="icon">
-                <i class="ion ion-bag"></i>
-              </div>
-              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+              <!-- /.info-box-content -->
             </div>
           </div>
           <!-- ./col -->
           <div class="col-lg-3 col-6">
             <!-- small box -->
-            <div class="small-box bg-success">
-              <div class="inner">
-                <h3>53<sup style="font-size: 20px">%</sup></h3>
+            <div class="info-box shadow">
+              <span class="info-box-icon bg-success"><i class="nav-icon fas fa-book-open"></i></span>
 
-                <p>Bounce Rate</p>
+              <div class="info-box-content">
+                <h3 class="info-box-text"><?php echo $materias[0]['totalMaterias']; ?></h3>
+                <span class="info-box-number">Materias creadas</span>
               </div>
-              <div class="icon">
-                <i class="ion ion-stats-bars"></i>
+              <!-- /.info-box-content -->
+            </div>
+
+          </div>
+          <!-- ./col -->
+          <div class="col-lg-3 col-6">
+            <!-- small box -->
+            <div class="info-box shadow">
+              <span class="info-box-icon bg-success"><i class="fas fa-users"></i></span>
+
+              <div class="info-box-content">
+                <h3 class="info-box-text"><?php echo $usuarios[0]['totalUsuarios']; ?></h3>
+                <span class="info-box-number">Usuarios</span>
               </div>
-              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+              <!-- /.info-box-content -->
             </div>
           </div>
           <!-- ./col -->
           <div class="col-lg-3 col-6">
             <!-- small box -->
-            <div class="small-box bg-warning">
-              <div class="inner">
-                <h3>44</h3>
+            <div class="info-box shadow">
+              <span class="info-box-icon bg-warning"><i class="fas fa-eye"></i></span>
 
-                <p>Usuarios Registrados</p>
+              <div class="info-box-content">
+                <h3 class="info-box-text">65</h3>
+                <span class="info-box-number">Visitas</span>
               </div>
-              <div class="icon">
-                <i class="ion ion-person-add"></i>
-              </div>
-              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
-            </div>
-          </div>
-          <!-- ./col -->
-          <div class="col-lg-3 col-6">
-            <!-- small box -->
-            <div class="small-box bg-danger">
-              <div class="inner">
-                <h3>65</h3>
-
-                <p>Visitas a la página</p>
-              </div>
-              <div class="icon">
-                <i class="ion ion-pie-graph"></i>
-              </div>
-              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
-            </div>
           </div>
           <!-- ./col -->
         </div>
