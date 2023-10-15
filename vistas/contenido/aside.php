@@ -36,7 +36,7 @@
                with font-awesome or any other icon font library -->
           <li class="nav-item"> <!-- dashboard -->
             <a href="index.php" class="nav-link">
-              <i class="nav-icon fas fa-tachometer-alt"></i>
+              <i class="nav-icon fas fa-tachometer-alt text-warning"></i>
               <p>
                 Panel de Control
               </p>
@@ -46,7 +46,7 @@
           <li class="nav-item"> <!-- perfil -->
             <a href="../widgets.html" class="nav-link">
               
-              <i class="nav-icon fas fa-user"></i>
+              <i class="nav-icon fas fa-user text-info"></i>
               <p>
                 Perfil<i class="fas fa-angle-left right"></i>
               </p>
@@ -62,9 +62,32 @@
               </li>
             </ul>
           </li>
+          <li class="nav-item"> <!-- usuarios -->
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-users text-info"></i>
+              <p>
+               Usuarios
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="index.php?r=listado-usuarios&c=usuario" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Ver todos</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="index.php?r=crear-usuario&c=usuario" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Crear</p>
+                </a>
+
+            </ul>
+          </li>
           <li class="nav-item"><!-- cursos -->
             <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-copy"></i>
+              <i class="nav-icon fas fa-copy text-success"></i>
               <p>
                 Cursos
                 <i class="fas fa-angle-left right"></i>
@@ -87,32 +110,10 @@
 
             </ul>
           </li>
-          <li class="nav-item"> <!-- usuarios -->
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-users"></i>
-              <p>
-               Usuarios
-                <i class="right fas fa-angle-left"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="index.php?r=listado-usuarios&c=usuario" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Ver todos</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?r=crear-usuario&c=usuario" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Crear</p>
-                </a>
 
-            </ul>
-          </li>
           <li class="nav-item"> <!-- materias -->
             <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-book-open"></i>
+              <i class="nav-icon fas fa-book-open text-success"></i>
               <p>
                 Materias
                 <i class="fas fa-angle-left right"></i>
@@ -135,7 +136,7 @@
           </li>
           <li class="nav-item">  <!-- mensajes -->
             <a href="#" class="nav-link">
-              <i class="nav-icon far fa-envelope"></i>
+              <i class="nav-icon far fa-envelope text-primary"></i>
               <p>
                 Mensajes
                 <i class="fas fa-angle-left right"></i>
@@ -143,14 +144,14 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="../mailbox/mailbox.html" class="nav-link">
+                <a href="index.php?r=bandeja-entrada&c=mensajes" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Bandeja de entrada</p>
                   <span class="badge badge-info right">6</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="../mailbox/compose.html" class="nav-link">
+                <a href="index.php?r=nuevo-mensaje&c=mensajes" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Nuevo mensaje</p>
                 </a>
@@ -160,7 +161,7 @@
           </li>
           <li class="nav-item">  <!-- calendario -->
             <a href="../calendar.html" class="nav-link">
-              <i class="nav-icon far fa-calendar-alt"></i>
+              <i class="nav-icon far fa-calendar-alt text-olive"></i>
               <p>
                 Calendario
                 <i class="fas fa-angle-left right"></i>
@@ -181,14 +182,7 @@
 
             </ul>
           </li>
-          <li class="nav-item"> <!-- analiticas -->
-            <a href="../calendar.html" class="nav-link">
-              <i class="nav-icon fas fa-chart-pie"></i>
-              <p>
-                Analiticas
-              </p>
-            </a>
-          </li>
+
 
 
         </ul>
