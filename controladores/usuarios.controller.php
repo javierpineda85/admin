@@ -15,6 +15,8 @@ class ControladorUsuarios
         exit;
     }
 
+
+
     /*GUARDAR USUARIOS */
     static public function crtGuardarUsuario()
     {
