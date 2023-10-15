@@ -8,6 +8,7 @@ class ModeloCursos
     {
 
         if ($item != null && $valor != null) {
+            /*Traer un solo item */
 
             $stmt = Conexion::conectar()->prepare("SELECT * FROM $tabla WHERE $item = '$valor' ");
             //var_dump($stmt);exit;
@@ -16,7 +17,18 @@ class ModeloCursos
             $stmt->closeCursor();
 
             $stmt = null;
+
+        } else if ($item == 'count') {
+            /*CONTAR TOTAL DE REGISTROS */
+            $stmt = Conexion::conectar()->prepare("SELECT count(*) as totalCursos FROM $tabla ");
+            $stmt->execute();
+            return $stmt->fetch();
+            $stmt->closeCursor();
+
+            $stmt = null;
         } else {
+
+            /*Traer todos los registros */
             $stmt = Conexion::conectar()->prepare("SELECT * FROM $tabla ORDER BY nombreCurso ASC ");
             //var_dump($stmt);exit;
             $stmt->execute();
