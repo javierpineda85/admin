@@ -1,3 +1,11 @@
+<?php
+
+$_SESSION['id_usuario']="5";
+$usuario = ControladorUsuarios::crtSeleccionarUsuario('idUsuario', $_SESSION['id_usuario']);
+$perfil = ControladorPerfiles::crtSeleccionarPerfil('id_usuario', $_SESSION['id_usuario']);
+
+?>
+
 <!-- Default box -->
 <div class="card">
     <div class="card-header bg-primary">
@@ -28,13 +36,13 @@
                             </div>
                         </div>
                         <!-- Profile Image -->
-                        <div class="card card-primary">
+                        <div class="card card-primary col-12">
                             <div class="card-body box-profile">
                                 <div class="text-center">
                                     <img class="profile-user-img img-fluid img-circle" src="./img/user2-160x160.jpg" alt="User profile picture">
                                 </div>
 
-                                <h3 class="profile-username text-center">Javier Pineda</h3>
+                                <h3 class="profile-username text-center"><?php echo $usuario[0]['nombreUsuario'] ." " . $usuario[0]['apellidoUsuario']?></h3>
                             </div>
 
                             <div class="card card-primary">
@@ -44,20 +52,40 @@
                                     <strong><i class="fas fa-birthday-cake"></i> Fecha de nacimiento</strong>
 
                                     <p class="text-muted">
-                                        17/10/1986
+                                        <?php
+                                        if($perfil != null){
+                                           echo $perfil[0]['fnac']; 
+                                        } else{
+                                            echo "Aun no completaste tu fecha de nacimiento.";
+                                        }
+                                         ?>
                                     </p>
 
                                     <hr>
 
                                     <strong><i class="fas fa-map-marker-alt mr-1"></i> Domicilio</strong>
 
-                                    <p class="text-muted">Av Siempre Viva 742, Springfield</p>
+                                    <p class="text-muted"> 
+                                    <?php
+                                        if($perfil != null){
+                                            echo $perfil[0]['domicilioPerfil']; 
+                                        } else{
+                                            echo "Aun no completaste tu domicilio.";
+                                        }
+                                         ?>
 
                                     <hr>
 
                                     <strong><i class="far fa-file-alt mr-1"></i> Algo mas sobre mi</strong>
 
-                                    <p class="text-muted">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam fermentum enim neque.</p>
+                                    <p class="text-muted"> 
+                                    <?php
+                                        if($perfil != null){
+                                            echo $perfil[0]['contenidoPerfil']; 
+                                        } else{
+                                            echo "Todavia no has escrito nada interesante sobre vos";
+                                        }
+                                         ?>
                                 </div>
                                 <!-- /.card-body -->
                             </div>
@@ -101,8 +129,9 @@
 
                 <div class="card-body">
                     <!-- Start FORM-->
-                    <form class="form-horizontal">
+                    <form class="form-horizontal" enctype="multipart/form-data">
                     <div class="form-group row">
+                            <input type="text" value="<?php echo $_SESSION['id_usuario']; ?>" name="id_usuario"hidden>
                             <label for="inputImgPerfil" class="col-sm-2 col-form-label">Foto de perfil</label>
                             <div class="col-sm-10">
                                 <input type="file" class="form-control" id="inputImgPerfil" placeholder="imgUsuario">
@@ -111,13 +140,13 @@
                         <div class="form-group row">
                             <label for="inputDomicilio" class="col-sm-2 col-form-label">Domicilio</label>
                             <div class="col-sm-10">
-                                <input type="email" class="form-control" id="inputDomicilio" placeholder="domicioPerfil">
+                                <input type="text" class="form-control" id="inputDomicilio" placeholder="domicilioPerfil">
                             </div>
                         </div>
                         <div class="form-group row">
                             <label for="inputFnac" class="col-sm-2 col-form-label">Fecha de nacimiento</label>
                             <div class="col-sm-10">
-                                <input type="date" class="form-control" name="fnacPerfil">
+                                <input type="date" class="form-control" name="fnacPerfil" value="">
                             </div>
                         </div>
 
@@ -132,6 +161,9 @@
                             <div class="offset-sm-2 col-sm-10">
 
                                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                                <?php
+                                    $registro = ControladorPerfiles::crtGuardarPerfil();
+                                ?>
                                 <button type="submit" class="btn btn-success">Guardar Cambios</button>
                             </div>
                         </div>
