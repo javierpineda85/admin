@@ -15,17 +15,19 @@ class ControladorCursos
         exit;
     }
 
-    static public function crtGuardarCurso() {
+    /*GUARDAR CURSO */
+    static public function crtGuardarCurso()
+    {
         if (isset($_POST["nombreCurso"])) {
             $tabla = "cursos";
 
             $datos = array(
-                "nombreCurso" => $_POST["nombreCurso"],
-                "contenidoCurso" => $_POST["contenidoCurso"],
-                "estado" => $_POST["estado"],
-                "fechaInicioCurso" => $_POST["fechaInicioCurso"],
-                "fechaFinCurso" => $_POST["fechaFinCurso"],
-                "horarioCurso" => $_POST["horarioCurso"]
+                "nombreCurso"       => $_POST["nombreCurso"],
+                "contenidoCurso"    => $_POST["contenidoCurso"],
+                "estado"            => $_POST["estado"],
+                "fechaInicioCurso"  => $_POST["fechaInicioCurso"],
+                "fechaFinCurso"     => $_POST["fechaFinCurso"],
+                "horarioCurso"      => $_POST["horarioCurso"]
             );
 
             $respuesta = ModeloCursos::mdlGuardarCurso($tabla, $datos);
@@ -34,4 +36,27 @@ class ControladorCursos
         }
     }
 
+    /*MODIFICAR CURSO */
+    static public function crtModificarCurso()
+    {
+        if (isset($_POST["nombreCurso"])) {
+
+            $tabla = "cursos";
+
+            $datos = array(
+                "idCurso"           => $_POST["idCurso"],
+                "nombreCurso"       => $_POST["nombreCurso"],
+                "contenidoCurso"    => $_POST["contenidoCurso"],
+                "estado"            => $_POST["estado"],
+                "fechaInicioCurso"  => $_POST["fechaInicioCurso"],
+                "fechaFinCurso"     => $_POST["fechaFinCurso"],
+                "horarioCurso"      => $_POST["horarioCurso"]
+            );
+
+            $respuesta = ModeloCursos::mdlModificarCurso($tabla, $datos);
+            $_SESSION['success_message'] = 'Curso modificado exitosamente';
+           return $respuesta;
+            
+        }
+    }
 }

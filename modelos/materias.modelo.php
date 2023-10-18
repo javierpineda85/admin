@@ -28,7 +28,7 @@ class ModeloMaterias
     /*SELECCIONAR O LISTAR MATERIAS */
     static public function mdlSeleccionarMateria($tabla, $item, $valor)
     {
-       
+
         /*Busca una materia especifica? */
         if ($item != null && $valor != null) {
 
@@ -38,7 +38,6 @@ class ModeloMaterias
             return $stmt->fetchAll();
             $stmt->closeCursor();
             $stmt = null;
-
         } else if ($item == 'join') {
 
             /* JOIN con usuarios y cursos */
@@ -48,21 +47,34 @@ class ModeloMaterias
             return $stmt->fetchAll();
             $stmt->closeCursor();
             $stmt = null;
-
-        } else if($item == 'count'){
+        } else if ($item == 'count') {
 
             /*TOTAL de registros */
             $stmt = Conexion::conectar()->prepare("SELECT count(*) as totalMaterias FROM $tabla ");
             $stmt->execute();
             return $stmt->fetchAll();
             $stmt->closeCursor();
-        }else  {
+        } else {
 
             /*Trae todas las materias? */
             $stmt = Conexion::conectar()->prepare("SELECT * FROM $tabla ORDER BY tituloSeccion ");
             $stmt->execute();
             return $stmt->fetchAll();
             $stmt->closeCursor();
+        }
+    }
+    /*SELECCIONAR O LISTAR MATERIAS */
+    static public function mdlBuscarMateriaXcurso($item, $valor)
+    {
+        if ($item == 'join-1-curso') {
+
+            /* JOIN con usuarios y 1 curso en especifico */
+            $stmt = Conexion::conectar()->prepare("SELECT idSeccion, tituloSeccion, contenidoSeccion,id_curso, docente, tutor, cursos.nombreCurso, usuarios.nombreUsuario , usuarios.apellidoUsuario FROM secciones JOIN cursos ON secciones.id_curso = cursos.idCurso JOIN usuarios ON secciones.docente = usuarios.idUsuario WHERE secciones.id_curso= $valor ORDER BY tituloSeccion ASC");
+
+            $stmt->execute();
+            return $stmt->fetchAll();
+            $stmt->closeCursor();
+            $stmt = null;
         }
     }
 }

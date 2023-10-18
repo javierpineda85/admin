@@ -30,12 +30,13 @@ $cursos = ControladorCursos::crtSeleccionarCurso(null, null);
                   <tr>
                     <td> <?php echo $valor['nombreCurso']; ?></td>
                     <td> <?php echo $valor['estado']; ?></td>
-                    <td> <?php echo $valor['fechaInicioCurso']; ?></td>
+                    <td> <?php echo $valor['fInicio']; ?></td>
                     <td> <?php echo $valor['horarioCurso']; ?></td>
-                    <td> <?php echo $valor['fechaFinCurso']; ?></td>
+                    <td> <?php echo $valor['fFin']; ?></td>
                     <td>
                       <div class="row d-flex justify-content-around">
-                        <a href="index.php?ruta=editar-curso&idCurso=<?php echo $valor["idCurso"]; ?>" class="btn btn-success btn-sm"><i class="fas fa-edit"></i></a>
+                      <a href="index.php?r=detalle-curso&c=cursos&idCurso=<?php echo $valor["idCurso"]; ?>" class="btn btn-info btn-sm"><i class="fas fa-eye"></i></a>
+                        
                         <form method="post">
                           <input type="hidden" value="<?php echo $valor["idCurso"]; ?>" name="idEliminar">
                           <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>

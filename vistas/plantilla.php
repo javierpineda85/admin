@@ -1,6 +1,6 @@
 <?php include_once('contenido/head.php');?>
 
-<body class="hold-transition sidebar-mini">
+<body class="hold-transition sidebar-mini sidebar-collapse">
 <!-- Site wrapper -->
 <div class="wrapper">
 
@@ -41,6 +41,7 @@
                     $_GET['r'] == "crear-curso" ||
                     $_GET['r'] == "listado-cursos" ||
                     $_GET['r'] == "editar-curso" ||
+                    $_GET['r'] == "detalle-curso" ||
                     $_GET['r'] == "listado-materias" ||
                     $_GET['r'] == "crear-materia" ||
                     $_GET['r'] == "perfil-usuario" ||
