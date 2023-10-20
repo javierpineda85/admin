@@ -44,7 +44,7 @@
             
           </li>
           <li class="nav-item"> <!-- perfil -->
-            <a href="../widgets.html" class="nav-link">
+            <a href="" class="nav-link">
               
               <i class="nav-icon fas fa-user text-info"></i>
               <p>
@@ -151,7 +151,7 @@
                 </a>
               </li>
               <li class="nav-item">
-                <a href="index.php?r=nuevo-mensaje&c=mensajes" class="nav-link">
+                <a href="index.php?r=nuevo-mensaje&c=mensajes&t=" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Nuevo mensaje</p>
                 </a>
