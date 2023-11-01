@@ -13,6 +13,16 @@ class ModeloMensajes
 
         $stmt = null;
     }
+    static public function mdlMostrarMensajesEnviados($item, $valor){
+
+
+        $stmt = Conexion::conectar()->prepare("SELECT idMensaje, id_remitente, id_destinatario,contenidoMensaje, DATE_FORMAT(fechaMensaje, '%d/%m/%Y') AS fMensaje, DATE_FORMAT(fechaMensaje, '%H:%i') AS horaMensaje, nombreUsuario, apellidoUsuario FROM mensajes JOIN usuarios ON id_destinatario = usuarios.idUsuario WHERE $item = $valor ORDER BY fechaMensaje DESC");
+        $stmt->execute();
+        return $stmt->fetchAll();
+        $stmt->closeCursor();
+
+        $stmt = null;
+    }
     static public function mdlMostrarUnMensaje($id){
 
 
@@ -25,6 +35,7 @@ class ModeloMensajes
     }
 
     static public function mdlGuardarMensaje($datos){
+                /* HOLA LEANDRO*/
                 
         $registro = Conexion::conectar()->prepare("INSERT INTO mensajes (id_remitente, id_destinatario, contenidoMensaje, fechaMensaje) VALUES (:id_remitente, :id_destinatario, :contenidoMensaje, :fechaMensaje)");
 

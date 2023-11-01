@@ -9,6 +9,13 @@ class ControladorMensajes
 
         exit;
     }
+
+    static public function crtMostrarMensajesEnviados($item, $valor){
+        $respuesta = ModeloMensajes::mdlMostrarMensajesEnviados($item, $valor);
+        return $respuesta;
+
+        exit;
+    }
     static public function crtMostrarUnMensaje($id){
         $respuesta = ModeloMensajes::mdlMostrarUnMensaje($id);
         return $respuesta;

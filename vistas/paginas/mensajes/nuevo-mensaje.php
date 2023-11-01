@@ -54,13 +54,13 @@ if (isset($_GET['t'])) {
                             <div class="card-body p-0">
                                 <ul class="nav nav-pills flex-column">
                                     <li class="nav-item active">
-                                        <a href="#" class="nav-link">
+                                        <a href="index.php?r=bandeja-entrada&c=mensajes" class="nav-link">
                                             <i class="fas fa-inbox"></i> Bandeja de entrada
                                             <span class="badge bg-primary float-right">12</span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
-                                        <a href="#" class="nav-link">
+                                        <a href="index.php?r=mensajes-enviados&c=mensajes" class="nav-link">
                                             <i class="far fa-envelope"></i> Enviados
                                         </a>
                                     </li>

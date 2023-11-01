@@ -1,6 +1,6 @@
 <?php
 
-$mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $_SESSION['id_usuario']);
+$mensajes = ControladorMensajes::crtMostrarMensajesEnviados('id_remitente', $_SESSION['id_usuario']);
 
 ?>
 
@@ -63,7 +63,7 @@ $mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $_SESSION
           <div class="col-md-9">
             <div class="card card-primary card-outline">
               <div class="card-header">
-                <h3 class="card-title">Bandeja de entrada</h3>
+                <h3 class="card-title">Mensajes enviados</h3>
 
                 <div class="card-tools">
                   <div class="input-group input-group-sm">
@@ -101,7 +101,7 @@ $mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $_SESSION
                             <label for="check1"></label>
                           </div>
                         </td>
-                        <td class="mailbox-name">De: <a href="index.php?r=nuevo-mensaje&c=mensajes&idMsj=<?php echo $valor['idMensaje'] ?>&t=reply"><?php echo $valor['nombreUsuario'] . " " . $valor['apellidoUsuario'];  ?></a></td>
+                        <td class="mailbox-name">Para: <a href="index.php?r=nuevo-mensaje&c=mensajes&idMsj=<?php echo $valor['idMensaje'] ?>&t=reply"><?php echo $valor['nombreUsuario'] . " " . $valor['apellidoUsuario'];  ?></a></td>
                         <td class="mailbox-subject"> <?php echo $valor['contenidoMensaje'] ?></td>
                         <td class="mailbox-date"><?php echo $valor['fMensaje'] ?></td>
                         <td class="mailbox-date"><?php echo $valor['horaMensaje'] ?></td>
