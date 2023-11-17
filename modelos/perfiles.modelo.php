@@ -4,12 +4,13 @@ require_once('conexion.php');
 class ModeloPerfiles
 {
     /*GUARDA UN PERFIL */
-    static public function mdlGuardarPerfil($datos)
+    static public function mdlEditarPerfil($datos)
     {
-        $registro = Conexion::conectar()->prepare("INSERT INTO perfiles (id_usuario, fnacPerfil, domicilioPerfil, contenidoPerfil) VALUES (:id_usuario, :fnacPerfil, :domicilioPerfil, :contenidoPerfil)");
+        
+        $registro = Conexion::conectar()->prepare("UPDATE perfiles SET fnacPerfil = :fnacPerfil, domicilioPerfil = :domicilioPerfil, contenidoPerfil = :contenidoPerfil WHERE id_usuario= :id_usuario");
 
         $registro->bindParam(":id_usuario", $datos["id_usuario"], PDO::PARAM_INT);
-        $registro->bindParam(":fnacPefil", $datos["fnacPefil"], PDO::PARAM_STR);
+        $registro->bindParam(":fnacPerfil", $datos["fnacPerfil"], PDO::PARAM_STR);
         $registro->bindParam(":domicilioPerfil", $datos["domicilioPerfil"], PDO::PARAM_STR);
         $registro->bindParam(":contenidoPerfil", $datos["contenidoPerfil"], PDO::PARAM_STR);
 

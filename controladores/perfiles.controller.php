@@ -4,18 +4,20 @@ require_once('modelos/perfiles.modelo.php');
 class ControladorPerfiles
 {
 
-    static public function crtGuardarPerfil()
+    static public function crtEditarPerfil()
     {
+       
         if (isset($_POST["id_usuario"])) {
 
             $datos = array(
-                "fnac" => $_POST["fnac"],
+                "idUsuario" => $_POST["id_usuario"],
+                "fnac" => $_POST["fnacPerfil"],
                 "domicilioPerfil" => $_POST["domicilioPerfil"],
                 "contenidoPerfil" => $_POST["contenidoPerfil"]
             );
-var_dump($datos);
-            $respuesta = ModeloPerfiles::mdlGuardarPerfil($datos);
-            $_SESSION['success_message'] = 'Usuario creado exitosamente';
+
+            $respuesta = ModeloPerfiles::mdlEditarPerfil($datos);
+            $_SESSION['success_message'] = 'Perfil actualizado exitosamente';
             return $respuesta;
         }
     }
