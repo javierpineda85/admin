@@ -54,7 +54,7 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="index.php?r=perfil-usuario&c=usuario" class="nav-link">
+                <a href="index.php?r=perfil-usuario" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Mi perfil</p>
                   
@@ -72,13 +72,13 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="index.php?r=listado-usuarios&c=usuario" class="nav-link">
+                <a href="index.php?r=listado-usuarios" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Ver todos</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="index.php?r=crear-usuario&c=usuario" class="nav-link">
+                <a href="index.php?r=crear-usuario" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Crear</p>
                 </a>
@@ -96,13 +96,13 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="index.php?r=listado-cursos&c=cursos" class="nav-link">
+                <a href="index.php?r=listado-cursos" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Ver todos</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="index.php?r=crear-curso&c=cursos" class="nav-link">
+                <a href="index.php?r=crear-curso" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Agregar</p>
                 </a>
@@ -121,13 +121,13 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="index.php?r=listado-materias&c=materias" class="nav-link">
+                <a href="index.php?r=listado-materias" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Ver todas</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="index.php?r=crear-materia&c=materias" class="nav-link">
+                <a href="index.php?r=crear-materia" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Crear</p>
                 </a>
@@ -144,14 +144,14 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="index.php?r=bandeja-entrada&c=mensajes" class="nav-link">
+                <a href="index.php?r=bandeja-entrada" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Bandeja de entrada</p>
                   <span class="badge badge-info right">6</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="index.php?r=nuevo-mensaje&c=mensajes&t=" class="nav-link">
+                <a href="index.php?r=nuevo-mensaje&t=" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Nuevo mensaje</p>
                 </a>
