@@ -34,7 +34,7 @@ $usuarios = ControladorUsuarios::crtSeleccionarUsuario(null, null);
                     <td> <?php echo $valor['rol']; ?></td>
                     <td>
                       <div class="row d-flex justify-content-around">
-                        <a href="index.php?ruta=editar-usuario&idVisitas=<?php echo $valor["idUsuario"]; ?>" class="btn btn-success btn-sm"><i class="fas fa-edit"></i></a>
+                        <a href="index.php?r=editar-usuario&id=<?php echo $valor["idUsuario"]; ?>" class="btn btn-success btn-sm"><i class="fas fa-edit"></i></a>
                         <form method="post">
                           <input type="hidden" value="<?php echo $valor["idUsuario"]; ?>" name="idEliminar">
                           <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
