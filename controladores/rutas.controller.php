@@ -4,10 +4,11 @@
         public static function cargarVista(){ // se crea el array de rutas para poder escalar el proyecto
 
          $mapeo = [
-            //usuario
+            //usuario - perfil
             "crear-usuario" => "usuario/crear-usuario.php",
             "listado-usuarios" => "usuario/listado-usuarios.php",
             "perfil-usuario" => "usuario/perfil-usuario.php",
+            "editar-usuario" => "usuario/editar-usuario.php",
             //cursos
             "crear-curso" => "cursos/crear-curso.php",
             "listado-cursos" => "cursos/listado-cursos.php",
