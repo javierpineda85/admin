@@ -15,22 +15,10 @@
 
     <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper">
-      <!-- Content Header (Page header) -->
-      <section class="content-header">
-        <div class="container-fluid">
-          <div class="row mb-2">
-            <div class="col-sm-6">
-              <h1></h1>
-            </div>
-            <div class="col-sm-6">
 
-            </div>
-          </div>
-        </div><!-- /.container-fluid -->
-      </section>
 
       <!-- Main content -->
-      <section class="content">
+      <section class="content mt-2">
 
         <!--AQUI VAN LAS VISTAS DEPENDIENDO DE LA RUTA -->
         <?php
@@ -47,14 +35,7 @@
       <?php include_once('contenido/footer.php'); ?>
     </footer>
 
-    <!-- Control Sidebar -->
-    <aside class="control-sidebar control-sidebar-dark">
-      <!-- Control sidebar content goes here -->
-    </aside>
-    <!-- /.control-sidebar -->
-  </div>
-  <!-- ./wrapper -->
-
+    
   <!-- scripts -->
   <?php include_once('contenido/scripts.php'); ?>
 
