@@ -31,7 +31,8 @@
               </div>
               <div class="form-group col-sm-12 col-md-2">
                 <label class="form-label">DNI</label>
-                <input type="text" class="form-control" placeholder="12345678" name="dniPerfil">
+                <input type="text" class="form-control" placeholder="12345678" name="dniPerfil" id="inputDNI" maxlength="8">
+                <small id="caracteresRestantes" class="form-text text-muted">Caracteres restantes: 8</small>
               </div>
               <div class="form-group col-sm-12 col-md-2">
                 <label class="form-label">Fecha Nac</label>
@@ -44,7 +45,8 @@
               </div>
               <div class="form-group col-sm-12 col-md-3">
                 <label class="form-label">Contraseña</label>
-                <input type="password" class="form-control" placeholder="Ingresá el DNI como contraseña" name="pass">
+                <input type="password" class="form-control" placeholder="Ingresá el DNI como contraseña" name="pass" id="inputPass" readonly>
+                
               </div>
 
 
