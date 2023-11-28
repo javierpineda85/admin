@@ -3,39 +3,8 @@ require_once('conexion.php');
 
 class ModeloCursos
 {
-    /*SELECCIONAR CURSO */
-    static public function mdlSeleccionarCursos($tabla, $item, $valor)
-    {
-
-        if ($item != null && $valor != null) {
-            /*Traer un solo item */
-
-            $stmt = Conexion::conectar()->prepare("SELECT * FROM $tabla WHERE $item = '$valor' ");
-            //var_dump($stmt);exit;
-            $stmt->execute();
-            return $stmt->fetch();
-            $stmt->closeCursor();
-
-            $stmt = null;
-
-        } else if ($item == 'count') {
-            /*CONTAR TOTAL DE REGISTROS */
-            $stmt = Conexion::conectar()->prepare("SELECT count(*) as totalCursos FROM $tabla ");
-            $stmt->execute();
-            return $stmt->fetch();
-            $stmt->closeCursor();
-
-            $stmt = null;
-        } else {
-
-            /*Traer todos los registros */
-            $stmt = Conexion::conectar()->prepare("SELECT *,DATE_FORMAT(fechaInicioCurso, '%d/%m/%Y') AS fInicio, DATE_FORMAT(fechaFinCurso, '%d/%m/%Y') AS fFin FROM $tabla ORDER BY nombreCurso ASC ");
-            //var_dump($stmt);exit;
-            $stmt->execute();
-            return $stmt->fetchAll();
-            $stmt->closeCursor();
-        }
-    }
+ 
+    
 
     /* GUARDAR CURSO */
     static public function mdlGuardarCurso($tabla, $datos)

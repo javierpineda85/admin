@@ -1,5 +1,8 @@
 <?php
-$materias = ControladorMaterias::crtSeleccionarMateria('join', null);
+
+$db= new Conexion;
+$sql = "SELECT idSeccion, tituloSeccion, contenidoSeccion,id_curso, docente, tutor, cursos.nombreCurso, usuarios.nombreUsuario , usuarios.apellidoUsuario FROM secciones JOIN cursos ON secciones.id_curso = cursos.idCurso JOIN usuarios ON secciones.docente = usuarios.idUsuario  ORDER BY tituloSeccion ASC";
+$materias = $db->consultas($sql);
 
 ?>
 <!-- Main content -->
@@ -14,7 +17,7 @@ $materias = ControladorMaterias::crtSeleccionarMateria('join', null);
           </div>
           <!-- /.card-header -->
           <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="example1" class="table table-bordered table-striped table-sm">
               <thead>
                 <tr>
                   <th style="text-align: center;">Materia</th>

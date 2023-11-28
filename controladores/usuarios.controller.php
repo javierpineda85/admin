@@ -70,14 +70,5 @@ class ControladorUsuarios
         }
     }
 
-    /*LISTADO USUARIO */
-    static public function crtSeleccionarUsuario($item, $valor)
-    {
 
-        $tabla = "usuarios";
-        $respuesta = ModeloUsuarios::mdlSeleccionarUsuario($tabla, $item, $valor);
-        return $respuesta;
-
-        exit;
-    }
 }

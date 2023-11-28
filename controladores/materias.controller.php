@@ -23,17 +23,6 @@ class ControladorMaterias
         }
     }
 
-    static public function crtSeleccionarMateria($item, $valor)
-    {
-        $tabla = "secciones";
-        //$item = 'join';
-        $valor = NULL;
-
-        $respuesta = ModeloMaterias::mdlSeleccionarmateria($tabla, $item, $valor);
-        return $respuesta;
-
-        exit;
-    }
     static public function crtBuscarMateriaXcurso($item, $valor)
     {
 

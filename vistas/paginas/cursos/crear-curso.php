@@ -107,18 +107,13 @@
                        </div>
                    </section>
                    <!-- /.content -->
+
+                   <!-- /.content-wrapper -->
+                   <!-- /.card-footer -->
+               </form>
            </div>
-           <!-- /.content-wrapper -->
-           <!-- /.card-footer -->
-           </form>
-       </div>
-       <!-- /.card -->
-       </form>
-       </div>
-       <!-- /.card-body -->
+
+           <!-- /.card-body -->
 
        </div>
        <!-- /.card -->
-
-       </section>
-       <!-- /.content -->

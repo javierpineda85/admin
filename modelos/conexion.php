@@ -1,5 +1,10 @@
 <?php
 class Conexion {
+    private $conexion;
+    
+    public 	function __construct() {
+		$this->conexion = $this->conectar();
+	}
     static public function conectar() {
         try {
             // Declaramos los parámetros de conexión
@@ -20,6 +25,20 @@ class Conexion {
             return null;
         }
     }
+
+    //Funcion para listado en general
+    public function consultas($query) {
+        try {
+            $stmt = $this->conexion->query($query);
+            $resultset = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $resultset;
+        } catch (PDOException $e) {
+            // Manejar la excepción aquí según tus necesidades
+            echo "Error: " . $e->getMessage();
+            return null;
+        }
+    }
+    
 }
 
 ?>

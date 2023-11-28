@@ -1,5 +1,8 @@
 <?php
-$cursos = ControladorCursos::crtSeleccionarCurso(null, null);
+
+$db= new Conexion;
+$sql = "SELECT *,DATE_FORMAT(fechaInicioCurso, '%d/%m/%Y') AS fInicio, DATE_FORMAT(fechaFinCurso, '%d/%m/%Y') AS fFin FROM cursos ORDER BY nombreCurso ASC ";
+$cursos = $db->consultas($sql);
 
 ?>
 <!-- Main content -->

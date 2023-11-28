@@ -1,33 +1,31 @@
 <?php
-$curso = ControladorCursos::crtSeleccionarCurso('idCurso', $_GET['idCurso']);
-$materias = ControladorMaterias::crtBuscarMateriaXcurso('join-1-curso', $_GET['idCurso']);
-//$url = "index.php?r=".$_GET['r']."&c=". $_GET['c']."&idCurso=".$_GET['idCurso'];
-//buscar estudiantes  en asignacion curso
 
+$db= new Conexion;
+$sql = "SELECT * FROM cursos WHERE idCurso =". $_GET['idCurso'];
+$curso = $db->consultas($sql);
+
+$db= new Conexion;
+$sql = "SELECT idSeccion, tituloSeccion, contenidoSeccion,id_curso, docente, tutor, cursos.nombreCurso, usuarios.nombreUsuario , usuarios.apellidoUsuario FROM secciones JOIN cursos ON secciones.id_curso = cursos.idCurso JOIN usuarios ON secciones.docente = usuarios.idUsuario WHERE secciones.id_curso = " .$_GET['idCurso']. " ORDER BY tituloSeccion ASC";
+$materias = $db->consultas($sql);
+
+
+$db= new Conexion;
+$sql = "SELECT * FROM usuarios WHERE rol = 'ESTUDIANTE'" ;
+$estudiantes = $db->consultas($sql);
 ?>
 
+
 <!-- Detalle box -->
-<div class="card col-12">
-    <!-- header box -->
-    <div class="card-header">
-        <h3 class="card-title">Detalle de curso: <b> <?php echo $curso['nombreCurso']; ?></b> </h3>
 
-        <div class="card-tools">
-            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                <i class="fas fa-minus"></i>
-            </button>
-
-        </div>
-    </div>
     <div class="row">
-        <div class="card-body col-lg-6 col-md-12">
+        <div class="card-body col-12">
             <!-- Seccion general -->
             <section class="content">
                 <div class="row">
                     <div class="col-12">
                         <div class="card card-primary">
-                            <div class="card-header">
-                                <h3 class="card-title">General</h3>
+                            <div class="card-header bg-secondary">
+                                <h3 class="card-title">General del curso: <b> <?php echo $curso[0]['nombreCurso']; ?></b></h3>
 
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
@@ -38,52 +36,49 @@ $materias = ControladorMaterias::crtBuscarMateriaXcurso('join-1-curso', $_GET['i
                             <div class="card-body">
                                 <form action="" method="post">
                                     <div class="row">
-                                        <div class="form-group col-md-6 col-sm-12">
+                                        <div class="form-group col-md-2 col-sm-12">
                                             <input type="text" name="idCurso" value="<?php echo $_GET['idCurso']; ?>" hidden>
+
                                             <label for="inputName">Nombre del Curso</label>
-                                            <input type="text" class="form-control" name="nombreCurso" value="<?php echo $curso['nombreCurso']; ?>">
+                                            <input type="text" class="form-control form-control-sm" name="nombreCurso" value="<?php echo $curso[0]['nombreCurso']; ?>">
                                         </div>
-                                        <div class="form-group col-md-6 col-sm-12">
+                                        <div class="form-group col-md-2 col-sm-12">
                                             <label for="inputStatus">Estado</label>
-                                            <select id="inputStatus" class="form-control custom-select" name="estado">
-                                                <option value="<?php echo $curso['estado']; ?>" selected><?php echo $curso['estado']; ?></option>
+                                            <select id="inputStatus" class="form-control form-control-sm" name="estado">
+                                                <option value="<?php echo $curso[0]['estado']; ?>" selected><?php echo $curso[0]['estado']; ?></option>
                                                 <option value="En Curso">En curso</option>
                                                 <option value="Programado">Programado</option>
                                                 <option value="Cancelado">Cancelado</option>
                                                 <option value="Finalizado">Finalizado</option>
                                             </select>
                                         </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="form-group col-md-12 ">
+                                        <div class="form-group col-md-2 col-sm-12">
                                             <label for="inputDescription">Descripción</label>
-                                            <textarea id="inputDescription" class="form-control" rows="4" name="contenidoCurso" placeholder="Descripción no ingresada"><?php echo $curso['contenidoCurso']; ?></textarea>
+                                            <textarea id="inputDescription" class="form-control form-control-sm" rows="1" name="contenidoCurso" placeholder="Descripción no ingresada"><?php echo $curso[0]['contenidoCurso']; ?></textarea>
                                         </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="form-group col-md-4 col-sm-12">
+
+                                        <div class="form-group col-md-2 col-sm-12">
                                             <label for="inputEstimatedBudget">Inicio:</label>
-                                            <input type="date" id="inputEstimatedBudget" class="form-control" name="fechaInicioCurso" value="<?php echo $curso['fechaInicioCurso']; ?>">
+                                            <input type="date" id="inputEstimatedBudget" class="form-control form-control-sm" name="fechaInicioCurso" value="<?php echo $curso[0]['fechaInicioCurso']; ?>">
                                         </div>
-                                        <div class="form-group col-md-4 col-sm-12">
+                                        <div class="form-group col-md-2 col-sm-12">
                                             <label for="inputSpentBudget">Finaliza:</label>
-                                            <input type="date" id="inputSpentBudget" class="form-control" name="fechaFinCurso" value="<?php echo $curso['fechaFinCurso']; ?>">
+                                            <input type="date" id="inputSpentBudget" class="form-control form-control-sm" name="fechaFinCurso" value="<?php echo $curso[0]['fechaFinCurso']; ?>">
                                         </div>
-                                        <div class="form-group col-md-4 col-sm-12">
-                                            <label for="inputEstimatedDuration">Horario cursado</label>
-                                            <input type="time" id="inputEstimatedDuration" class="form-control" name="horarioCurso" value="<?php echo $curso['horarioCurso']; ?>">
+                                        <div class="form-group col-md-1 col-sm-12">
+                                            <label for="inputEstimatedDuration">Horario:</label>
+                                            <input type="time" id="inputEstimatedDuration" class="form-control form-control-sm" name="horarioCurso" value="<?php echo $curso[0]['horarioCurso']; ?>">
                                         </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-3">
-                                            <?php 
-                                            $editar = ControladorCursos::crtModificarCurso();  
-                                                           
+
+                                        <div class="form-group col-1 mt-4">
+                                            <?php
+                                            $editar = ControladorCursos::crtModificarCurso();
+
                                             ?>
-                                            <button class="btn btn-success" >Modificar</button>
+                                            <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-edit"></i></button>
                                         </div>
-                                        <div class="col-9">
-                                            
+                                        <div class="col-12">
+
                                             <?php
                                             if (isset($_SESSION['success_message'])) {
                                                 echo '<div class="alert alert-success alert-dismissible">
@@ -112,12 +107,12 @@ $materias = ControladorMaterias::crtBuscarMateriaXcurso('join-1-curso', $_GET['i
             <!-- /.content -->
         </div>
 
-        <div class="card-body col-lg-6 col-md-12">
-            <!-- Listado estudiantes -->
+        <div class="card-body col-12">
+            <!-- Materias pertenecientes al curso -->
             <section class="content">
                 <div class="row">
                     <div class="col-12">
-                        <div class="card card-primary">
+                        <div class="card card-info">
                             <div class="card-header">
                                 <h3 class="card-title">Materias pertenecientes al curso</h3>
 
@@ -128,7 +123,7 @@ $materias = ControladorMaterias::crtBuscarMateriaXcurso('join-1-curso', $_GET['i
                                 </div>
                             </div>
                             <div class="card-body">
-                                <table id="example1" class="table table-bordered table-striped">
+                                <table id="example2" class="table table-bordered table-striped table-sm">
                                     <thead>
                                         <tr>
                                             <th style="text-align: center;">Materia</th>
@@ -138,41 +133,34 @@ $materias = ControladorMaterias::crtBuscarMateriaXcurso('join-1-curso', $_GET['i
                                         </tr>
                                     </thead>
                                     <tbody>
-                                           <?php foreach ($materias as $campo => $valor) : ?>
-                                               <tr>
-                                                   <td> <?php echo $valor['tituloSeccion']; ?></td>
-                                                   <td> <?php echo $valor['contenidoSeccion']; ?></td>
-                                                   <td> <?php echo $valor['nombreUsuario']. " " . $valor['apellidoUsuario']; ?> </td>
+                                        <?php foreach ($materias as $campo => $valor) : ?>
+                                            <tr>
+                                                <td> <?php echo $valor['tituloSeccion']; ?></td>
+                                                <td> <?php echo $valor['contenidoSeccion']; ?></td>
+                                                <td> <?php echo $valor['nombreUsuario'] . " " . $valor['apellidoUsuario']; ?> </td>
 
-                                                   <td>
-                                                       <div class="row d-flex justify-content-around">
-                                                           <a href="#" class="btn btn-success btn-sm"><i class="fas fa-edit"></i></a>
-                                                           <form method="post">
-                                                               <input type="hidden" value="" name="idEliminar">
-                                                               <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
-                                                               <?php
+                                                <td>
+                                                    <div class="row d-flex justify-content-around">
+                                                        <a href="#" class="btn btn-success btn-sm"><i class="fas fa-edit"></i></a>
+                                                        <form method="post">
+                                                            <input type="hidden" value="" name="idEliminar">
+                                                            <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
+                                                            <?php
 
-                                                                /* $eliminar = new ControladorFormularios();
+                                                            /* $eliminar = new ControladorFormularios();
                                             $eliminar->ctrEliminarVisita();*/
 
-                                                                ?>
+                                                            ?>
 
-                                                           </form>
-                                                       </div>
-                                                   </td>
-                                               </tr>
-                                           <?php endforeach ?>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach ?>
 
 
                                     </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <th style="text-align: center;">Materia</th>
-                                            <th style="text-align: center;">Descripcion</th>
-                                            <th style="text-align: center;">Docente</th>
-                                            <th style="text-align: center;">Acciones</th>
-                                        </tr>
-                                    </tfoot>
+
                                 </table>
 
                             </div>
@@ -188,63 +176,55 @@ $materias = ControladorMaterias::crtBuscarMateriaXcurso('join-1-curso', $_GET['i
             <!-- /.content -->
         </div>
     </div>
-</div>
+    <div class="row">
+        <div class="card-body col-lg-12 col-md-12">
+            <!-- Estudiantes inscriptos al curso -->
+            <section class="content">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-info">
+                            <div class="card-header">
+                                <h3 class="card-title">Estudiantes Inscriptos al curso</h3>
 
-<!-- Modal -->
-<div class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">Agregar estudiantes al curso</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="card card-default">
-
-                    <!-- /.card-header -->
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="form-group">
-                                    <label>Multiple</label>
-                                    <select class="duallistbox" multiple="multiple">
-                                        <option selected>Alabama</option>
-                                        <option>Alaska</option>
-                                        <option>California</option>
-                                        <option>Delaware</option>
-                                        <option>Tennessee</option>
-                                        <option>Texas</option>
-                                        <option>Washington</option>
-                                    </select>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
                                 </div>
-                                <!-- /.form-group -->
                             </div>
-                            <!-- /.col -->
+                            <div class="card-body">
+                                <table id="example1" class="table table-bordered table-striped table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align: center;">Apellido y Nombre</th>
+                                            <th style="text-align: center;">DNI</th>
+                                            <th style="text-align: center;">Email</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($estudiantes as $campo => $valor) : ?>
+                                            <tr>
+                                                <td> <?php echo $valor['apellidoUsuario'] . " " . $valor['nombreUsuario']; ?> </td>
+                                                <td> <?php echo $valor['idUsuario']; ?> </td>
+                                                <td> <?php echo $valor['email']; ?> </td>
+
+                                            </tr>
+                                        <?php endforeach ?>
+
+
+                                    </tbody>
+                                </table>
+
+                            </div>
+                            <!-- /.card-body -->
+
+
                         </div>
-                        <!-- /.row -->
+                        <!-- /.card -->
                     </div>
-                    <!-- /.card-body -->
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary">Guardar</button>
-            </div>
+
+            </section>
+            <!-- /.content -->
         </div>
     </div>
-</div>
-
-<script>
-function actualizar(){
-   location.reload();
-  
-}
-   
-    $(function() {
-        //Bootstrap Duallistbox
-        $('.duallistbox').bootstrapDualListbox(2)
-    });
-
-</script>

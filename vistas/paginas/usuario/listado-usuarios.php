@@ -1,5 +1,8 @@
 <?php
-$usuarios = ControladorUsuarios::crtSeleccionarUsuario(null, null);
+
+$db= new Conexion;
+$sql = "SELECT * FROM usuarios ORDER BY rol ";
+$usuarios = $db->consultas($sql);
 
 ?>
 
@@ -15,7 +18,7 @@ $usuarios = ControladorUsuarios::crtSeleccionarUsuario(null, null);
           </div>
           <!-- /.card-header -->
           <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped">
+            <table id="example1" class="table table-bordered table-striped table-sm">
               <thead>
                 <tr>
                   <th style="text-align: center;">Apellido</th>

@@ -4,16 +4,7 @@ require_once('modelos/cursos.modelo.php');
 class ControladorCursos
 {
 
-    /*LISTADO USUARIO */
-    static public function crtSeleccionarCurso($item, $valor)
-    {
 
-        $tabla = "cursos";
-        $respuesta = ModeloCursos::mdlSeleccionarCursos($tabla, $item, $valor);
-        return $respuesta;
-
-        exit;
-    }
 
     /*GUARDAR CURSO */
     static public function crtGuardarCurso()

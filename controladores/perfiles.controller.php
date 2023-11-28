@@ -6,7 +6,7 @@ class ControladorPerfiles
 
     static public function crtEditarPerfil()
     {
-       
+      
         if (isset($_POST["id_usuario"])) {
 
             $datos = array(

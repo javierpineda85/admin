@@ -1,8 +1,15 @@
  <?php
-  $cursos = ControladorCursos::crtSeleccionarCurso('count', null);
-  $usuarios = ControladorUsuarios::crtSeleccionarUsuario('count', null);
-  $materias = ControladorMaterias::crtSeleccionarMateria('count', null);
+ $db= new Conexion;
+ $sql = "SELECT count(*) as totalUsuarios FROM usuarios";
+ $usuarios = $db->consultas($sql);
 
+ $db= new Conexion;
+ $sql = "SELECT count(*) as totalCursos FROM cursos";
+ $cursos= $db->consultas($sql);
+
+ $db= new Conexion;
+ $sql = "SELECT count(*) as totalMaterias FROM secciones";
+ $materias = $db->consultas($sql);
 
   ?>
 
@@ -27,7 +34,7 @@
            <span class="info-box-icon bg-primary"><i class="far fa-copy"></i></span>
 
            <div class="info-box-content">
-             <h3 class="info-box-text"><?php echo $cursos['totalCursos']; ?></h3>
+             <h5 class="info-box-text"><?php echo $cursos[0]['totalCursos']; ?></h5>
              <span class="info-box-number">Cursos creados</span>
            </div>
            <!-- /.info-box-content -->
@@ -40,7 +47,7 @@
            <span class="info-box-icon bg-success"><i class="nav-icon fas fa-book-open"></i></span>
 
            <div class="info-box-content">
-             <h3 class="info-box-text"><?php echo $materias[0]['totalMaterias']; ?></h3>
+             <h5 class="info-box-text"><?php echo $materias[0]['totalMaterias']; ?></h5>
              <span class="info-box-number">Materias creadas</span>
            </div>
            <!-- /.info-box-content -->
@@ -54,7 +61,7 @@
            <span class="info-box-icon bg-success"><i class="fas fa-users"></i></span>
 
            <div class="info-box-content">
-             <h3 class="info-box-text"><?php echo $usuarios[0]['totalUsuarios']; ?></h3>
+             <h5 class="info-box-text"><?php echo $usuarios[0]['totalUsuarios']; ?></h5>
              <span class="info-box-number">Usuarios</span>
            </div>
            <!-- /.info-box-content -->
@@ -67,7 +74,7 @@
            <span class="info-box-icon bg-warning"><i class="fas fa-eye"></i></span>
 
            <div class="info-box-content">
-             <h3 class="info-box-text">65</h3>
+             <h5 class="info-box-text">65</h5>
              <span class="info-box-number">Visitas</span>
            </div>
          </div>
