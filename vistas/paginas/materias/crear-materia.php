@@ -1,8 +1,12 @@
 <?php
-$cursos = ControladorCursos::crtSeleccionarCurso(null, null);
-$usuarios = ControladorUsuarios::crtSeleccionarUsuario('rol', 'DOCENTE');
+$db= new Conexion;
+$sql = "SELECT * FROM cursos";
+$cursos = $db->consultas($sql);
 
 
+$db= new Conexion;
+$sql = "SELECT * FROM usuarios WHERE rol = 'DOCENTE'" ;
+$usuarios = $db->consultas($sql);
 ?>
 
 <!-- Default box -->
