@@ -35,10 +35,10 @@ class ControladorUsuarios
                 ModeloUsuarios::mdlGuardarUsuario($tabla, $datosUsuario);
 
                 // Obtener el ID del usuario dentro de la misma transacción
-                
+
                 $idUsuario = Conexion::conectar()->prepare("SELECT MAX(idUsuario) as maxId FROM usuarios");
-                $idUsuario ->execute();
-                $id=$idUsuario->fetch(PDO::FETCH_ASSOC);
+                $idUsuario->execute();
+                $id = $idUsuario->fetch(PDO::FETCH_ASSOC);
                 // Guardar el perfil
                 $tabla = "perfiles";
                 $datosPerfil = array(
@@ -69,6 +69,33 @@ class ControladorUsuarios
             }
         }
     }
+
+    /*MODIFICAR USUARIO */
+    static public function crtModificarUsuario(){
+
+        if (isset($_POST["nombreUsuario"])) {
+            
+            $tabla = "usuarios";
+            $datos = array(
+                "idUsuario"        => $_POST["idUsuario"],
+                "nombreUsuario"    => $_POST["nombreUsuario"],
+                "apellidoUsuario"  => $_POST["apellidoUsuario"],
+                "emailUsuario"     => $_POST["emailUsuario"],
+                "rol"              => $_POST["rol"]
+            );
+    
+            // Validar si el campo de contraseña está presente y no está vacío
+            if (isset($_POST["passUsuario"]) && !empty($_POST["passUsuario"])) {
+                // Si la contraseña está presente y no está vacía, agregamos el campo a los datos
+                $datos["passUsuario"] = $_POST["passUsuario"];
+            }
+    
+            $respuesta = ModeloUsuarios::mdlModificarUsuario($tabla, $datos);
+            $_SESSION['success_message'] = 'Usuario modificado exitosamente';
+            return $respuesta;
+        }
+    }
+    
 
 
 }

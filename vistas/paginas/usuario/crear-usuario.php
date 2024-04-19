@@ -85,7 +85,7 @@
 
               <input type="submit" class="btn btn-success" value="Registrar">
 
-              
+            
               <?php
               if (isset($_SESSION['success_message'])) {
                 echo '<div class="alert alert-success alert-dismissible">
