@@ -1,13 +1,15 @@
 <?php
 
-$_SESSION['id_usuario'] = "5";
+$_SESSION['id_usuario'] = "65";
 
-$db= new Conexion;
-$sql = "SELECT * FROM usuarios WHERE idUsuarios =" .$_SESSION['id_usuario'];
+$db = new Conexion;
+$sql = "SELECT * FROM usuarios WHERE idUsuario =" . $_SESSION['id_usuario'];
 $usuario = $db->consultas($sql);
 
-$perfil = ControladorPerfiles::crtSeleccionarPerfil('id_usuario', $_SESSION['id_usuario']);
-$fnac = $perfil[0]['fnacPerfil'];
+$deb = new Conexion;
+$sql = "SELECT *,DATE_FORMAT(fnacPerfil, '%d/%m/%Y') AS fnac FROM perfiles WHERE id_usuario =" . $_SESSION['id_usuario'];
+$perfil = $db->consultas($sql);
+
 ?>
 
 <!-- Default box -->
@@ -131,38 +133,20 @@ $fnac = $perfil[0]['fnacPerfil'];
                             <div class="form-group row">
                                 <label for="domicilioPerfil" class="col-sm-2 col-form-label">Domicilio</label>
                                 <div class="col-sm-10">
-                                    <input type="text" class="form-control" id="domicilioPerfil" name="domicilioPerfil" value="                                   <?php
-                                    if ($perfil != null) {
-                                        echo $perfil[0]['domicilioPerfil'];
-                                    } else {
-                                        echo "Todavia no has escrito nada interesante sobre vos";
-                                    }
-                                    ?>">
+                                    <input type="text" class="form-control" id="domicilioPerfil" name="domicilioPerfil" value="<?php echo isset($perfil[0]['domicilioPerfil']) ? $perfil[0]['domicilioPerfil'] : 'Falta completar tu perfil';?>">                                  
                                 </div>
                             </div>
                             <div class="form-group row">
                                 <label for="fnac" class="col-sm-2 col-form-label">Fecha de nacimiento</label>
                                 <div class="col-sm-10">
-                                    <input type="date" class="form-control" name="fnacPerfil" id="fnac" value="
-                                    <?php
-                                    if ($perfil != null) {
-                                        echo $fnac;
-                                    }
-                                    ?>">
+                                    <input type="date" class="form-control" name="fnacPerfil" id="fnac" value="<?php echo isset($perfil[0]['fnacPerfil']) ? $perfil[0]['fnacPerfil'] : ''; ?>">
                                 </div>
                             </div>
 
                             <div class="form-group row">
                                 <label for="contenidoPerfil" class="col-sm-2 col-form-label">Sobre mi</label>
                                 <div class="col-sm-10">
-                                    <textarea class="form-control" id="contenidoPerfil" name="contenidoPerfil"  value="">
-                                    <?php
-                                    if ($perfil != null) {
-                                        echo $perfil[0]['contenidoPerfil'];
-                                    } else {
-                                        echo "Todavia no has escrito nada interesante sobre vos";
-                                    }
-                                    ?>
+                                    <textarea class="form-control" id="contenidoPerfil" name="contenidoPerfil" value="<?php echo isset($perfil[0]['contenidoPerfil']) ? $perfil[0]['contenidoPerfil']: ''; ?>">
                                     </textarea>
                                 </div>
                             </div>

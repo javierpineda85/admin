@@ -24,20 +24,10 @@ class ModeloPerfiles
         $registro = null;
     }
 
-    /*BUSCAR UN PERFIL */
-    static public function mdlSeleccionarPerfil($item, $valor)
+    /*INSERTA UN PERFIL */
+    static public function mdlGuardarPerfil($datos)
     {
 
-        $stmt = Conexion::conectar()->prepare("SELECT *,DATE_FORMAT(fnacPerfil, '%d/%m/%Y') AS fnac FROM perfiles WHERE $item = '$valor' ");
-        $stmt->execute();
-        return $stmt->fetchAll();
-        $stmt->closeCursor();
-
-        $stmt = null;
-    }
-    /*INSERTA UN PERFIL */
-    static public function mdlGuardarPerfil($datos){
-        
         $registro = Conexion::conectar()->prepare("INSERT INTO perfiles (id_usuario, dniPerfil, telefonoPerfil, fnacPerfil, domicilioPerfil, provinciaPerfil, contenidoPerfil) VALUES (:id_usuario, :dniPerfil, :telefonoPerfil, :fnacPerfil, :domicilioPerfil, :provinciaPerfil, :contenidoPerfil)");
 
         $registro->bindParam(":id_usuario", $datos["idUsuario"], PDO::PARAM_INT);
@@ -47,7 +37,7 @@ class ModeloPerfiles
         $registro->bindParam(":domicilioPerfil", $datos["domicilioPerfil"], PDO::PARAM_STR);
         $registro->bindParam(":provinciaPerfil", $datos["provinciaPerfil"], PDO::PARAM_STR);
         $registro->bindParam(":contenidoPerfil", $datos["contenidoPerfil"], PDO::PARAM_STR);
-      
+
         if ($registro->execute()) {
 
             return "ok";
@@ -57,6 +47,5 @@ class ModeloPerfiles
 
         $registro->closeCursor();
         $registro = null;
-
     }
 }
