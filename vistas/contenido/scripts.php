@@ -50,9 +50,9 @@
 <script src="./plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 <!-- AdminLTE App -->
 <script src="../../dist/js/adminlte.min.js"></script>
-<!-- Bootstrap4 Duallistbox 
-<script src="./plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js"></script>-->
-<script src="../../plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js"></script>
+<!-- Bootstrap4 Duallistbox -->
+<script src="./plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.js"></script>
+<script src="./plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js"></script>
 
 
 <!-- Bootstrap Switch -->
@@ -111,7 +111,7 @@
             text: errores.join(" / "),
             duration: 3000, // Duración en milisegundos
             close: true, // Agregar un botón para cerrar el toast
-            gravity: "top", // Posición del toast (puedes ajustarla según tus preferencias)
+            gravity: "top", // Posición del toast 
         }).showToast();
 
         event.preventDefault(); // Evita que el formulario se envíe

@@ -18,6 +18,7 @@
 
   <!-- Bootstrap4 Duallistbox -->
   <link rel="stylesheet" href="../../plugins/bootstrap4-duallistbox/bootstrap-duallistbox.min.css">
+  <link rel="stylesheet" href="../../plugins/bootstrap4-duallistbox/bootstrap-duallistbox.css">
   <!-- BS Stepper -->
   <link rel="stylesheet" href="../../plugins/bs-stepper/css/bs-stepper.min.css">
 
