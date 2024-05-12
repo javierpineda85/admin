@@ -4,8 +4,6 @@ require_once('modelos/cursos.modelo.php');
 class ControladorCursos
 {
 
-
-
     /*GUARDAR CURSO */
     static public function crtGuardarCurso()
     {
@@ -46,8 +44,30 @@ class ControladorCursos
 
             $respuesta = ModeloCursos::mdlModificarCurso($tabla, $datos);
             $_SESSION['success_message'] = 'Curso modificado exitosamente';
-           return $respuesta;
+            return $respuesta;
+        }
+    }
+
+    /*Asignar curso */
+    static public function crtAsignarCurso()
+    {
+        if (isset($_POST["idUsuarios"])) {
+            $tabla = 'asignacioncursos';
+            $idCurso = $_GET["idCurso"];
+            $idUsuarios = $_POST['idUsuarios'];
             
+            foreach ($idUsuarios as $idUsuario) {
+                $datos = array(
+                    "idCurso"    => $idCurso,
+                    "idUsuario"  => $idUsuario
+                );
+                
+                $respuesta = ModeloCursos::mdlAsignarCurso($tabla, $datos);
+            }
+            
+            $_SESSION['success_message'] = 'Se han registrado a los estudiantes';
+           
+
         }
     }
 }
