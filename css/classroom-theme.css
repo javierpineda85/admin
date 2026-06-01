@@ -213,6 +213,30 @@ body.classroom-app .page-fade {
   animation: classroomFadeIn 420ms ease-out;
 }
 
+body.classroom-app .note-editor .note-modal,
+body.classroom-app .note-popover {
+  z-index: 1065 !important;
+}
+
+body.classroom-app .note-editor .modal-backdrop {
+  z-index: 1060 !important;
+}
+
+body.classroom-app .note-editor .dropdown-menu {
+  z-index: 1070 !important;
+}
+
+body.classroom-app .note-editor .note-toolbar .dropdown-menu {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+body.classroom-app .note-editor .note-modal .modal-header,
+body.classroom-app .note-editor .note-modal .modal-body,
+body.classroom-app .note-editor .note-modal .modal-footer {
+  color: #0f172a;
+}
+
 @keyframes classroomFadeIn {
   from {
     opacity: 0;

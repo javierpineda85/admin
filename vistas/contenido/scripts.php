@@ -23,6 +23,7 @@
 <script src="./plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js"></script>
 <!-- Summernote -->
 <script src="./plugins/summernote/summernote-bs4.min.js"></script>
+<script src="./plugins/summernote/lang/summernote-es-ES.min.js"></script>
 <!-- overlayScrollbars -->
 <script src="./plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
 <!-- DataTables  & Plugins -->
@@ -159,6 +160,9 @@ if (!empty($flashToasts)) {
       if ($('#contenidoMensaje').length) {
         $('#contenidoMensaje').summernote({
           height: 220,
+          lang: 'es-ES',
+          dialogsInBody: true,
+          dialogsFade: true,
           placeholder: 'Escribí el mensaje y dale formato si hace falta...',
           toolbar: [
             ['style', ['style']],
