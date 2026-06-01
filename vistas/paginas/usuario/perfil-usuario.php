@@ -1,13 +1,12 @@
 <?php
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 
-$db = new Conexion;
-$sql = "SELECT * FROM usuarios WHERE idUsuario =" . $idUsuarioActual;
-$usuario = $db->consultas($sql);
+$usuario = ControladorUsuarios::crtUsuarioActual();
 
-$db = new Conexion;
-$sql = "SELECT *,DATE_FORMAT(fnacPerfil, '%d/%m/%Y') AS fnac FROM perfiles WHERE id_usuario =" . $idUsuarioActual;
-$perfil = $db->consultas($sql);
+$stmt = Conexion::conectar()->prepare("SELECT *, DATE_FORMAT(fnacPerfil, '%d/%m/%Y') AS fnac FROM perfiles WHERE id_usuario = :id_usuario LIMIT 1");
+$stmt->bindParam(":id_usuario", $idUsuarioActual, PDO::PARAM_INT);
+$stmt->execute();
+$perfil = $stmt->fetch(PDO::FETCH_ASSOC);
 
 ?>
 
@@ -47,7 +46,7 @@ $perfil = $db->consultas($sql);
                                 <img class="profile-user-img img-fluid img-circle" src="./img/user2-160x160.jpg" alt="User profile picture">
                             </div>
 
-                            <h3 class="profile-username text-center"><?php echo $usuario[0]['nombreUsuario'] . " " . $usuario[0]['apellidoUsuario'] ?></h3>
+                            <h3 class="profile-username text-center"><?php echo htmlspecialchars((($usuario['nombreUsuario'] ?? '') . " " . ($usuario['apellidoUsuario'] ?? '')) ?: 'Usuario', ENT_QUOTES, 'UTF-8'); ?></h3>
                         </div>
 
                         <div class="card card-primary">
@@ -59,7 +58,7 @@ $perfil = $db->consultas($sql);
                                 <p class="text-muted">
                                     <?php
                                     if ($perfil != null) {
-                                        echo $perfil[0]['fnac'];
+                                        echo htmlspecialchars($perfil['fnac'] ?? '', ENT_QUOTES, 'UTF-8');
                                     } else {
                                         echo "Aun no completaste tu fecha de nacimiento.";
                                     }
@@ -73,7 +72,7 @@ $perfil = $db->consultas($sql);
                                 <p class="text-muted">
                                     <?php
                                     if ($perfil != null) {
-                                        echo $perfil[0]['domicilioPerfil'];
+                                        echo htmlspecialchars($perfil['domicilioPerfil'] ?? '', ENT_QUOTES, 'UTF-8');
                                     } else {
                                         echo "Aun no completaste tu domicilio.";
                                     }
@@ -86,7 +85,7 @@ $perfil = $db->consultas($sql);
                                 <p class="text-muted">
                                     <?php
                                     if ($perfil != null) {
-                                        echo $perfil[0]['contenidoPerfil'];
+                                        echo htmlspecialchars($perfil['contenidoPerfil'] ?? '', ENT_QUOTES, 'UTF-8');
                                     } else {
                                         echo "Todavia no has escrito nada interesante sobre vos";
                                     }

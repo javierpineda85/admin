@@ -1,8 +1,6 @@
 <?php
 
-$db= new Conexion;
-$sql = "SELECT * FROM usuarios ORDER BY rol ";
-$usuarios = $db->consultas($sql);
+$usuarios = ControladorUsuarios::crtSeleccionarUsuario(null, null);
 
 ?>
 

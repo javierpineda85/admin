@@ -1,12 +1,9 @@
 <?php
-$db= new Conexion;
-$sql = "SELECT * FROM cursos";
+$db = new Conexion;
+$sql = "SELECT * FROM cursos ORDER BY nombreCurso ASC";
 $cursos = $db->consultas($sql);
 
-
-$db= new Conexion;
-$sql = "SELECT * FROM usuarios WHERE rol = 'DOCENTE'" ;
-$usuarios = $db->consultas($sql);
+$usuarios = ControladorUsuarios::crtSeleccionarUsuario('rol', 'DOCENTE');
 ?>
 
 <!-- Default box -->

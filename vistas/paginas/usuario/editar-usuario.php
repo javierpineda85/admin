@@ -1,8 +1,17 @@
 <?php
 
-$db = new Conexion;
-$sql = "SELECT * FROM usuarios WHERE idUsuario = " . $_GET['id'];
-$usuario = $db->consultas($sql);
+$idUsuario = (int) ($_GET['id'] ?? 0);
+$usuario = ControladorUsuarios::crtSeleccionarUsuario('idUsuario', $idUsuario);
+
+if (empty($usuario)) {
+  $usuario = [[
+    'idUsuario' => 0,
+    'nombreUsuario' => '',
+    'apellidoUsuario' => '',
+    'email' => '',
+    'rol' => 'ESTUDIANTE',
+  ]];
+}
 
 ?>
 
@@ -29,23 +38,23 @@ $usuario = $db->consultas($sql);
       <form action="" method="post">
         <div class="card-body">
           <div class="form-group row">
-            <input type="text" name="idUsuario" value="<?php echo $usuario[0]['idUsuario'] ?>" hidden>
+            <input type="text" name="idUsuario" value="<?php echo (int) ($usuario[0]['idUsuario'] ?? 0); ?>" hidden>
             <label class="col-sm-2 col-form-label">Nombre</label>
             <div class="col-sm-10">
-              <input type="text" class="form-control" placeholder="Juan Carlos" name="nombreUsuario" value="<?php echo $usuario[0]['nombreUsuario']; ?>">
+              <input type="text" class="form-control" placeholder="Juan Carlos" name="nombreUsuario" value="<?php echo htmlspecialchars($usuario[0]['nombreUsuario'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             </div>
           </div>
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Apellido</label>
             <div class="col-sm-10">
-              <input type="text" class="form-control" placeholder="Perez" name="apellidoUsuario" value="<?php echo $usuario[0]['apellidoUsuario']; ?>">
+              <input type="text" class="form-control" placeholder="Perez" name="apellidoUsuario" value="<?php echo htmlspecialchars($usuario[0]['apellidoUsuario'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             </div>
           </div>
 
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Email</label>
             <div class="col-sm-10">
-              <input type="email" class="form-control" placeholder="Email" name="emailUsuario" value="<?php echo $usuario[0]['email']; ?>">
+              <input type="email" class="form-control" placeholder="Email" name="emailUsuario" value="<?php echo htmlspecialchars($usuario[0]['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             </div>
           </div>
           <div class="form-group row d-none" id="ocultar">
@@ -63,7 +72,7 @@ $usuario = $db->consultas($sql);
             <label class="col-sm-2 col-form-label">Nivel de Usuario</label>
             <div class="col-sm-10">
               <select class="custom-select" name="rol">
-                <option value="<?php echo $usuario[0]['rol']; ?>" selected><?php echo $usuario[0]['rol']; ?></option>
+                <option value="<?php echo htmlspecialchars($usuario[0]['rol'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($usuario[0]['rol'] ?? '', ENT_QUOTES, 'UTF-8'); ?></option>
                 <option value="ADMINISTRADOR">ADMINISTRADOR</option>
                 <option value="DOCENTE">DOCENTE</option>
                 <option value="ESTUDIANTE">ESTUDIANTE</option>

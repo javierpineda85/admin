@@ -54,6 +54,11 @@ class ModeloUsuarios
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
+        $columnasPermitidas = ['idUsuario', 'nombreUsuario', 'apellidoUsuario', 'email', 'rol', 'activo', 'resetPass'];
+        if (!in_array($item, $columnasPermitidas, true)) {
+            return [];
+        }
+
         $stmt = Conexion::conectar()->prepare("SELECT * FROM usuarios WHERE $item = :valor AND activo = 1 ORDER BY apellidoUsuario ASC, nombreUsuario ASC");
         $stmt->bindParam(":valor", $valor, PDO::PARAM_STR);
         $stmt->execute();

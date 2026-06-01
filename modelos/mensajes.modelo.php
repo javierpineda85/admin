@@ -3,7 +3,16 @@ require_once('conexion.php');
 
 class ModeloMensajes
 {
+    private static function columnaPermitida($item)
+    {
+        return in_array($item, ['id_remitente', 'id_destinatario'], true) ? $item : null;
+    }
+
     static public function mdlMostrarMensajes($item, $valor){
+        $columna = self::columnaPermitida($item);
+        if ($columna === null) {
+            return [];
+        }
 
         $stmt = Conexion::conectar()->prepare("
             SELECT m.idMensaje, m.id_remitente, m.id_destinatario, m.contenidoMensaje,
@@ -12,7 +21,7 @@ class ModeloMensajes
                    u.nombreUsuario, u.apellidoUsuario
             FROM mensajes m
             JOIN usuarios u ON m.id_remitente = u.idUsuario
-            WHERE m.$item = :valor
+            WHERE m.$columna = :valor
             ORDER BY m.fechaMensaje DESC
         ");
         $stmt->bindParam(":valor", $valor, PDO::PARAM_INT);
@@ -20,6 +29,10 @@ class ModeloMensajes
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     static public function mdlMostrarMensajesEnviados($item, $valor){
+        $columna = self::columnaPermitida($item);
+        if ($columna === null) {
+            return [];
+        }
 
         $stmt = Conexion::conectar()->prepare("
             SELECT m.idMensaje, m.id_remitente, m.id_destinatario, m.contenidoMensaje,
@@ -28,7 +41,7 @@ class ModeloMensajes
                    u.nombreUsuario, u.apellidoUsuario
             FROM mensajes m
             JOIN usuarios u ON m.id_destinatario = u.idUsuario
-            WHERE m.$item = :valor
+            WHERE m.$columna = :valor
             ORDER BY m.fechaMensaje DESC
         ");
         $stmt->bindParam(":valor", $valor, PDO::PARAM_INT);
@@ -50,7 +63,7 @@ class ModeloMensajes
         ");
         $stmt->bindParam(":idMensaje", $id, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     static public function mdlGuardarMensaje($datos){
