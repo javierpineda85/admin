@@ -1,128 +1,173 @@
 <?php
+
 require_once('modelos/usuarios.modelo.php');
 require_once('modelos/perfiles.modelo.php');
+
 class ControladorUsuarios
 {
-    static public function crtSeleccionarUsuario($item, $valor)
+    public static function crtSeleccionarUsuario($item, $valor)
     {
         return ModeloUsuarios::mdlSeleccionarUsuarios($item, $valor);
     }
 
-    static public function crtDestinatariosPermitidos()
+    public static function crtDestinatariosPermitidos()
     {
         $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
         $rolActual = $_SESSION['usuario']['rol'] ?? '';
+
         return ModeloUsuarios::mdlDestinatariosPermitidos($idUsuarioActual, $rolActual);
     }
 
-    static public function crtUsuarioActual()
+    public static function crtUsuarioActual()
     {
         $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
         if ($idUsuarioActual <= 0) {
             return null;
         }
 
-        return ModeloUsuarios::mdlObtenerUsuarioPorId($idUsuarioActual);
+        return ModeloUsuarios::mdlObtenerUsuarioCompleto($idUsuarioActual);
     }
 
-    /*GUARDAR USUARIOS */
-    static public function crtGuardarUsuario()
+    public static function crtUsuarioCompleto($idUsuario)
     {
-        if (isset($_POST["nombreUsuario"])) {
+        return ModeloUsuarios::mdlObtenerUsuarioCompleto((int) $idUsuario);
+    }
 
-            try {
-                $conexion = Conexion::conectar();
+    public static function crtRelacionesAcademicas($idUsuario)
+    {
+        return ModeloUsuarios::mdlRelacionesAcademicas((int) $idUsuario);
+    }
 
-                // Verificar si ya hay una transacción activa
-                if (!$conexion->inTransaction()) {
-                    // Si no hay una transacción activa, iniciar una nueva
-                    $conexion->beginTransaction();
-                }
+    public static function crtGuardarUsuario()
+    {
+        if (!isset($_POST["nombreUsuario"], $_POST["apellidoUsuario"], $_POST["email"], $_POST["pass"], $_POST["rol"])) {
+            return null;
+        }
 
-                // Guardar el usuario
-                $tabla = "usuarios";
+        try {
+            $conexion = Conexion::conectar();
+            if (!$conexion->inTransaction()) {
+                $conexion->beginTransaction();
+            }
 
-                $datosUsuario = array(
-                    "nombreUsuario" => $_POST["nombreUsuario"],
-                    "apellidoUsuario" => $_POST["apellidoUsuario"],
-                    "email" => $_POST["email"],
-                    "pass" => password_hash($_POST["pass"], PASSWORD_DEFAULT),
-                    "resetPass" => 1,
-                    "imgUsuario" => "",
-                    "activo" => 1,
-                    "rol" => $_POST["rol"]
-                );
+            $tabla = "usuarios";
+            $datosUsuario = [
+                "nombreUsuario" => trim((string) $_POST["nombreUsuario"]),
+                "apellidoUsuario" => trim((string) $_POST["apellidoUsuario"]),
+                "email" => trim((string) $_POST["email"]),
+                "pass" => password_hash((string) $_POST["pass"], PASSWORD_DEFAULT),
+                "resetPass" => 1,
+                "imgUsuario" => "",
+                "activo" => 1,
+                "rol" => trim((string) $_POST["rol"]),
+                "fechaAlta" => date('Y-m-d H:i:s'),
+            ];
 
-                $respuestaUsuario = ModeloUsuarios::mdlGuardarUsuario($tabla, $datosUsuario);
-
-                // Obtener el ID del usuario dentro de la misma transacción
-
-                $idUsuario = Conexion::conectar()->prepare("SELECT MAX(idUsuario) as maxId FROM usuarios");
-                $idUsuario->execute();
-                $id = $idUsuario->fetch(PDO::FETCH_ASSOC);
-                // Guardar el perfil
-                $tabla = "perfiles";
-                $datosPerfil = array(
-                    "idUsuario" => $id['maxId'],
-                    "dniPerfil" => $_POST['dniPerfil'],
-                    "telefonoPerfil" => $_POST['telefonoPerfil'],
-                    "fnacPerfil" => $_POST['fnacPerfil'],
-                    "domicilioPerfil" => $_POST['domicilioPerfil'],
-                    "provinciaPerfil" => $_POST['provinciaPerfil']
-                );
-
-                $respuesta1 = ModeloPerfiles::mdlGuardarPerfil($datosPerfil);
-
-                if ($respuestaUsuario === 'ok' && $respuesta1 === 'ok') {
-                    // Confirmar la transacción si no hay errores
-                    Conexion::conectar()->commit();
-
-                    $_SESSION['success_message'] = 'Usuario y perfil creados exitosamente';
-
-                    return $respuesta1;
-                }
-
-                Conexion::conectar()->rollBack();
+            $respuestaUsuario = ModeloUsuarios::mdlGuardarUsuario($tabla, $datosUsuario);
+            if ($respuestaUsuario !== 'ok') {
+                $conexion->rollBack();
                 $_SESSION['error_message'] = 'No se pudo crear el usuario';
                 return false;
-            } catch (Exception $e) {
-                // Revertir la transacción en caso de error
-                Conexion::conectar()->rollBack();
+            }
 
-                // Manejar el error según sea necesario
-                $_SESSION['error_message'] =  $e->getMessage();
+            $idNuevoUsuario = (int) $conexion->lastInsertId();
 
+            $datosPerfil = [
+                "idUsuario" => $idNuevoUsuario,
+                "dniPerfil" => $_POST['dniPerfil'] ?? null,
+                "telefonoPerfil" => $_POST['telefonoPerfil'] ?? null,
+                "fnacPerfil" => $_POST['fnacPerfil'] ?? null,
+                "domicilioPerfil" => $_POST['domicilioPerfil'] ?? null,
+                "provinciaPerfil" => $_POST['provinciaPerfil'] ?? null,
+                "contenidoPerfil" => $_POST['contenidoPerfil'] ?? '',
+            ];
+
+            $respuestaPerfil = ModeloPerfiles::mdlGuardarPerfil($datosPerfil);
+            if ($respuestaPerfil !== 'ok') {
+                $conexion->rollBack();
+                $_SESSION['error_message'] = 'No se pudo crear el perfil del usuario';
                 return false;
             }
-        }
-    }
 
-    /*MODIFICAR USUARIO */
-    static public function crtModificarUsuario(){
-
-        if (isset($_POST["nombreUsuario"])) {
-            
-            $tabla = "usuarios";
-            $datos = array(
-                "idUsuario"        => $_POST["idUsuario"],
-                "nombreUsuario"    => $_POST["nombreUsuario"],
-                "apellidoUsuario"  => $_POST["apellidoUsuario"],
-                "emailUsuario"     => $_POST["emailUsuario"],
-                "rol"              => $_POST["rol"]
-            );
-    
-            // Validar si el campo de contraseña está presente y no está vacío
-            if (isset($_POST["passUsuario"]) && !empty($_POST["passUsuario"])) {
-                // Si la contraseña está presente y no está vacía, agregamos el campo a los datos
-                $datos["passUsuario"] = $_POST["passUsuario"];
+            $conexion->commit();
+            $_SESSION['success_message'] = 'Usuario y perfil creados exitosamente';
+            return 'ok';
+        } catch (Exception $e) {
+            if ($conexion instanceof PDO && $conexion->inTransaction()) {
+                $conexion->rollBack();
             }
-    
-            $respuesta = ModeloUsuarios::mdlModificarUsuario($tabla, $datos);
-            $_SESSION['success_message'] = 'Usuario modificado exitosamente';
-            return $respuesta;
+
+            $_SESSION['error_message'] = $e->getMessage();
+            return false;
         }
     }
-    
 
+    public static function crtModificarUsuario()
+    {
+        if (!isset($_POST["nombreUsuario"], $_POST["apellidoUsuario"], $_POST["emailUsuario"], $_POST["rol"])) {
+            return null;
+        }
 
+        $tabla = "usuarios";
+        $datos = [
+            "idUsuario" => (int) ($_POST["idUsuario"] ?? 0),
+            "nombreUsuario" => trim((string) $_POST["nombreUsuario"]),
+            "apellidoUsuario" => trim((string) $_POST["apellidoUsuario"]),
+            "emailUsuario" => trim((string) $_POST["emailUsuario"]),
+            "rol" => trim((string) $_POST["rol"]),
+        ];
+
+        if (!empty($_POST["passUsuario"])) {
+            $datos["passUsuario"] = (string) $_POST["passUsuario"];
+        }
+
+        $respuesta = ModeloUsuarios::mdlModificarUsuario($tabla, $datos);
+        if ($respuesta === 'ok') {
+            $_SESSION['success_message'] = 'Usuario modificado exitosamente';
+        } else {
+            $_SESSION['error_message'] = 'No se pudo modificar el usuario';
+        }
+
+        return $respuesta;
+    }
+
+    public static function crtDarBajaUsuario()
+    {
+        if (!isset($_POST['accion_usuario']) || $_POST['accion_usuario'] !== 'baja_usuario') {
+            return null;
+        }
+
+        $datos = [
+            'idUsuario' => (int) ($_POST['idUsuario'] ?? 0),
+            'fechaBaja' => !empty($_POST['fechaBaja']) ? $_POST['fechaBaja'] . ' 00:00:00' : date('Y-m-d H:i:s'),
+            'motivoBaja' => trim((string) ($_POST['motivoBaja'] ?? '')),
+            'usuarioBaja' => (int) ($_SESSION['usuario']['id'] ?? 0),
+        ];
+
+        if ($datos['idUsuario'] <= 0 || $datos['motivoBaja'] === '') {
+            $_SESSION['error_message'] = 'Completa la fecha y el motivo de baja.';
+            return false;
+        }
+
+        $respuesta = ModeloUsuarios::mdlDarBajaUsuario($datos);
+        if ($respuesta === 'ok') {
+            $_SESSION['success_message'] = 'Usuario dado de baja correctamente';
+        } else {
+            $_SESSION['error_message'] = 'No se pudo dar de baja al usuario';
+        }
+
+        return $respuesta;
+    }
+
+    public static function crtReactivarUsuario($idUsuario)
+    {
+        $respuesta = ModeloUsuarios::mdlReactivarUsuario((int) $idUsuario);
+        if ($respuesta === 'ok') {
+            $_SESSION['success_message'] = 'Usuario reactivado correctamente';
+        } else {
+            $_SESSION['error_message'] = 'No se pudo reactivar al usuario';
+        }
+
+        return $respuesta;
+    }
 }

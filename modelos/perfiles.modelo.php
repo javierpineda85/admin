@@ -3,6 +3,21 @@ require_once('conexion.php');
 
 class ModeloPerfiles
 {
+    static public function mdlObtenerPerfilPorUsuario($idUsuario)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT *,
+                   DATE_FORMAT(fnacPerfil, '%d/%m/%Y') AS fnacFormateada
+            FROM perfiles
+            WHERE id_usuario = :id_usuario
+            LIMIT 1
+        ");
+        $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     /*EDITA UN PERFIL */
     static public function mdlEditarPerfil($datos)
     {

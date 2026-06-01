@@ -1,105 +1,45 @@
 <?php
-
 $idUsuario = (int) ($_GET['id'] ?? 0);
-$usuario = ControladorUsuarios::crtSeleccionarUsuario('idUsuario', $idUsuario);
+$registro = ControladorUsuarios::crtModificarUsuario();
+$baja = ControladorUsuarios::crtDarBajaUsuario();
+$redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_message']));
+$usuarioCompleto = $idUsuario > 0 ? ControladorUsuarios::crtUsuarioCompleto($idUsuario) : null;
 
-if (empty($usuario)) {
-  $usuario = [[
-    'idUsuario' => 0,
-    'nombreUsuario' => '',
-    'apellidoUsuario' => '',
-    'email' => '',
-    'rol' => 'ESTUDIANTE',
-  ]];
+if (empty($usuarioCompleto)) {
+    $usuarioCompleto = [
+        'idUsuario' => 0,
+        'nombreUsuario' => '',
+        'apellidoUsuario' => '',
+        'email' => '',
+        'rol' => 'ESTUDIANTE',
+        'fechaAltaFmt' => '',
+    ];
 }
 
+$perfilFormulario = [
+    'dniPerfil' => $usuarioCompleto['dniPerfil'] ?? '',
+    'telefonoPerfil' => $usuarioCompleto['telefonoPerfil'] ?? '',
+    'fnacPerfil' => $usuarioCompleto['fnacPerfil'] ?? '',
+    'domicilioPerfil' => $usuarioCompleto['domicilioPerfil'] ?? '',
+    'provinciaPerfil' => $usuarioCompleto['provinciaPerfil'] ?? '',
+    'contenidoPerfil' => $usuarioCompleto['contenidoPerfil'] ?? '',
+];
+
+$usuarioFormulario = $usuarioCompleto;
+$modoFormulario = 'editar';
+$mostrarBaja = ((int) ($usuarioCompleto['activo'] ?? 1) === 1);
 ?>
 
-<!-- Default box -->
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">Completa el formulario para modificar al usuario </h3>
+<?php if ($redirigir): ?>
+  <script>
+    setTimeout(function () {
+      window.location.href = 'index.php?r=listado-usuarios&c=usuario';
+    }, 650);
+  </script>
+<?php endif; ?>
 
-    <div class="card-tools">
-      <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-        <i class="fas fa-minus"></i>
-      </button>
-
-    </div>
+<section class="content page-fade">
+  <div class="container-fluid">
+    <?php include __DIR__ . '/_formulario-usuario.php'; ?>
   </div>
-  <div class="card-body">
-
-    <div class="card card-info">
-      <div class="card-header">
-        <h3 class="card-title">Editar Usuario</h3>
-      </div>
-      <!-- /.card-header -->
-      <!-- form start -->
-      <form action="" method="post">
-        <div class="card-body">
-          <div class="form-group row">
-            <input type="text" name="idUsuario" value="<?php echo (int) ($usuario[0]['idUsuario'] ?? 0); ?>" hidden>
-            <label class="col-sm-2 col-form-label">Nombre</label>
-            <div class="col-sm-10">
-              <input type="text" class="form-control" placeholder="Juan Carlos" name="nombreUsuario" value="<?php echo htmlspecialchars($usuario[0]['nombreUsuario'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-            </div>
-          </div>
-          <div class="form-group row">
-            <label class="col-sm-2 col-form-label">Apellido</label>
-            <div class="col-sm-10">
-              <input type="text" class="form-control" placeholder="Perez" name="apellidoUsuario" value="<?php echo htmlspecialchars($usuario[0]['apellidoUsuario'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-            </div>
-          </div>
-
-          <div class="form-group row">
-            <label class="col-sm-2 col-form-label">Email</label>
-            <div class="col-sm-10">
-              <input type="email" class="form-control" placeholder="Email" name="emailUsuario" value="<?php echo htmlspecialchars($usuario[0]['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-            </div>
-          </div>
-          <div class="form-group row d-none" id="ocultar">
-            <label class="col-sm-2 col-form-label">Nueva contraseña</label>
-            <div class="col-sm-10">
-              <input type="password" class="form-control" placeholder="Contraseña" name="passUsuario">
-            </div>
-            <div class="offset-sm-2 col-sm-10">
-              <div class="form-check border rounded border-warning py-1">
-                <label class="form-check-label text-secondary">Al iniciar sesion la próxima vez, el usuario deberá crear una nueva contraseña</label>
-              </div>
-            </div>
-          </div>
-          <div class="form-group row">
-            <label class="col-sm-2 col-form-label">Nivel de Usuario</label>
-            <div class="col-sm-10">
-              <select class="custom-select" name="rol">
-                <option value="<?php echo htmlspecialchars($usuario[0]['rol'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($usuario[0]['rol'] ?? '', ENT_QUOTES, 'UTF-8'); ?></option>
-                <option value="ADMINISTRADOR">ADMINISTRADOR</option>
-                <option value="DOCENTE">DOCENTE</option>
-                <option value="ESTUDIANTE">ESTUDIANTE</option>
-                <option value="GESTOR">GESTOR</option>
-              </select>
-
-            </div>
-
-          </div>
-          <div class="form-group row">
-
-          </div>
-        </div>
-        <!-- /.card-body -->
-        <div class="card-footer">
-          <button type="button" class="btn btn-success" onclick="ocultar()">Cambiar contraseña</button>
-
-          <input type="submit" class="btn btn-success" value="Modificar datos">
-          <?php $registro = ControladorUsuarios::crtModificarUsuario(); ?>
-        </div>
-        <!-- /.card-footer -->
-      </form>
-    </div>
-    <!-- /.card -->
-
-  </div>
-  <!-- /.card-body -->
-
-</div>
-<!-- /.card -->
+</section>

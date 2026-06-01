@@ -281,6 +281,10 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `imgUsuario` varchar(30) NOT NULL,
   `activo` tinyint(1) NOT NULL,
   `rol` char(15) NOT NULL,
+  `fechaAlta` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fechaBaja` datetime DEFAULT NULL,
+  `motivoBaja` varchar(255) DEFAULT NULL,
+  `usuarioBaja` int DEFAULT NULL,
   PRIMARY KEY (`idUsuario`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 

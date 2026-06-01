@@ -1,175 +1,163 @@
 <?php
-$idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
-
 $usuario = ControladorUsuarios::crtUsuarioActual();
-
-$stmt = Conexion::conectar()->prepare("SELECT *, DATE_FORMAT(fnacPerfil, '%d/%m/%Y') AS fnac FROM perfiles WHERE id_usuario = :id_usuario LIMIT 1");
-$stmt->bindParam(":id_usuario", $idUsuarioActual, PDO::PARAM_INT);
-$stmt->execute();
-$perfil = $stmt->fetch(PDO::FETCH_ASSOC);
-
+$idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$perfil = $usuario ? $usuario : [];
+$relacionesAcademicas = $idUsuarioActual > 0 ? ControladorUsuarios::crtRelacionesAcademicas($idUsuarioActual) : [];
+$nombreCompleto = trim((string) (($perfil['nombreUsuario'] ?? '') . ' ' . ($perfil['apellidoUsuario'] ?? '')));
+$imagenUsuario = !empty($perfil['imgUsuario']) ? $perfil['imgUsuario'] : 'user2-160x160.jpg';
+$estaActivo = (int) ($perfil['activo'] ?? 0) === 1;
+$e = static function ($valor) {
+    return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
+};
 ?>
 
-<!-- Default box -->
-<div class="card">
-    <div class="card-header bg-primary">
-        <h3 class="card-title">Mi perfil</h3>
-
-        <div class="card-tools">
-            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                <i class="fas fa-minus"></i>
-            </button>
-
+<section class="content page-fade">
+  <div class="container-fluid">
+    <div class="profile-hero mb-4">
+      <div class="profile-hero__content">
+        <div class="profile-hero__avatar">
+          <img src="./img/<?php echo $e($imagenUsuario); ?>" alt="Foto de perfil">
         </div>
-    </div>
-    <div class="card-body">
-
-
-        <!-- Main content -->
-
-        <div class="row d-flex justify-content-around">
-            <div class="col-sm-12 col-md-5" id="about">
-                <div class="card card-primary">
-                    <div class="card-header">
-                        <h3 class="card-title">Sobre mi</h3>
-
-                        <div class="card-tools">
-                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Profile Image -->
-                    <div class="card card-primary col-12">
-                        <div class="card-body box-profile">
-                            <div class="text-center">
-                                <img class="profile-user-img img-fluid img-circle" src="./img/user2-160x160.jpg" alt="User profile picture">
-                            </div>
-
-                            <h3 class="profile-username text-center"><?php echo htmlspecialchars((($usuario['nombreUsuario'] ?? '') . " " . ($usuario['apellidoUsuario'] ?? '')) ?: 'Usuario', ENT_QUOTES, 'UTF-8'); ?></h3>
-                        </div>
-
-                        <div class="card card-primary">
-
-                            <!-- /.card-header -->
-                            <div class="card-body">
-                                <strong><i class="fas fa-birthday-cake"></i> Fecha de nacimiento</strong>
-
-                                <p class="text-muted">
-                                    <?php
-                                    if ($perfil != null) {
-                                        echo htmlspecialchars($perfil['fnac'] ?? '', ENT_QUOTES, 'UTF-8');
-                                    } else {
-                                        echo "Aun no completaste tu fecha de nacimiento.";
-                                    }
-                                    ?>
-                                </p>
-
-                                <hr>
-
-                                <strong><i class="fas fa-map-marker-alt mr-1"></i> Domicilio</strong>
-
-                                <p class="text-muted">
-                                    <?php
-                                    if ($perfil != null) {
-                                        echo htmlspecialchars($perfil['domicilioPerfil'] ?? '', ENT_QUOTES, 'UTF-8');
-                                    } else {
-                                        echo "Aun no completaste tu domicilio.";
-                                    }
-                                    ?>
-
-                                    <hr>
-
-                                    <strong><i class="far fa-file-alt mr-1"></i> Algo mas sobre mi</strong>
-
-                                <p class="text-muted">
-                                    <?php
-                                    if ($perfil != null) {
-                                        echo htmlspecialchars($perfil['contenidoPerfil'] ?? '', ENT_QUOTES, 'UTF-8');
-                                    } else {
-                                        echo "Todavia no has escrito nada interesante sobre vos";
-                                    }
-                                    ?>
-                            </div>
-                            <!-- /.card-body -->
-                        </div>
-                        <button type="button" class="btn btn-primary" onclick="ocultar()">Editar mi perfil </button>
-
-                    </div>
-                    <!-- /.card-body -->
-                </div>
-                <!-- /.card -->
-                <!-- /.card-body -->
-            </div>
-            <!-- /.card -->
-
-            <!-- editar perfil -->
-
-            <div class="col-7 d-none" id="ocultar">
-                <div class="card card-secondary">
-                    <div class="card-header">
-                        <h3 class="card-title">Editar Perfil</h3>
-
-                        <div class="card-tools">
-                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Perfil extras -->
-
-                    <div class="card card-primary col-12">
-                        <!-- Start FORM-->
-                        <form class="form-horizontal" method="POST" enctype="multipart/form-data" id="editar-perfil">
-                            <div class="form-group row">
-                                <input type="text" value="<?php echo $idUsuarioActual; ?>" name="id_usuario" hidden>
-                                <label for="inputImgPerfil" class="col-sm-2 col-form-label">Foto de perfil</label>
-                                <div class="col-sm-10">
-                                    <input type="file" class="form-control" id="inputImgPerfil" name="imgUsuario">
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <label for="domicilioPerfil" class="col-sm-2 col-form-label">Domicilio</label>
-                                <div class="col-sm-10">
-                                    <input type="text" class="form-control" id="domicilioPerfil" name="domicilioPerfil" value="<?php echo isset($perfil[0]['domicilioPerfil']) ? $perfil[0]['domicilioPerfil'] : 'Falta completar tu perfil';?>">                                  
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <label for="fnac" class="col-sm-2 col-form-label">Fecha de nacimiento</label>
-                                <div class="col-sm-10">
-                                    <input type="date" class="form-control" name="fnacPerfil" id="fnac" value="<?php echo isset($perfil[0]['fnacPerfil']) ? $perfil[0]['fnacPerfil'] : ''; ?>">
-                                </div>
-                            </div>
-
-                            <div class="form-group row">
-                                <label for="contenidoPerfil" class="col-sm-2 col-form-label">Sobre mi</label>
-                                <div class="col-sm-10">
-                                    <textarea class="form-control" id="contenidoPerfil" name="contenidoPerfil" value="<?php echo isset($perfil[0]['contenidoPerfil']) ? $perfil[0]['contenidoPerfil']: ''; ?>">
-                                    </textarea>
-                                </div>
-                            </div>
-
-                            <div class="form-group row">
-                                <div class="offset-sm-2 col-sm-10">
-
-                                    <button type="button" class="btn btn-secondary" onclick="ocultar()">Cerrar</button>
-                                    <button type="submit" class="btn btn-success">Guardar Cambios</button>
-                                    <?php
-                                    $registro = ControladorPerfiles::crtEditarPerfil();
-                                    ?>
-
-                                </div>
-                            </div>
-                        </form>
-                        <!-- /.form -->
-                    </div>
-                    <!-- /.card-body -->
-
-                    <!-- /Perfil extras-->
-                </div>
-            </div>
+        <div class="profile-hero__copy">
+          <span class="profile-kicker">Mi perfil</span>
+          <h1 class="profile-title mb-2"><?php echo $e($nombreCompleto !== '' ? $nombreCompleto : 'Usuario'); ?></h1>
+          <p class="profile-lead mb-3">
+            <?php echo $e($perfil['rol'] ?? 'Sin rol'); ?> · <?php echo $estaActivo ? 'Cuenta activa' : 'Cuenta dada de baja'; ?>
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge badge-light badge-pill px-3 py-2"><?php echo $e($perfil['email'] ?? ''); ?></span>
+            <span class="badge badge-info badge-pill px-3 py-2"><?php echo $e($perfil['fechaAltaFmt'] ?? 'Fecha de alta pendiente'); ?></span>
+            <?php if (!$estaActivo): ?>
+              <span class="badge badge-danger badge-pill px-3 py-2">Baja: <?php echo $e($perfil['fechaBajaFmt'] ?? ''); ?></span>
+            <?php endif; ?>
+          </div>
         </div>
-
+      </div>
     </div>
 
-</div>
+    <div class="row">
+      <div class="col-lg-4 mb-4">
+        <div class="card glass-card h-100">
+          <div class="card-header">
+            <h3 class="card-title">Datos de usuario</h3>
+          </div>
+          <div class="card-body">
+            <div class="profile-meta-item">
+              <span class="profile-meta-label">Nombre completo</span>
+              <strong><?php echo $e($nombreCompleto !== '' ? $nombreCompleto : 'Sin registrar'); ?></strong>
+            </div>
+            <div class="profile-meta-item">
+              <span class="profile-meta-label">Correo electrónico</span>
+              <strong><?php echo $e($perfil['email'] ?? 'Sin correo'); ?></strong>
+            </div>
+            <div class="profile-meta-item">
+              <span class="profile-meta-label">Rol</span>
+              <strong><?php echo $e($perfil['rol'] ?? 'Sin rol'); ?></strong>
+            </div>
+            <div class="profile-meta-item">
+              <span class="profile-meta-label">Estado</span>
+              <strong><?php echo $estaActivo ? 'Activo' : 'Dado de baja'; ?></strong>
+            </div>
+            <div class="profile-meta-item">
+              <span class="profile-meta-label">Fecha de alta</span>
+              <strong><?php echo $e($perfil['fechaAltaFmt'] ?? 'Sin fecha'); ?></strong>
+            </div>
+            <?php if (!$estaActivo): ?>
+              <div class="profile-meta-item">
+                <span class="profile-meta-label">Fecha de baja</span>
+                <strong><?php echo $e($perfil['fechaBajaFmt'] ?? 'Sin fecha'); ?></strong>
+              </div>
+              <div class="profile-meta-item">
+                <span class="profile-meta-label">Motivo de baja</span>
+                <strong><?php echo $e($perfil['motivoBaja'] ?? ''); ?></strong>
+              </div>
+              <div class="profile-meta-item">
+                <span class="profile-meta-label">Dado de baja por</span>
+                <strong><?php echo $e($perfil['usuarioBajaNombre'] ?? ''); ?></strong>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-8 mb-4">
+        <div class="card glass-card h-100">
+          <div class="card-header">
+            <h3 class="card-title">Datos personales</h3>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <div class="profile-chip">DNI: <?php echo $e($perfil['dniPerfil'] ?? 'Sin completar'); ?></div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="profile-chip">Teléfono: <?php echo $e($perfil['telefonoPerfil'] ?? 'Sin completar'); ?></div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="profile-chip">Fecha de nacimiento: <?php echo $e($perfil['fnacFormateada'] ?? 'Sin completar'); ?></div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="profile-chip">Domicilio: <?php echo $e($perfil['domicilioPerfil'] ?? 'Sin completar'); ?></div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="profile-chip">Provincia: <?php echo $e($perfil['provinciaPerfil'] ?? 'Sin completar'); ?></div>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <h4 class="section-title mb-2">Sobre mí</h4>
+              <div class="profile-about">
+                <?php echo nl2br($e($perfil['contenidoPerfil'] ?? 'Todavía no completaste este espacio.')); ?>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card glass-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">Materias y cursos vinculados</h3>
+            <span class="badge badge-light border"><?php echo count($relacionesAcademicas); ?> registros</span>
+          </div>
+          <div class="card-body">
+            <?php if (empty($relacionesAcademicas)): ?>
+              <div class="empty-state">
+                <i class="fas fa-book-open"></i>
+                <h4>No tenés materias vinculadas todavía</h4>
+                <p class="mb-0">Cuando te asignen a un curso o una sección, aparecerá acá.</p>
+              </div>
+            <?php else: ?>
+              <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                  <thead>
+                    <tr>
+                      <th>Curso</th>
+                      <th>Materia / Sección</th>
+                      <th>Relación</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($relacionesAcademicas as $item): ?>
+                      <tr>
+                        <td><?php echo $e($item['nombreCurso'] ?? ''); ?></td>
+                        <td><?php echo $e($item['tituloSeccion'] ?? ''); ?></td>
+                        <td>
+                          <?php if (($item['origen'] ?? '') === 'DOCENTE'): ?>
+                            <span class="badge badge-info">Docente</span>
+                          <?php else: ?>
+                            <span class="badge badge-success">Estudiante</span>
+                          <?php endif; ?>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

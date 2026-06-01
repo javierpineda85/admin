@@ -157,7 +157,7 @@
                   <a href="index.php?r=bandeja-entrada" class="nav-link">
                     <i class="far fa-circle nav-icon"></i>
                     <p>Bandeja de entrada <span class="badge badge-danger right"><?php echo (int) $mensajesNoLeidosSidebar; ?></span></p>
-                </a>
+                  </a>
                 </li>
                 <li class="nav-item">
                   <a href="index.php?r=nuevo-mensaje" class="nav-link">
