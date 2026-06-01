@@ -126,6 +126,7 @@ class ModeloUsuarios
         $stmt = Conexion::conectar()->prepare("
             SELECT u.*,
                    DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
+                   DATE_FORMAT(u.ultimaConexion, '%d/%m/%Y %H:%i') AS ultimaConexionFmt,
                    DATE_FORMAT(u.fechaBaja, '%d/%m/%Y %H:%i') AS fechaBajaFmt,
                    CONCAT(u2.nombreUsuario, ' ', u2.apellidoUsuario) AS usuarioBajaNombre
             FROM usuarios u
@@ -137,6 +138,61 @@ class ModeloUsuarios
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function mdlUsuariosConectadosRecientes($minutos = 60)
+    {
+        $minutos = max(1, (int) $minutos);
+        $stmt = Conexion::conectar()->prepare("
+            SELECT u.*,
+                   DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
+                   DATE_FORMAT(u.ultimaConexion, '%d/%m/%Y %H:%i') AS ultimaConexionFmt,
+                   DATE_FORMAT(u.fechaBaja, '%d/%m/%Y %H:%i') AS fechaBajaFmt,
+                   CONCAT(u2.nombreUsuario, ' ', u2.apellidoUsuario) AS usuarioBajaNombre
+            FROM usuarios u
+            LEFT JOIN usuarios u2 ON u2.idUsuario = u.usuarioBaja
+            WHERE u.activo = 1
+              AND u.ultimaConexion >= (NOW() - INTERVAL {$minutos} MINUTE)
+            ORDER BY u.ultimaConexion DESC, u.apellidoUsuario ASC, u.nombreUsuario ASC
+        ");
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function mdlUsuariosNoConectadosRecientes($minutos = 60)
+    {
+        $minutos = max(1, (int) $minutos);
+        $stmt = Conexion::conectar()->prepare("
+            SELECT u.*,
+                   DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
+                   DATE_FORMAT(u.ultimaConexion, '%d/%m/%Y %H:%i') AS ultimaConexionFmt,
+                   DATE_FORMAT(u.fechaBaja, '%d/%m/%Y %H:%i') AS fechaBajaFmt,
+                   CONCAT(u2.nombreUsuario, ' ', u2.apellidoUsuario) AS usuarioBajaNombre
+            FROM usuarios u
+            LEFT JOIN usuarios u2 ON u2.idUsuario = u.usuarioBaja
+            WHERE u.activo = 1
+              AND (u.ultimaConexion IS NULL OR u.ultimaConexion < (NOW() - INTERVAL {$minutos} MINUTE))
+            ORDER BY u.ultimaConexion IS NULL DESC, u.ultimaConexion ASC, u.apellidoUsuario ASC, u.nombreUsuario ASC
+        ");
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function mdlContarUsuariosConectadosRecientes($minutos = 60)
+    {
+        $minutos = max(1, (int) $minutos);
+        $stmt = Conexion::conectar()->prepare("
+            SELECT COUNT(*) AS total
+            FROM usuarios
+            WHERE activo = 1
+              AND ultimaConexion >= (NOW() - INTERVAL {$minutos} MINUTE)
+        ");
+        $stmt->execute();
+        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int) ($resultado['total'] ?? 0);
     }
 
     public static function mdlDestinatariosPermitidos($idUsuarioActual, $rolActual)

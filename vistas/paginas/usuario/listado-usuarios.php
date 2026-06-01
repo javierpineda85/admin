@@ -1,94 +1,101 @@
 <?php
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['idReactivar'])) {
-  ControladorUsuarios::crtReactivarUsuario((int) $_POST['idReactivar']);
-  echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=listado-usuarios&c=usuario'; }, 650);</script>";
-}
-
 $usuarios = ControladorUsuarios::crtSeleccionarUsuario('activo', 1);
-
+$usuariosActivos = count($usuarios);
+$usuariosConectados = ControladorUsuarios::crtContarUsuariosConectadosRecientes(60);
+$usuariosInactivos = count(ControladorUsuarios::crtSeleccionarUsuario('activo', 0));
+$e = static function ($valor) {
+    return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
+};
 ?>
 
-<!-- Main content -->
-<section class="content">
+<section class="content page-fade">
   <div class="container-fluid">
-    <div class="row">
-      <div class="col-12">
-
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">Listado de usuarios</h3>
+    <div class="entity-hero mb-4">
+      <div class="entity-hero__content">
+        <div class="d-flex flex-wrap align-items-start justify-content-between">
+          <div class="mb-3 mb-lg-0">
+            <span class="entity-kicker">Usuarios</span>
+            <h1 class="entity-title mb-2">Listado de usuarios activos</h1>
+            <p class="entity-lead mb-3">
+              Administrá cuentas habilitadas, revisá la actividad reciente y saltá rapido a inactivos o usuarios sin conexión reciente.
+            </p>
+            <div class="d-flex flex-wrap" style="gap: .6rem;">
+              <span class="entity-chip"><i class="fas fa-user-check"></i><?php echo (int) $usuariosActivos; ?> activos</span>
+              <span class="entity-chip"><i class="fas fa-signal"></i><?php echo (int) $usuariosConectados; ?> conectados 60m</span>
+              <span class="entity-chip"><i class="fas fa-user-slash"></i><?php echo (int) $usuariosInactivos; ?> inactivos</span>
+            </div>
           </div>
-          <!-- /.card-header -->
-          <div class="card-body">
-            <table id="example1" class="table table-bordered table-striped table-sm">
-              <thead>
-                <tr>
-                  <th style="text-align: center;">Apellido</th>
-                  <th style="text-align: center;">Nombre</th>
-                  <th style="text-align: center;">Email</th>
-                  <th style="text-align: center;">Rol</th>
-                  <th style="text-align: center;">Estado</th>
-                  <th style="text-align: center;">Alta</th>
-                  <th style="text-align: center;">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($usuarios as $campo => $valor) : ?>
-                  <tr>
-                    <td> <?php echo htmlspecialchars($valor['apellidoUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
-                    <td> <?php echo htmlspecialchars($valor['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
-                    <td> <?php echo htmlspecialchars($valor['email'], ENT_QUOTES, 'UTF-8'); ?></td>
-                    <td> <?php echo htmlspecialchars($valor['rol'], ENT_QUOTES, 'UTF-8'); ?></td>
-                    <td class="text-center">
-                      <?php if ((int) ($valor['activo'] ?? 0) === 1): ?>
-                        <span class="badge badge-success">Activo</span>
-                      <?php else: ?>
-                        <span class="badge badge-secondary">Baja</span>
-                      <?php endif; ?>
-                    </td>
-                    <td class="text-center">
-                      <?php echo htmlspecialchars((string) ($valor['fechaAltaFmt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-                    </td>
-                    <td>
-                      <div class="row d-flex justify-content-around">
-                        <a href="index.php?r=editar-usuario&id=<?php echo $valor["idUsuario"]; ?>" class="btn btn-success btn-sm" title="Ver detalle"><i class="far fa-eye"></i></a>
-                        <?php if ((int) ($valor['activo'] ?? 0) === 0): ?>
-                          <form method="post">
-                            <input type="hidden" value="<?php echo (int) $valor["idUsuario"]; ?>" name="idReactivar">
-                            <button type="submit" class="btn btn-secondary btn-sm" title="Reactivar"><i class="fas fa-undo"></i></button>
-                          </form>
-                        <?php endif; ?>
-                      </div>
-                    </td>
-                  </tr>
-                <?php endforeach ?>
-
-
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th style="text-align: center;">Apellido</th>
-                  <th style="text-align: center;">Nombre</th>
-                  <th style="text-align: center;">Email</th>
-                  <th style="text-align: center;">Rol</th>
-                  <th style="text-align: center;">Estado</th>
-                  <th style="text-align: center;">Alta</th>
-                  <th style="text-align: center;">Acciones</th>
-                </tr>
-              </tfoot>
-            </table>
+          <div class="d-flex flex-wrap justify-content-end" style="gap: .75rem;">
+            <a href="index.php?r=listado-usuarios" class="btn btn-light btn-lg text-primary">
+              <i class="fas fa-users mr-2"></i>Activos
+            </a>
+            <a href="index.php?r=usuarios-inactivos" class="btn btn-outline-light btn-lg">
+              <i class="fas fa-user-slash mr-2"></i>Inactivos
+            </a>
+            <a href="index.php?r=usuarios-no-conectados" class="btn btn-outline-light btn-lg">
+              <i class="fas fa-clock mr-2"></i>No conectados
+            </a>
+            <a href="index.php?r=crear-usuario" class="btn btn-outline-light btn-lg">
+              <i class="fas fa-user-plus mr-2"></i>Nuevo usuario
+            </a>
           </div>
-          <!-- /.card-body -->
         </div>
-        <!-- /.card -->
       </div>
-      <!-- /.col -->
     </div>
-    <!-- /.row -->
+
+    <div class="card glass-card">
+      <div class="card-header bg-white border-0">
+        <div class="d-flex flex-wrap align-items-center justify-content-between">
+          <div>
+            <div class="section-title">Cuentas activas</div>
+            <div class="section-subtitle">Selecciona un usuario para ver y editar su detalle</div>
+          </div>
+          <span class="badge badge-light border"><?php echo (int) $usuariosActivos; ?> registros</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table id="example1" class="table table-hover table-striped table-borderless mb-0">
+            <thead>
+              <tr>
+                <th>Apellido</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Alta</th>
+                <th>Última conexión</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($usuarios as $valor): ?>
+                <?php
+                  $ultimaConexion = !empty($valor['ultimaConexionFmt']) ? $valor['ultimaConexionFmt'] : 'Sin registro';
+                  $estadoConexion = !empty($valor['ultimaConexion']) && strtotime((string) $valor['ultimaConexion']) >= strtotime('-60 minutes') ? 'Conectado reciente' : 'Sin conexión reciente';
+                ?>
+                <tr>
+                  <td><?php echo $e($valor['apellidoUsuario'] ?? ''); ?></td>
+                  <td><?php echo $e($valor['nombreUsuario'] ?? ''); ?></td>
+                  <td><?php echo $e($valor['email'] ?? ''); ?></td>
+                  <td><?php echo $e($valor['rol'] ?? ''); ?></td>
+                  <td><?php echo $e($valor['fechaAltaFmt'] ?? ''); ?></td>
+                  <td>
+                    <div class="d-flex flex-column">
+                      <strong><?php echo $e($ultimaConexion); ?></strong>
+                      <small class="text-muted"><?php echo $e($estadoConexion); ?></small>
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <a href="index.php?r=editar-usuario&id=<?php echo (int) ($valor['idUsuario'] ?? 0); ?>" class="btn btn-success btn-sm" title="Ver detalle">
+                      <i class="far fa-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
-  <!-- /.container-fluid -->
 </section>
-<!-- /.content -->
-
-

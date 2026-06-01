@@ -14,6 +14,7 @@ class RutasController
             'crear-usuario'   => 'usuario/crear-usuario.php',
             'listado-usuarios'=> 'usuario/listado-usuarios.php',
             'usuarios-inactivos'=> 'usuario/usuarios-inactivos.php',
+            'usuarios-no-conectados'=> 'usuario/usuarios-no-conectados.php',
             'perfil-usuario'  => 'usuario/perfil-usuario.php',
             'editar-usuario'  => 'usuario/editar-usuario.php',
             'editar-perfil'   => 'usuario/editar-perfil.php',

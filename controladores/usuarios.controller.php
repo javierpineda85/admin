@@ -72,6 +72,21 @@ class ControladorUsuarios
         return ModeloUsuarios::mdlHistorialUsuario((int) $idUsuario);
     }
 
+    public static function crtUsuariosConectadosRecientes($minutos = 60)
+    {
+        return ModeloUsuarios::mdlUsuariosConectadosRecientes((int) $minutos);
+    }
+
+    public static function crtUsuariosNoConectadosRecientes($minutos = 60)
+    {
+        return ModeloUsuarios::mdlUsuariosNoConectadosRecientes((int) $minutos);
+    }
+
+    public static function crtContarUsuariosConectadosRecientes($minutos = 60)
+    {
+        return ModeloUsuarios::mdlContarUsuariosConectadosRecientes((int) $minutos);
+    }
+
     public static function crtGuardarUsuario()
     {
         if (!isset($_POST["nombreUsuario"], $_POST["apellidoUsuario"], $_POST["email"], $_POST["pass"], $_POST["rol"])) {

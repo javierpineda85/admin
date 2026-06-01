@@ -88,6 +88,12 @@
                   </a>
                 </li>
                 <li class="nav-item">
+                  <a href="index.php?r=usuarios-no-conectados" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>No conectados</p>
+                  </a>
+                </li>
+                <li class="nav-item">
                   <a href="index.php?r=crear-usuario" class="nav-link">
                     <i class="far fa-circle nav-icon"></i>
                     <p>Crear</p>

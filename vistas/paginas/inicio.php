@@ -84,6 +84,7 @@ if (ControladorPermisos::esAdministrador()) {
           'bg-success' => 'background: linear-gradient(135deg, #16a34a, #22c55e);',
           'bg-warning' => 'background: linear-gradient(135deg, #d97706, #f59e0b);',
           'bg-danger' => 'background: linear-gradient(135deg, #db2777, #f43f5e);',
+          'bg-dark' => 'background: linear-gradient(135deg, #0f172a, #334155);',
         ];
         $claseTarjeta = (string) ($tarjeta['class'] ?? 'bg-primary');
         $estiloIcono = $estilosIcono[$claseTarjeta] ?? $estilosIcono['bg-primary'];

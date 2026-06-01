@@ -39,6 +39,7 @@ class ModeloPanel
 
         if ($rol === 'ADMINISTRADOR') {
             $usuariosActivos = self::contar('SELECT COUNT(*) AS total FROM usuarios WHERE activo = 1');
+            $usuariosConectados = self::contar('SELECT COUNT(*) AS total FROM usuarios WHERE activo = 1 AND ultimaConexion >= (NOW() - INTERVAL 60 MINUTE)');
             $cursos = self::contar('SELECT COUNT(*) AS total FROM cursos');
             $secciones = self::contar('SELECT COUNT(*) AS total FROM secciones');
             $mensajes = self::contar(
@@ -68,6 +69,13 @@ class ModeloPanel
                     'note' => 'Cuentas habilitadas',
                     'icon' => 'fas fa-users',
                     'class' => 'bg-info',
+                ],
+                [
+                    'label' => 'Conectados 60m',
+                    'value' => $usuariosConectados,
+                    'note' => 'Última conexión reciente',
+                    'icon' => 'fas fa-signal',
+                    'class' => 'bg-dark',
                 ],
                 [
                     'label' => 'Cursos',
