@@ -260,6 +260,37 @@ CREATE TABLE IF NOT EXISTS `recursoslecciones` (
   KEY `creadoPor` (`creadoPor`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- --------------------------------------------------------
+
+-- Migraciones del aula y calificaciones
+
+ALTER TABLE `lecciones`
+  ADD COLUMN IF NOT EXISTS `tipoLeccion` varchar(12) NOT NULL DEFAULT 'MATERIAL' AFTER `nombreLeccion`;
+
+ALTER TABLE `posteos`
+  ADD COLUMN IF NOT EXISTS `id_leccion` int DEFAULT NULL AFTER `id_curso`;
+
+ALTER TABLE `posteos`
+  ADD COLUMN IF NOT EXISTS `tipoPosteo` varchar(12) NOT NULL DEFAULT 'FORO' AFTER `id_leccion`;
+
+ALTER TABLE `calificaciones`
+  ADD UNIQUE KEY `uq_calificacion` (`id_estudiante`,`id_seccion`,`id_modulo`);
+
+CREATE TABLE IF NOT EXISTS `entregaslecciones` (
+  `idEntregaLeccion` int NOT NULL AUTO_INCREMENT,
+  `id_leccion` int NOT NULL,
+  `id_seccion` int NOT NULL,
+  `id_curso` int NOT NULL,
+  `id_estudiante` int NOT NULL,
+  `urlArchivo` varchar(255) NOT NULL,
+  `comentarioEntrega` tinytext DEFAULT NULL,
+  `fechaEntrega` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `estadoEntrega` varchar(15) NOT NULL DEFAULT 'ENTREGADA',
+  PRIMARY KEY (`idEntregaLeccion`),
+  UNIQUE KEY `uq_entrega` (`id_leccion`,`id_estudiante`),
+  KEY `id_seccion` (`id_seccion`,`id_curso`,`id_estudiante`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

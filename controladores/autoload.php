@@ -8,6 +8,7 @@ class autocarga
             'cursos'    => "controladores/cursos.controller.php",
             'materias'  => "controladores/materias.controller.php",
             'lecciones' => "controladores/lecciones.controller.php",
+            'calificaciones' => "controladores/calificaciones.controller.php",
             'mensajes'  => "controladores/mensajes.controller.php",
             'perfiles'  => "controladores/perfiles.controller.php",
             'usuarios'  => "controladores/usuarios.controller.php",
