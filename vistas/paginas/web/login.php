@@ -18,7 +18,9 @@ unset($_SESSION['login_error']);
 <body class="hold-transition login-page classroom-auth">
 <div class="login-box">
   <div class="login-logo">
-    <a href="#"><b>Class</b>room</a>
+    <a href="index.php">
+      <img src="img/logo con texto.png" alt="Classroom">
+    </a>
   </div>
   <div class="card">
     <div class="card-body login-card-body">

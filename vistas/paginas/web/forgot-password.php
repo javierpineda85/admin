@@ -20,7 +20,9 @@ unset($_SESSION['forgot_error'], $_SESSION['forgot_success'], $_SESSION['forgot_
 <body class="hold-transition login-page classroom-auth">
 <div class="login-box">
   <div class="login-logo">
-    <a href="index.php?r=login"><b>Class</b>room</a>
+    <a href="index.php?r=login">
+      <img src="img/logo con texto.png" alt="Classroom">
+    </a>
   </div>
   <div class="card">
     <div class="card-body login-card-body">
