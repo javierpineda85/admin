@@ -2,7 +2,6 @@
 <script src="./plugins/jquery/jquery.min.js"></script>
 <!-- jQuery UI 1.11.4 -->
 <script src="./plugins/jquery-ui/jquery-ui.min.js"></script>
-<!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
 <script>
   $.widget.bridge('uibutton', $.ui.button)
 </script>
@@ -26,15 +25,6 @@
 <script src="./plugins/summernote/summernote-bs4.min.js"></script>
 <!-- overlayScrollbars -->
 <script src="./plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
-<!-- AdminLTE App -->
-<script src="./js/adminlte.js"></script>
-
-<!-- AdminLTE dashboard demo (This is only for demo purposes) -->
-<script src="./js/pages/dashboard.js"></script>
-<!-- jQuery -->
-<script src="./plugins/jquery/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
-<script src="./plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- DataTables  & Plugins -->
 <script src="./plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="./plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
@@ -53,11 +43,8 @@
 <!-- Bootstrap4 Duallistbox -->
 <script src="./plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.js"></script>
 <script src="./plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js"></script>
-
-
 <!-- Bootstrap Switch -->
 <script src="./plugins/bootstrap-switch/js/bootstrap-switch.min.js"></script>
-
 
 <script>
   $(function() {
@@ -78,20 +65,11 @@
     });
   });
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//                             funcion para ocultar secciones
-/////////////////////////////////////////////////////////////////////////////////////////////////////
   function ocultar() {
     $e = document.getElementById('ocultar');
     $e.classList.toggle('d-none');
   }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//       no permite enviar el formulario de editar-perfil sin que no se presione submit
-/////////////////////////////////////////////////////////////////////////////////////////////////////
- 
   $("#editar-perfil").submit(function (event) {
     var fnac = $('#fnac').val();
     var domicilioPerfil = $('#domicilioPerfil').val();
@@ -104,43 +82,32 @@
         errores.push("Debe completar el domiclio");
     }
 
-
     if (errores.length > 0) {
-        // Muestra los errores como toasts en lugar de un alert
         Toastify({
             text: errores.join(" / "),
-            duration: 3000, // Duración en milisegundos
-            close: true, // Agregar un botón para cerrar el toast
-            gravity: "top", // Posición del toast 
+            duration: 3000,
+            close: true,
+            gravity: "top",
         }).showToast();
 
-        event.preventDefault(); // Evita que el formulario se envíe
+        event.preventDefault();
     }
-    
-});
+  });
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-//funcion para completar el DNI y contraseña al mismo tiempo en  paginas/usuarios/crear-usuario.php
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-$(document).ready(function() {
+  $(document).ready(function() {
       $('#inputDNI').on('input', function() {
         var valor = $(this).val();
         var input2 = $('#inputPass');
         var caracteresRestantes = $('#caracteresRestantes');
 
-        // Limitar la longitud a 8 caracteres
         if (valor.length > 8) {
           valor = valor.slice(0, 8);
         }
 
-        // Actualizar el valor del segundo input
         input2.val(valor);
 
-        // Calcular y mostrar los caracteres restantes
         var restantes = 8 - valor.length;
         caracteresRestantes.text('Caracteres restantes: ' + restantes);
       });
     });
-
-
 </script>

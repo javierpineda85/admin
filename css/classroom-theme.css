@@ -1,0 +1,315 @@
+:root {
+  --classroom-bg: #0f172a;
+  --classroom-bg-soft: #111827;
+  --classroom-surface: rgba(255, 255, 255, 0.08);
+  --classroom-surface-strong: rgba(255, 255, 255, 0.14);
+  --classroom-border: rgba(255, 255, 255, 0.12);
+  --classroom-text: #e5eefb;
+  --classroom-muted: #96a6c5;
+  --classroom-primary: #4f8cff;
+  --classroom-secondary: #22c55e;
+  --classroom-accent: #f59e0b;
+  --classroom-danger: #ef4444;
+  --classroom-shadow: 0 20px 60px rgba(15, 23, 42, 0.28);
+  --classroom-radius-lg: 24px;
+  --classroom-radius-md: 18px;
+  --classroom-radius-sm: 14px;
+}
+
+body.classroom-app {
+  background:
+    radial-gradient(circle at top left, rgba(79, 140, 255, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.14), transparent 28%),
+    linear-gradient(180deg, #f7f9fc 0%, #eef3fb 100%);
+}
+
+body.classroom-app .content-wrapper {
+  background: transparent;
+}
+
+body.classroom-app .main-header.navbar {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(79, 140, 255, 0.12);
+}
+
+body.classroom-app .main-sidebar {
+  background: linear-gradient(180deg, #0b1220 0%, #111b33 45%, #0f172a 100%);
+}
+
+body.classroom-app .brand-link {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(79, 140, 255, 0.18), rgba(34, 197, 94, 0.12));
+}
+
+body.classroom-app .brand-text {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+body.classroom-app .nav-sidebar .nav-link {
+  border-radius: 14px;
+  margin: 0.15rem 0.5rem;
+}
+
+body.classroom-app .nav-sidebar .nav-link:hover,
+body.classroom-app .nav-sidebar .nav-link.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+body.classroom-app .nav-sidebar .nav-link.text-danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+body.classroom-app .card,
+body.classroom-app .info-box {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: var(--classroom-radius-lg);
+  box-shadow: var(--classroom-shadow);
+  overflow: hidden;
+}
+
+body.classroom-app .card-header {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+body.classroom-app .card-header.bg-info,
+body.classroom-app .card-header.bg-secondary,
+body.classroom-app .card-header.bg-success {
+  color: #fff;
+}
+
+body.classroom-app .hero-shell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #0f172a 0%, #111b33 48%, #1d4ed8 100%);
+  color: #fff;
+  box-shadow: var(--classroom-shadow);
+}
+
+body.classroom-app .hero-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18), transparent 22%),
+    radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.24), transparent 18%),
+    radial-gradient(circle at 90% 90%, rgba(245, 158, 11, 0.22), transparent 16%);
+  pointer-events: none;
+}
+
+body.classroom-app .hero-shell .hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
+}
+
+body.classroom-app .hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.classroom-app .hero-title {
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+body.classroom-app .hero-lead {
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 62ch;
+}
+
+body.classroom-app .metric-card {
+  position: relative;
+  border-radius: 22px;
+  padding: 1.15rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: var(--classroom-shadow);
+}
+
+body.classroom-app .metric-card .metric-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  margin-bottom: 0.85rem;
+}
+
+body.classroom-app .metric-card .metric-number {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f172a;
+}
+
+body.classroom-app .metric-card .metric-label {
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+body.classroom-app .glass-card {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+body.classroom-app .section-title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #0f172a;
+}
+
+body.classroom-app .section-subtitle {
+  color: #64748b;
+  font-size: 0.94rem;
+}
+
+body.classroom-app .quick-action {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+body.classroom-app .quick-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.1);
+}
+
+body.classroom-app .quick-action .qa-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+body.classroom-app .page-fade {
+  animation: classroomFadeIn 420ms ease-out;
+}
+
+@keyframes classroomFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body.login-page.classroom-auth {
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.18), transparent 22%),
+    linear-gradient(135deg, #08111f 0%, #0d1830 42%, #1d4ed8 100%);
+}
+
+body.login-page.classroom-auth .login-box {
+  width: 440px;
+  max-width: calc(100vw - 2rem);
+}
+
+body.login-page.classroom-auth .login-logo {
+  margin-bottom: 1rem;
+}
+
+body.login-page.classroom-auth .login-logo a {
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+body.login-page.classroom-auth .card {
+  border: 0;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+body.login-page.classroom-auth .login-card-body {
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+body.login-page.classroom-auth .login-card-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+body.login-page.classroom-auth .login-card-subtitle {
+  color: #64748b;
+}
+
+body.login-page.classroom-auth .auth-pills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+
+body.login-page.classroom-auth .auth-pill {
+  border-radius: 999px;
+  padding: 0.32rem 0.75rem;
+  background: rgba(79, 140, 255, 0.1);
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+body.login-page.classroom-auth .auth-cta {
+  background: linear-gradient(135deg, #1d4ed8 0%, #4f8cff 100%);
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 14px 30px rgba(29, 78, 216, 0.25);
+}
+
+body.login-page.classroom-auth .form-control {
+  border-radius: 14px;
+}
+
+body.login-page.classroom-auth .input-group-text {
+  border-radius: 0 14px 14px 0;
+}
+
+@media (max-width: 767.98px) {
+  body.classroom-app .hero-content {
+    padding: 1.25rem;
+  }
+
+  body.classroom-app .hero-shell {
+    border-radius: 22px;
+  }
+
+  body.classroom-app .metric-card {
+    padding: 1rem;
+  }
+}

@@ -12,33 +12,25 @@ unset($_SESSION['login_error']);
   <link rel="stylesheet" href="./plugins/fontawesome-free/css/all.min.css">
   <link rel="stylesheet" href="./plugins/icheck-bootstrap/icheck-bootstrap.min.css">
   <link rel="stylesheet" href="./css/adminlte.min.css">
-  <style>
-    body.login-page {
-      background: radial-gradient(circle at top left, #2e86de 0%, #1b1f3a 50%, #0f172a 100%);
-    }
-    .login-box {
-      width: 420px;
-      max-width: calc(100vw - 2rem);
-    }
-    .login-logo a {
-      color: #fff;
-      font-weight: 700;
-      letter-spacing: .5px;
-    }
-    .login-card-body {
-      border-radius: 18px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
-    }
-  </style>
+  <link rel="stylesheet" href="./css/classroom-theme.css">
 </head>
-<body class="hold-transition login-page">
+<body class="hold-transition login-page classroom-auth">
 <div class="login-box">
   <div class="login-logo">
     <a href="#"><b>Class</b>room</a>
   </div>
   <div class="card">
     <div class="card-body login-card-body">
-      <p class="login-box-msg">Ingresá a tu aula virtual</p>
+      <div class="auth-pills">
+        <span class="auth-pill">Estudiantes</span>
+        <span class="auth-pill">Docentes</span>
+        <span class="auth-pill">Administradores</span>
+      </div>
+
+      <div class="mb-4">
+        <h1 class="login-card-title mb-2">Ingresá a tu aula virtual</h1>
+        <p class="login-card-subtitle mb-0">Una experiencia más clara para aprender, enseñar y administrar sin fricción.</p>
+      </div>
 
       <?php if ($loginError !== ''): ?>
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -66,12 +58,12 @@ unset($_SESSION['login_error']);
             </div>
           </div>
         </div>
-        <div class="row">
+        <div class="row align-items-center">
           <div class="col-8">
             <p class="mb-0 text-muted small">Acceso para estudiantes, docentes y administradores.</p>
           </div>
           <div class="col-4">
-            <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+            <button type="submit" class="btn auth-cta text-white btn-block">Entrar</button>
           </div>
         </div>
       </form>

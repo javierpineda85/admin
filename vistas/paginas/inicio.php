@@ -1,495 +1,214 @@
 <?php
 $db = new Conexion;
-$sql = "SELECT count(*) as totalUsuarios FROM usuarios";
+$sql = "SELECT idCurso, nombreCurso FROM cursos ORDER BY idCurso ASC LIMIT 1";
+$primerCurso = $db->consultas($sql);
+
+$db = new Conexion;
+$sql = "SELECT COUNT(*) AS totalUsuarios FROM usuarios";
 $usuarios = $db->consultas($sql);
 
 $db = new Conexion;
-$sql = "SELECT count(*) as totalCursos FROM cursos";
+$sql = "SELECT COUNT(*) AS totalCursos FROM cursos";
 $cursos = $db->consultas($sql);
 
 $db = new Conexion;
-$sql = "SELECT count(*) as totalMaterias FROM secciones";
-$materias = $db->consultas($sql);
+$sql = "SELECT COUNT(*) AS totalSecciones FROM secciones";
+$secciones = $db->consultas($sql);
+
+$db = new Conexion;
+$sql = "SELECT COUNT(*) AS totalMensajes FROM mensajes";
+$mensajes = $db->consultas($sql);
 
 $rolActual = ControladorPermisos::rolActual();
+$nombreUsuario = $_SESSION['usuario']['nombre'] ?? 'Usuario';
 ?>
 
- <!-- Default box -->
- <div class="card">
-   <div class="card-header bg-info">
-     <h3 class="card-title">Panel de Control</h3>
+<div class="page-fade">
+  <div class="hero-shell mb-4">
+    <div class="hero-content">
+      <div class="d-flex flex-wrap align-items-start justify-content-between">
+        <div class="mb-3 mb-md-0">
+          <div class="hero-kicker mb-3">
+            <i class="fas fa-graduation-cap"></i>
+            Aula viva
+          </div>
+          <h1 class="hero-title mb-3">
+            Bienvenido, <?php echo htmlspecialchars($nombreUsuario, ENT_QUOTES, 'UTF-8'); ?>.
+            Tu panel está listo para acompañar el aprendizaje.
+          </h1>
+          <p class="hero-lead mb-4">
+            Gestioná cursos, clases, mensajes y seguimiento académico desde una interfaz más clara, más rápida y pensada para que estudiantes y docentes se orienten sin esfuerzo.
+          </p>
+          <div class="d-flex flex-wrap" style="gap: .75rem;">
+            <a href="index.php?r=listado-cursos" class="btn btn-light btn-lg text-primary">
+              <i class="fas fa-layer-group mr-2"></i>Ver cursos
+            </a>
+            <a href="index.php?r=bandeja-entrada" class="btn btn-outline-light btn-lg">
+              <i class="fas fa-comments mr-2"></i>Mensajes
+            </a>
+            <a href="index.php?r=perfil-usuario" class="btn btn-outline-light btn-lg">
+              <i class="fas fa-user mr-2"></i>Mi perfil
+            </a>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="auth-pills justify-content-end">
+            <span class="auth-pill">Rol: <?php echo htmlspecialchars($rolActual !== '' ? $rolActual : 'usuario', ENT_QUOTES, 'UTF-8'); ?></span>
+            <span class="auth-pill">Modo responsive</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-     <div class="card-tools">
-       <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-         <i class="fas fa-minus"></i>
-       </button>
+  <div class="row">
+    <div class="col-md-6 col-xl-3 mb-3">
+      <div class="metric-card">
+        <div class="metric-icon" style="background: linear-gradient(135deg, #1d4ed8, #4f8cff);">
+          <i class="fas fa-copy"></i>
+        </div>
+        <span class="metric-number"><?php echo (int) $cursos[0]['totalCursos']; ?></span>
+        <span class="metric-label">Cursos activos</span>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3 mb-3">
+      <div class="metric-card">
+        <div class="metric-icon" style="background: linear-gradient(135deg, #16a34a, #22c55e);">
+          <i class="fas fa-book-open"></i>
+        </div>
+        <span class="metric-number"><?php echo (int) $secciones[0]['totalSecciones']; ?></span>
+        <span class="metric-label">Secciones y clases</span>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3 mb-3">
+      <div class="metric-card">
+        <div class="metric-icon" style="background: linear-gradient(135deg, #d97706, #f59e0b);">
+          <i class="fas fa-users"></i>
+        </div>
+        <span class="metric-number"><?php echo (int) $usuarios[0]['totalUsuarios']; ?></span>
+        <span class="metric-label">Usuarios registrados</span>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3 mb-3">
+      <div class="metric-card">
+        <div class="metric-icon" style="background: linear-gradient(135deg, #db2777, #f43f5e);">
+          <i class="fas fa-comments"></i>
+        </div>
+        <span class="metric-number"><?php echo (int) $mensajes[0]['totalMensajes']; ?></span>
+        <span class="metric-label">Mensajes enviados</span>
+      </div>
+    </div>
+  </div>
 
-     </div>
-   </div>
-   <div class="card-body">
-     <!-- Small boxes (Stat box) -->
-     <div class="row">
-       <div class="col-lg-3 col-md-6 col-sm-12">
-         <!-- cursos -->
-         <div class="info-box shadow">
-           <span class="info-box-icon bg-primary"><i class="far fa-copy"></i></span>
+  <div class="row">
+    <div class="col-lg-8 mb-4">
+      <div class="card glass-card h-100">
+        <div class="card-header bg-white border-0">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="section-title">Accesos rápidos</div>
+              <div class="section-subtitle">Atajos pensados para la navegación diaria</div>
+            </div>
+            <span class="badge badge-primary">Inicio</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+            <a href="index.php?r=<?php echo !empty($primerCurso) ? 'detalle-curso&idCurso=' . (int) $primerCurso[0]['idCurso'] : 'listado-cursos'; ?>" class="quick-action text-dark">
+                <span class="qa-icon" style="background: linear-gradient(135deg, #1d4ed8, #4f8cff);"><i class="fas fa-laptop-code"></i></span>
+                <div>
+                    <strong>Entrar al curso</strong>
+                  <div class="text-muted small">
+                    <?php echo !empty($primerCurso) ? htmlspecialchars($primerCurso[0]['nombreCurso'], ENT_QUOTES, 'UTF-8') : 'Todavía no hay cursos cargados'; ?>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-6 mb-3">
+              <a href="index.php?r=bandeja-entrada" class="quick-action text-dark">
+                <span class="qa-icon" style="background: linear-gradient(135deg, #db2777, #f43f5e);"><i class="fas fa-inbox"></i></span>
+                <div>
+                  <strong>Revisar mensajes</strong>
+                  <div class="text-muted small">Respondé sin perder contexto</div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-6 mb-3">
+              <a href="index.php?r=listado-cursos" class="quick-action text-dark">
+                <span class="qa-icon" style="background: linear-gradient(135deg, #16a34a, #22c55e);"><i class="fas fa-layer-group"></i></span>
+                <div>
+                  <strong>Administrar cursos</strong>
+                  <div class="text-muted small">Listado, edición y seguimiento</div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-6 mb-3">
+              <a href="index.php?r=perfil-usuario" class="quick-action text-dark">
+                <span class="qa-icon" style="background: linear-gradient(135deg, #d97706, #f59e0b);"><i class="fas fa-user-circle"></i></span>
+                <div>
+                  <strong>Mi perfil</strong>
+                  <div class="text-muted small">Actualizá tus datos personales</div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-           <div class="info-box-content">
-             <h5 class="info-box-text"><?php echo $cursos[0]['totalCursos']; ?></h5>
-             <span class="info-box-number">Cursos creados</span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-       </div>
-       <!-- ./col -->
-       <div class="col-lg-3 col-md-6 col-sm-12">
-         <!-- materias -->
-         <div class="info-box shadow">
-           <span class="info-box-icon bg-success"><i class="nav-icon fas fa-book-open"></i></span>
+    <div class="col-lg-4 mb-4">
+      <div class="card glass-card h-100">
+        <div class="card-header bg-white border-0">
+          <div class="section-title">Tu experiencia</div>
+          <div class="section-subtitle">Según el rol actual</div>
+        </div>
+        <div class="card-body">
+          <?php if (ControladorPermisos::esAdministrador()): ?>
+            <div class="alert alert-primary border-0">
+              Administrás usuarios, cursos y materias. Este es el centro operativo del sistema.
+            </div>
+          <?php elseif (ControladorPermisos::esDocente()): ?>
+            <div class="alert alert-success border-0">
+              Tu espacio está orientado a clases, material académico, notas y comunicación con estudiantes.
+            </div>
+          <?php elseif (ControladorPermisos::esEstudiante()): ?>
+            <div class="alert alert-warning border-0">
+              Tu panel está enfocado en el acceso a clases, seguimiento de notas y mensajes permitidos.
+            </div>
+          <?php else: ?>
+            <div class="alert alert-light border">
+              Revisá tu configuración de acceso para mostrar contenido adaptado al rol.
+            </div>
+          <?php endif; ?>
 
-           <div class="info-box-content">
-             <h5 class="info-box-text"><?php echo $materias[0]['totalMaterias']; ?></h5>
-             <span class="info-box-number">Materias creadas</span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
+          <div class="mt-4">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Organización</span>
+              <strong>Alta</strong>
+            </div>
+            <div class="progress mb-3" style="height: 10px;">
+              <div class="progress-bar bg-primary" style="width: 84%"></div>
+            </div>
 
-       </div>
-       <!-- ./col -->
-       <div class="col-lg-3 col-md-6 col-sm-12">
-         <!-- usuarios -->
-         <div class="info-box shadow">
-           <span class="info-box-icon bg-success"><i class="fas fa-users"></i></span>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Comunicación</span>
+              <strong>Media</strong>
+            </div>
+            <div class="progress mb-3" style="height: 10px;">
+              <div class="progress-bar bg-success" style="width: 66%"></div>
+            </div>
 
-           <div class="info-box-content">
-             <h5 class="info-box-text"><?php echo $usuarios[0]['totalUsuarios']; ?></h5>
-             <span class="info-box-number">Usuarios</span>
-           </div>
-           <!-- /.info-box-content -->
-         </div>
-       </div>
-       <!-- ./col -->
-       <div class="col-lg-3 col-md-6 col-sm-12">
-         <!-- visitas -->
-         <div class="info-box shadow">
-           <span class="info-box-icon bg-warning"><i class="fas fa-eye"></i></span>
-
-           <div class="info-box-content">
-             <h5 class="info-box-text">65</h5>
-             <span class="info-box-number">Visitas</span>
-           </div>
-         </div>
-         <!-- ./col -->
-       </div>
-     </div>
-     <!-- /.card-body -->
-     <div class="card-footer">
-       Footer
-     </div>
-   </div>
-
-   <!-- Main content -->
-   <section class="content">
-     <div class="container-fluid">
-
-    
-       <div class="alert alert-info border-0 shadow-sm">
-         Estás viendo el panel de <strong><?php echo htmlspecialchars($rolActual !== '' ? $rolActual : 'usuario', ENT_QUOTES, 'UTF-8'); ?></strong>.
-         <?php if (ControladorPermisos::esAdministrador()): ?>
-           Tenés acceso completo al sistema.
-         <?php elseif (ControladorPermisos::esDocente()): ?>
-           Tu acceso está enfocado en clases, materiales y comunicación.
-         <?php elseif (ControladorPermisos::esEstudiante()): ?>
-           Tu acceso está enfocado en cursos, clases y notas.
-         <?php endif; ?>
-       </div>
-
-       <!-- Main row -->
-       <div class="row">
-         <!-- Left col -->
-         <section class="col-lg-7 connectedSortable">
-           <!-- DIRECT CHAT -->
-           <div class="card direct-chat direct-chat-primary">
-             <div class="card-header bg-secondary">
-               <h3 class="card-title">Mensajes Directos</h3>
-
-               <div class="card-tools">
-                 <span title="3 New Messages" class="badge badge-primary">3</span>
-                 <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                   <i class="fas fa-minus"></i>
-                 </button>
-                 <button type="button" class="btn btn-tool" title="Contacts" data-widget="chat-pane-toggle">
-                   <i class="fas fa-comments"></i>
-                 </button>
-                 <button type="button" class="btn btn-tool" data-card-widget="remove">
-                   <i class="fas fa-times"></i>
-                 </button>
-               </div>
-             </div>
-             <!-- /.card-header -->
-             <div class="card-body">
-               <!-- Conversations are loaded here -->
-               <div class="direct-chat-messages">
-                 <!-- Message. Default to the left -->
-                 <div class="direct-chat-msg">
-                   <div class="direct-chat-infos clearfix">
-                     <span class="direct-chat-name float-left">Alexander Pierce</span>
-                     <span class="direct-chat-timestamp float-right">23 Jan 2:00 pm</span>
-                   </div>
-                   <!-- /.direct-chat-infos -->
-                   <img class="direct-chat-img" src="img/user1-128x128.jpg" alt="message user image">
-                   <!-- /.direct-chat-img -->
-                   <div class="direct-chat-text">
-                     Is this template really for free? That's unbelievable!
-                   </div>
-                   <!-- /.direct-chat-text -->
-                 </div>
-                 <!-- /.direct-chat-msg -->
-
-                 <!-- Message to the right -->
-                 <div class="direct-chat-msg right">
-                   <div class="direct-chat-infos clearfix">
-                     <span class="direct-chat-name float-right">Sarah Bullock</span>
-                     <span class="direct-chat-timestamp float-left">23 Jan 2:05 pm</span>
-                   </div>
-                   <!-- /.direct-chat-infos -->
-                   <img class="direct-chat-img" src="img/user3-128x128.jpg" alt="message user image">
-                   <!-- /.direct-chat-img -->
-                   <div class="direct-chat-text">
-                     You better believe it!
-                   </div>
-                   <!-- /.direct-chat-text -->
-                 </div>
-                 <!-- /.direct-chat-msg -->
-
-                 <!-- Message. Default to the left -->
-                 <div class="direct-chat-msg">
-                   <div class="direct-chat-infos clearfix">
-                     <span class="direct-chat-name float-left">Alexander Pierce</span>
-                     <span class="direct-chat-timestamp float-right">23 Jan 5:37 pm</span>
-                   </div>
-                   <!-- /.direct-chat-infos -->
-                   <img class="direct-chat-img" src="img/user1-128x128.jpg" alt="message user image">
-                   <!-- /.direct-chat-img -->
-                   <div class="direct-chat-text">
-                     Working with AdminLTE on a great new app! Wanna join?
-                   </div>
-                   <!-- /.direct-chat-text -->
-                 </div>
-                 <!-- /.direct-chat-msg -->
-
-                 <!-- Message to the right -->
-                 <div class="direct-chat-msg right">
-                   <div class="direct-chat-infos clearfix">
-                     <span class="direct-chat-name float-right">Sarah Bullock</span>
-                     <span class="direct-chat-timestamp float-left">23 Jan 6:10 pm</span>
-                   </div>
-                   <!-- /.direct-chat-infos -->
-                   <img class="direct-chat-img" src="img/user3-128x128.jpg" alt="message user image">
-                   <!-- /.direct-chat-img -->
-                   <div class="direct-chat-text">
-                     I would love to.
-                   </div>
-                   <!-- /.direct-chat-text -->
-                 </div>
-                 <!-- /.direct-chat-msg -->
-
-               </div>
-               <!--/.direct-chat-messages-->
-
-               <!-- Contacts are loaded here -->
-               <div class="direct-chat-contacts">
-                 <ul class="contacts-list">
-                   <li>
-                     <a href="#">
-                       <img class="contacts-list-img" src="img/user1-128x128.jpg" alt="User Avatar">
-
-                       <div class="contacts-list-info">
-                         <span class="contacts-list-name">
-                           Count Dracula
-                           <small class="contacts-list-date float-right">2/28/2015</small>
-                         </span>
-                         <span class="contacts-list-msg">How have you been? I was...</span>
-                       </div>
-                       <!-- /.contacts-list-info -->
-                     </a>
-                   </li>
-                   <!-- End Contact Item -->
-                   <li>
-                     <a href="#">
-                       <img class="contacts-list-img" src="img/user7-128x128.jpg" alt="User Avatar">
-
-                       <div class="contacts-list-info">
-                         <span class="contacts-list-name">
-                           Sarah Doe
-                           <small class="contacts-list-date float-right">2/23/2015</small>
-                         </span>
-                         <span class="contacts-list-msg">I will be waiting for...</span>
-                       </div>
-                       <!-- /.contacts-list-info -->
-                     </a>
-                   </li>
-                   <!-- End Contact Item -->
-                   <li>
-                     <a href="#">
-                       <img class="contacts-list-img" src="img/user3-128x128.jpg" alt="User Avatar">
-
-                       <div class="contacts-list-info">
-                         <span class="contacts-list-name">
-                           Nadia Jolie
-                           <small class="contacts-list-date float-right">2/20/2015</small>
-                         </span>
-                         <span class="contacts-list-msg">I'll call you back at...</span>
-                       </div>
-                       <!-- /.contacts-list-info -->
-                     </a>
-                   </li>
-                   <!-- End Contact Item -->
-                   <li>
-                     <a href="#">
-                       <img class="contacts-list-img" src="img/user5-128x128.jpg" alt="User Avatar">
-
-                       <div class="contacts-list-info">
-                         <span class="contacts-list-name">
-                           Nora S. Vans
-                           <small class="contacts-list-date float-right">2/10/2015</small>
-                         </span>
-                         <span class="contacts-list-msg">Where is your new...</span>
-                       </div>
-                       <!-- /.contacts-list-info -->
-                     </a>
-                   </li>
-                   <!-- End Contact Item -->
-                   <li>
-                     <a href="#">
-                       <img class="contacts-list-img" src="img/user6-128x128.jpg" alt="User Avatar">
-
-                       <div class="contacts-list-info">
-                         <span class="contacts-list-name">
-                           John K.
-                           <small class="contacts-list-date float-right">1/27/2015</small>
-                         </span>
-                         <span class="contacts-list-msg">Can I take a look at...</span>
-                       </div>
-                       <!-- /.contacts-list-info -->
-                     </a>
-                   </li>
-                   <!-- End Contact Item -->
-                   <li>
-                     <a href="#">
-                       <img class="contacts-list-img" src="img/user8-128x128.jpg" alt="User Avatar">
-
-                       <div class="contacts-list-info">
-                         <span class="contacts-list-name">
-                           Kenneth M.
-                           <small class="contacts-list-date float-right">1/4/2015</small>
-                         </span>
-                         <span class="contacts-list-msg">Never mind I found...</span>
-                       </div>
-                       <!-- /.contacts-list-info -->
-                     </a>
-                   </li>
-                   <!-- End Contact Item -->
-                 </ul>
-                 <!-- /.contacts-list -->
-               </div>
-               <!-- /.direct-chat-pane -->
-             </div>
-             <!-- /.card-body -->
-             <div class="card-footer">
-               <form action="#" method="post">
-                 <div class="input-group">
-                   <input type="text" name="message" placeholder="Type Message ..." class="form-control">
-                   <span class="input-group-append">
-                     <button type="button" class="btn btn-primary">Send</button>
-                   </span>
-                 </div>
-               </form>
-             </div>
-             <!-- /.card-footer-->
-           </div>
-           <!--/.direct-chat -->
-
-           <!-- TO DO List -->
-           <div class="card">
-             <div class="card-header bg-success">
-               <h3 class="card-title">
-                 <i class="ion ion-clipboard mr-1"></i>
-                 To Do List
-               </h3>
-
-               <div class="card-tools">
-                 <ul class="pagination pagination-sm">
-                   <li class="page-item"><a href="#" class="page-link">&laquo;</a></li>
-                   <li class="page-item"><a href="#" class="page-link">1</a></li>
-                   <li class="page-item"><a href="#" class="page-link">2</a></li>
-                   <li class="page-item"><a href="#" class="page-link">3</a></li>
-                   <li class="page-item"><a href="#" class="page-link">&raquo;</a></li>
-                 </ul>
-               </div>
-             </div>
-             <!-- /.card-header -->
-             <div class="card-body">
-               <ul class="todo-list" data-widget="todo-list">
-                 <li>
-                   <!-- drag handle -->
-                   <span class="handle">
-                     <i class="fas fa-ellipsis-v"></i>
-                     <i class="fas fa-ellipsis-v"></i>
-                   </span>
-                   <!-- checkbox -->
-                   <div class="icheck-primary d-inline ml-2">
-                     <input type="checkbox" value="" name="todo1" id="todoCheck1">
-                     <label for="todoCheck1"></label>
-                   </div>
-                   <!-- todo text -->
-                   <span class="text">Design a nice theme</span>
-                   <!-- Emphasis label -->
-                   <small class="badge badge-danger"><i class="far fa-clock"></i> 2 mins</small>
-                   <!-- General tools such as edit or delete-->
-                   <div class="tools">
-                     <i class="fas fa-edit"></i>
-                     <i class="fas fa-trash-o"></i>
-                   </div>
-                 </li>
-                 <li>
-                   <span class="handle">
-                     <i class="fas fa-ellipsis-v"></i>
-                     <i class="fas fa-ellipsis-v"></i>
-                   </span>
-                   <div class="icheck-primary d-inline ml-2">
-                     <input type="checkbox" value="" name="todo2" id="todoCheck2" checked>
-                     <label for="todoCheck2"></label>
-                   </div>
-                   <span class="text">Make the theme responsive</span>
-                   <small class="badge badge-info"><i class="far fa-clock"></i> 4 hours</small>
-                   <div class="tools">
-                     <i class="fas fa-edit"></i>
-                     <i class="fas fa-trash-o"></i>
-                   </div>
-                 </li>
-                 <li>
-                   <span class="handle">
-                     <i class="fas fa-ellipsis-v"></i>
-                     <i class="fas fa-ellipsis-v"></i>
-                   </span>
-                   <div class="icheck-primary d-inline ml-2">
-                     <input type="checkbox" value="" name="todo3" id="todoCheck3">
-                     <label for="todoCheck3"></label>
-                   </div>
-                   <span class="text">Let theme shine like a star</span>
-                   <small class="badge badge-warning"><i class="far fa-clock"></i> 1 day</small>
-                   <div class="tools">
-                     <i class="fas fa-edit"></i>
-                     <i class="fas fa-trash-o"></i>
-                   </div>
-                 </li>
-                 <li>
-                   <span class="handle">
-                     <i class="fas fa-ellipsis-v"></i>
-                     <i class="fas fa-ellipsis-v"></i>
-                   </span>
-                   <div class="icheck-primary d-inline ml-2">
-                     <input type="checkbox" value="" name="todo4" id="todoCheck4">
-                     <label for="todoCheck4"></label>
-                   </div>
-                   <span class="text">Let theme shine like a star</span>
-                   <small class="badge badge-success"><i class="far fa-clock"></i> 3 days</small>
-                   <div class="tools">
-                     <i class="fas fa-edit"></i>
-                     <i class="fas fa-trash-o"></i>
-                   </div>
-                 </li>
-                 <li>
-                   <span class="handle">
-                     <i class="fas fa-ellipsis-v"></i>
-                     <i class="fas fa-ellipsis-v"></i>
-                   </span>
-                   <div class="icheck-primary d-inline ml-2">
-                     <input type="checkbox" value="" name="todo5" id="todoCheck5">
-                     <label for="todoCheck5"></label>
-                   </div>
-                   <span class="text">Check your messages and notifications</span>
-                   <small class="badge badge-primary"><i class="far fa-clock"></i> 1 week</small>
-                   <div class="tools">
-                     <i class="fas fa-edit"></i>
-                     <i class="fas fa-trash-o"></i>
-                   </div>
-                 </li>
-                 <li>
-                   <span class="handle">
-                     <i class="fas fa-ellipsis-v"></i>
-                     <i class="fas fa-ellipsis-v"></i>
-                   </span>
-                   <div class="icheck-primary d-inline ml-2">
-                     <input type="checkbox" value="" name="todo6" id="todoCheck6">
-                     <label for="todoCheck6"></label>
-                   </div>
-                   <span class="text">Let theme shine like a star</span>
-                   <small class="badge badge-secondary"><i class="far fa-clock"></i> 1 month</small>
-                   <div class="tools">
-                     <i class="fas fa-edit"></i>
-                     <i class="fas fa-trash-o"></i>
-                   </div>
-                 </li>
-               </ul>
-             </div>
-             <!-- /.card-body -->
-             <div class="card-footer clearfix">
-               <button type="button" class="btn btn-primary float-right"><i class="fas fa-plus"></i> Add item</button>
-             </div>
-           </div>
-           <!-- /.card -->
-         </section>
-         <!-- /.Left col -->
-         
-         <!-- right col (We are only adding the ID to make the widgets sortable)-->
-         <section class="col-lg-5 connectedSortable">
-
-           <!-- Calendar -->
-           <div class="card bg-gradient-success">
-             <div class="card-header border-0">
-
-               <h3 class="card-title">
-                 <i class="far fa-calendar-alt"></i>
-                 Calendario
-               </h3>
-               <!-- tools card -->
-               <div class="card-tools">
-                 <!-- button with a dropdown -->
-                 <div class="btn-group">
-                   <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-toggle="dropdown" data-offset="-52">
-                     <i class="fas fa-bars"></i>
-                   </button>
-                   <div class="dropdown-menu" role="menu">
-                     <a href="#" class="dropdown-item">Add new event</a>
-                     <a href="#" class="dropdown-item">Clear events</a>
-                     <div class="dropdown-divider"></div>
-                     <a href="#" class="dropdown-item">View calendar</a>
-                   </div>
-                 </div>
-                 <button type="button" class="btn btn-success btn-sm" data-card-widget="collapse">
-                   <i class="fas fa-minus"></i>
-                 </button>
-                 <button type="button" class="btn btn-success btn-sm" data-card-widget="remove">
-                   <i class="fas fa-times"></i>
-                 </button>
-               </div>
-               <!-- /. tools -->
-             </div>
-             <!-- /.card-header -->
-             <div class="card-body pt-0">
-               <!--The calendar -->
-               <div id="calendar" style="width: 100%"></div>
-             </div>
-             <!-- /.card-body -->
-           </div>
-           <!-- /.card -->
-         </section>
-         <!-- right col -->
-       </div>
-       <!-- /.row (main row) -->
-     </div><!-- /.container-fluid -->
-   </section>
-   <!-- /.content -->
- </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Seguimiento académico</span>
+              <strong>En progreso</strong>
+            </div>
+            <div class="progress" style="height: 10px;">
+              <div class="progress-bar bg-warning" style="width: 52%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

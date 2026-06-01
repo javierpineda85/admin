@@ -19,7 +19,7 @@ if (!isset($_SESSION['logueado']) || $_SESSION['logueado'] !== true) {
 ?>
 <?php include_once('contenido/head.php'); ?>
 
-<body class="hold-transition sidebar-mini sidebar-collapse">
+<body class="hold-transition sidebar-mini sidebar-collapse classroom-app">
   <!-- Site wrapper -->
   <div class="wrapper">
 

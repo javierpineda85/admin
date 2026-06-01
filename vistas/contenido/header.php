@@ -15,7 +15,7 @@
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
       <li class="nav-item d-none d-sm-inline-block">
-        <span class="nav-link text-muted">
+        <span class="nav-link text-muted badge badge-light border px-3 py-2" style="font-weight: 700;">
           <i class="fas fa-user-tag mr-1"></i>
           <?php echo htmlspecialchars(ControladorPermisos::etiquetaRol(), ENT_QUOTES, 'UTF-8'); ?>
         </span>

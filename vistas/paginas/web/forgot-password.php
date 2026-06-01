@@ -7,28 +7,23 @@
   <link rel="stylesheet" href="./plugins/fontawesome-free/css/all.min.css">
   <link rel="stylesheet" href="./plugins/icheck-bootstrap/icheck-bootstrap.min.css">
   <link rel="stylesheet" href="./css/adminlte.min.css">
-  <style>
-    body.login-page {
-      background: radial-gradient(circle at top left, #22c55e 0%, #14532d 45%, #052e16 100%);
-    }
-    .login-box {
-      width: 420px;
-      max-width: calc(100vw - 2rem);
-    }
-    .login-card-body {
-      border-radius: 18px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
-    }
-  </style>
+  <link rel="stylesheet" href="./css/classroom-theme.css">
 </head>
-<body class="hold-transition login-page">
+<body class="hold-transition login-page classroom-auth">
 <div class="login-box">
   <div class="login-logo">
     <a href="#"><b>Class</b>room</a>
   </div>
   <div class="card">
     <div class="card-body login-card-body">
-      <p class="login-box-msg">Recuperar contraseña</p>
+      <div class="auth-pills">
+        <span class="auth-pill">Soporte</span>
+        <span class="auth-pill">Acceso seguro</span>
+      </div>
+      <div class="mb-4">
+        <h1 class="login-card-title mb-2">Recuperar contraseña</h1>
+        <p class="login-card-subtitle mb-0">Te enviaremos un enlace o credencial temporal para volver a ingresar.</p>
+      </div>
 
       <form action="#" method="post">
         <div class="input-group mb-3">
@@ -39,11 +34,7 @@
             </div>
           </div>
         </div>
-        <div class="row">
-          <div class="col-12">
-            <button type="submit" class="btn btn-success btn-block">Solicitar nueva contraseña</button>
-          </div>
-        </div>
+        <button type="submit" class="btn auth-cta text-white btn-block">Solicitar recuperación</button>
       </form>
 
       <p class="mt-3 mb-1">

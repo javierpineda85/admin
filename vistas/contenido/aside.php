@@ -2,7 +2,7 @@
     <!-- Brand Logo -->
     <a href="index.php" class="brand-link">
       <img src="img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-      <span class="brand-text font-weight-light">Admin TBT</span>
+      <span class="brand-text font-weight-light">Classroom Hub</span>
     </a>
 
     <!-- Sidebar -->
@@ -19,6 +19,9 @@
           <a href="#" class="d-block">
             <?php echo htmlspecialchars($_SESSION['usuario']['nombre'] ?? 'Usuario', ENT_QUOTES, 'UTF-8'); ?>
           </a>
+          <small class="text-muted">
+            <?php echo htmlspecialchars(ControladorPermisos::etiquetaRol(), ENT_QUOTES, 'UTF-8'); ?>
+          </small>
         </div>
       </div>
 
