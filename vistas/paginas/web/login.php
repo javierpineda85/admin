@@ -19,7 +19,7 @@ unset($_SESSION['login_error']);
 <div class="login-box">
   <div class="login-logo">
     <a href="index.php">
-      <img src="img/logo con texto.png" alt="Classroom">
+      <img src="img/logo con texto blanco.png" alt="Classroom">
     </a>
   </div>
   <div class="card">
