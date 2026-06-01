@@ -4,16 +4,20 @@ require_once('modelos/mensajes.modelo.php');
 
 class ControladorMensajes
 {
-    static public function crtMostrarMensajes($item, $valor){
+    static public function crtMostrarMensajes($item, $valor)
+    {
         $respuesta = ModeloMensajes::mdlMostrarMensajes($item, $valor);
         return $respuesta;
     }
 
-    static public function crtMostrarMensajesEnviados($item, $valor){
+    static public function crtMostrarMensajesEnviados($item, $valor)
+    {
         $respuesta = ModeloMensajes::mdlMostrarMensajesEnviados($item, $valor);
         return $respuesta;
     }
-    static public function crtMostrarUnMensaje($id){
+
+    static public function crtMostrarUnMensaje($id)
+    {
         $respuesta = ModeloMensajes::mdlMostrarUnMensaje($id);
         return $respuesta;
     }
@@ -23,14 +27,35 @@ class ControladorMensajes
         return ControladorUsuarios::crtDestinatariosPermitidos();
     }
 
-    static public function crtGuardarMensaje(){
+    static public function crtContarMensajesRecibidos($idUsuario)
+    {
+        return ModeloMensajes::mdlContarMensajesRecibidos($idUsuario);
+    }
+
+    static public function crtContarMensajesEnviados($idUsuario)
+    {
+        return ModeloMensajes::mdlContarMensajesEnviados($idUsuario);
+    }
+
+    static public function crtMensajesRecientesRecibidos($idUsuario, $limite = 5)
+    {
+        return ModeloMensajes::mdlMensajesRecientesRecibidos($idUsuario, $limite);
+    }
+
+    static public function crtMensajesRecientesEnviados($idUsuario, $limite = 5)
+    {
+        return ModeloMensajes::mdlMensajesRecientesEnviados($idUsuario, $limite);
+    }
+
+    static public function crtGuardarMensaje()
+    {
         if (isset($_POST["id_destinatario"], $_POST["contenidoMensaje"])) {
             $idRemitente = (int) ($_SESSION['usuario']['id'] ?? 0);
             $idDestinatario = (int) $_POST["id_destinatario"];
             $contenido = trim((string) $_POST["contenidoMensaje"]);
 
             if ($idRemitente <= 0 || $idDestinatario <= 0 || $contenido === '') {
-                $_SESSION['success_message'] = 'Completa el destinatario y el mensaje.';
+                $_SESSION['error_message'] = 'Completa el destinatario y el mensaje.';
                 return false;
             }
 
@@ -38,23 +63,21 @@ class ControladorMensajes
             $usuarioDestinatario = ModeloUsuarios::mdlObtenerUsuarioPorId($idDestinatario);
 
             if (!$usuarioRemitente || !$usuarioDestinatario) {
-                $_SESSION['success_message'] = 'No se pudo validar el destinatario.';
+                $_SESSION['error_message'] = 'No se pudo validar el destinatario.';
                 return false;
             }
 
             $rolRemitente = strtoupper(trim((string) ($usuarioRemitente['rol'] ?? '')));
             $rolDestinatario = strtoupper(trim((string) ($usuarioDestinatario['rol'] ?? '')));
-
-            $esAdminODocente = in_array($rolRemitente, ['ADMINISTRADOR', 'DOCENTE'], true);
             $esEstudiante = $rolRemitente === 'ESTUDIANTE' && $rolDestinatario === 'ESTUDIANTE';
 
             if ($rolRemitente === 'ESTUDIANTE' && !$esEstudiante) {
-                $_SESSION['success_message'] = 'Los estudiantes solo pueden escribir a otros estudiantes.';
+                $_SESSION['error_message'] = 'Los estudiantes solo pueden escribir a otros estudiantes.';
                 return false;
             }
 
             if ($esEstudiante && !ModeloUsuarios::mdlCompartenCurso($idRemitente, $idDestinatario)) {
-                $_SESSION['success_message'] = 'Solo podés escribir a estudiantes de tu mismo curso.';
+                $_SESSION['error_message'] = 'Solo podés escribir a estudiantes de tu mismo curso.';
                 return false;
             }
 
@@ -66,9 +89,15 @@ class ControladorMensajes
             );
 
             $respuesta = ModeloMensajes::mdlGuardarMensaje($datos);
-            $_SESSION['success_message'] = $respuesta === "ok" ? 'Mensaje enviado exitosamente' : 'No se pudo enviar el mensaje';
-           return $respuesta;
-            
+            if ($respuesta === "ok") {
+                $_SESSION['success_message'] = 'Mensaje enviado exitosamente';
+            } else {
+                $_SESSION['error_message'] = 'No se pudo enviar el mensaje';
+            }
+
+            return $respuesta;
         }
+
+        return null;
     }
 }

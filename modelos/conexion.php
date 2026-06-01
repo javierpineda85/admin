@@ -1,18 +1,24 @@
 <?php
 class Conexion {
     private $conexion;
+    private static $pdo = null;
     
     public 	function __construct() {
 		$this->conexion = $this->conectar();
     }
     static public function conectar() {
         try {
+            if (self::$pdo instanceof PDO) {
+                return self::$pdo;
+            }
+
             // Declaramos los parámetros de conexión
             $link = new PDO("mysql:host=localhost; port=3306;dbname=classroom", "root", "");
             $link->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $link->exec("set names utf8mb4"); // Esto es para no tener problemas con los caracteres
             
-            return $link;
+            self::$pdo = $link;
+            return self::$pdo;
         } catch (PDOException $e) {
             // En caso de error, realiza un rollback y muestra un mensaje de error
             echo "Error de conexión: " . $e->getMessage();

@@ -18,7 +18,11 @@ class ControladorMaterias
             );
 
             $respuesta = ModeloMaterias::mdlGuardarMateria($tabla, $datos);
-            $_SESSION['success_message'] = 'Materia creada exitosamente';
+            if ($respuesta === 'ok') {
+                $_SESSION['success_message'] = 'Materia creada exitosamente';
+            } else {
+                $_SESSION['error_message'] = 'No se pudo crear la materia';
+            }
             return $respuesta;
         }
     }

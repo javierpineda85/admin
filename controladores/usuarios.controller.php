@@ -53,7 +53,7 @@ class ControladorUsuarios
                     "rol" => $_POST["rol"]
                 );
 
-                ModeloUsuarios::mdlGuardarUsuario($tabla, $datosUsuario);
+                $respuestaUsuario = ModeloUsuarios::mdlGuardarUsuario($tabla, $datosUsuario);
 
                 // Obtener el ID del usuario dentro de la misma transacción
 
@@ -73,18 +73,24 @@ class ControladorUsuarios
 
                 $respuesta1 = ModeloPerfiles::mdlGuardarPerfil($datosPerfil);
 
-                // Confirmar la transacción si no hay errores
-                Conexion::conectar()->commit();
+                if ($respuestaUsuario === 'ok' && $respuesta1 === 'ok') {
+                    // Confirmar la transacción si no hay errores
+                    Conexion::conectar()->commit();
 
-                $_SESSION['success_message'] = 'Usuario y perfil creados exitosamente';
+                    $_SESSION['success_message'] = 'Usuario y perfil creados exitosamente';
 
-                return $respuesta1;
+                    return $respuesta1;
+                }
+
+                Conexion::conectar()->rollBack();
+                $_SESSION['error_message'] = 'No se pudo crear el usuario';
+                return false;
             } catch (Exception $e) {
                 // Revertir la transacción en caso de error
                 Conexion::conectar()->rollBack();
 
                 // Manejar el error según sea necesario
-                $_SESSION['success_message'] =  $e->getMessage();
+                $_SESSION['error_message'] =  $e->getMessage();
 
                 return false;
             }

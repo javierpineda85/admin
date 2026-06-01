@@ -20,7 +20,11 @@ class ControladorCursos
             );
 
             $respuesta = ModeloCursos::mdlGuardarCurso($tabla, $datos);
-            $_SESSION['success_message'] = 'Curso creado exitosamente';
+            if ($respuesta === 'ok') {
+                $_SESSION['success_message'] = 'Curso creado exitosamente';
+            } else {
+                $_SESSION['error_message'] = 'No se pudo crear el curso';
+            }
             return $respuesta;
         }
     }
@@ -43,7 +47,11 @@ class ControladorCursos
             );
 
             $respuesta = ModeloCursos::mdlModificarCurso($tabla, $datos);
-            $_SESSION['success_message'] = 'Curso modificado exitosamente';
+            if ($respuesta === 'ok') {
+                $_SESSION['success_message'] = 'Curso modificado exitosamente';
+            } else {
+                $_SESSION['error_message'] = 'No se pudo modificar el curso';
+            }
             return $respuesta;
         }
     }
@@ -55,6 +63,7 @@ class ControladorCursos
             $tabla = 'asignacioncursos';
             $idCurso = $_GET["idCurso"];
             $idUsuarios = $_POST['idUsuarios'];
+            $respuestaFinal = 'ok';
             
             foreach ($idUsuarios as $idUsuario) {
                 $datos = array(
@@ -63,9 +72,16 @@ class ControladorCursos
                 );
                 
                 $respuesta = ModeloCursos::mdlAsignarCurso($tabla, $datos);
+                if ($respuesta !== 'ok') {
+                    $respuestaFinal = 'error';
+                }
             }
             
-            $_SESSION['success_message'] = 'Se han registrado a los estudiantes';
+            if ($respuestaFinal === 'ok') {
+                $_SESSION['success_message'] = 'Se han registrado a los estudiantes';
+            } else {
+                $_SESSION['error_message'] = 'No se pudieron registrar todos los estudiantes';
+            }
            
 
         }

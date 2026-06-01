@@ -1,6 +1,8 @@
 <?php
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $idUsuarioActual);
+$totalRecibidos = ControladorMensajes::crtContarMensajesRecibidos($idUsuarioActual);
+$totalEnviados = ControladorMensajes::crtContarMensajesEnviados($idUsuarioActual);
 
 ?>
 
@@ -40,12 +42,13 @@ $mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $idUsuari
                   <li class="nav-item active">
                     <a href="index.php?r=bandeja-entrada&c=mensajes" class="nav-link">
                       <i class="fas fa-inbox"></i> Bandeja de entrada
-                      <span class="badge bg-primary float-right">12</span>
+                      <span class="badge bg-primary float-right"><?php echo (int) $totalRecibidos; ?></span>
                     </a>
                   </li>
                   <li class="nav-item">
                     <a href="index.php?r=mensajes-enviados&c=mensajes" class="nav-link">
                       <i class="far fa-envelope"></i> Enviados
+                      <span class="badge bg-secondary float-right"><?php echo (int) $totalEnviados; ?></span>
                     </a>
                   </li>
                   <li class="nav-item">
@@ -93,12 +96,17 @@ $mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $idUsuari
               <div class="table-responsive mailbox-messages">
                 <table class="table table-hover table-striped">
                   <tbody>
+                    <?php if (empty($mensajes)): ?>
+                      <tr>
+                        <td colspan="6" class="text-center text-muted py-5">No tenés mensajes recibidos todavía.</td>
+                      </tr>
+                    <?php endif; ?>
+                    <?php foreach ($mensajes as $campo => $valor) : ?>
                     <tr>
-                      <?php foreach ($mensajes as $campo => $valor) : ?>
                         <td>
                           <div class="icheck-primary">
-                            <input type="checkbox" value="" id="check1">
-                            <label for="check1"></label>
+                            <input type="checkbox" value="" id="check-in-<?php echo (int) $valor['idMensaje']; ?>">
+                            <label for="check-in-<?php echo (int) $valor['idMensaje']; ?>"></label>
                           </div>
                         </td>
                         <td class="mailbox-name">De: <a href="index.php?r=nuevo-mensaje&c=mensajes&idMsj=<?php echo $valor['idMensaje'] ?>&t=reply"><?php echo $valor['nombreUsuario'] . " " . $valor['apellidoUsuario'];  ?></a></td>

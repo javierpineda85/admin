@@ -81,20 +81,7 @@ $usuarios = ControladorUsuarios::crtSeleccionarUsuario('rol', 'DOCENTE');
                                     <input type="submit" value="Crear nueva materia" class="btn btn-success float-right">
 
                                 </div>
-                                <div>
-                                    
-                                        <?php    
-                                                                         
-                                          if (isset($_SESSION['success_message'])) {
-                                             echo '<div class="alert alert-success alert-dismissible">
-                                                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-                                                    <h5><i class="icon fas fa-check"></i></h5>' . $_SESSION['success_message'] .
-                                                    '</div>';
-                                         // Elimina el mensaje después de mostrarlo
-                                         unset($_SESSION['success_message']);
-                                        };
-                                        ?>
-                                    </div>
+                                <div></div>
                             </form>
                             <!-- / end form -->
                         </div>

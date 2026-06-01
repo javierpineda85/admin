@@ -105,17 +105,7 @@ if (!$curso) {
                                             <button type="submit" class="btn btn-success btn-sm mt-2"><i class="fas fa-edit"></i></button>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="col-12">
-                                        <?php
-                                        if (isset($_SESSION['success_message'])) {
-                                            echo '<div class="alert alert-success alert-dismissible">
-                                                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-                                                    <h4><i class="icon fas fa-check"></i></h4>' . $_SESSION['success_message'] .
-                                                '</div>';
-                                            unset($_SESSION['success_message']);
-                                        }
-                                        ?>
-                                    </div>
+                                    <div class="col-12"></div>
                                 </div>
                             </form>
                         </div>
@@ -209,8 +199,7 @@ if (!$curso) {
                                     <input type="submit" value="AGREGAR" class="btn btn-primary">
                                     <?php
                                     if (isset($_SESSION['success_message'])) {
-                                        echo "<script>window.location.href = 'index.php?r=detalle-curso&idCurso=" . $idCurso . "';</script>";
-                                        unset($_SESSION['success_message']);
+                                        echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=detalle-curso&idCurso=" . $idCurso . "'; }, 600);</script>";
                                     }
                                     ?>
                                 </form>

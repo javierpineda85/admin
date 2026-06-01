@@ -17,7 +17,11 @@ class ControladorPerfiles
             );
 
             $respuesta = ModeloPerfiles::mdlEditarPerfil($datos);
-            $_SESSION['success_message'] = 'Perfil actualizado exitosamente';
+            if ($respuesta === 'ok') {
+                $_SESSION['success_message'] = 'Perfil actualizado exitosamente';
+            } else {
+                $_SESSION['error_message'] = 'No se pudo actualizar el perfil';
+            }
             return $respuesta;
         }
     }

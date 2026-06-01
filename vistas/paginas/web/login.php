@@ -13,6 +13,7 @@ unset($_SESSION['login_error']);
   <link rel="stylesheet" href="./plugins/icheck-bootstrap/icheck-bootstrap.min.css">
   <link rel="stylesheet" href="./css/adminlte.min.css">
   <link rel="stylesheet" href="./css/classroom-theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
 <body class="hold-transition login-page classroom-auth">
 <div class="login-box">
@@ -31,15 +32,6 @@ unset($_SESSION['login_error']);
         <h1 class="login-card-title mb-2">Ingresá a tu aula virtual</h1>
         <p class="login-card-subtitle mb-0">Una experiencia más clara para aprender, enseñar y administrar sin fricción.</p>
       </div>
-
-      <?php if ($loginError !== ''): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-          <?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?>
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-      <?php endif; ?>
 
       <form action="index.php?r=login" method="post" autocomplete="off">
         <div class="input-group mb-3">
@@ -78,5 +70,22 @@ unset($_SESSION['login_error']);
 <script src="./plugins/jquery/jquery.min.js"></script>
 <script src="./plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="./js/adminlte.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<?php if ($loginError !== ''): ?>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Toastify({
+        text: <?php echo json_encode($loginError, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+        duration: 3500,
+        close: true,
+        gravity: "top",
+        position: "right",
+        style: {
+          background: "linear-gradient(135deg, #dc2626, #ef4444)"
+        }
+      }).showToast();
+    });
+  </script>
+<?php endif; ?>
 </body>
 </html>

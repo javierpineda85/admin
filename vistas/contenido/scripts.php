@@ -46,6 +46,48 @@
 <!-- Bootstrap Switch -->
 <script src="./plugins/bootstrap-switch/js/bootstrap-switch.min.js"></script>
 
+<?php
+$flashToasts = [];
+
+if (isset($_SESSION['success_message']) && trim((string) $_SESSION['success_message']) !== '') {
+  $flashToasts[] = [
+    'type' => 'success',
+    'message' => (string) $_SESSION['success_message'],
+  ];
+  unset($_SESSION['success_message']);
+}
+
+if (isset($_SESSION['error_message']) && trim((string) $_SESSION['error_message']) !== '') {
+  $flashToasts[] = [
+    'type' => 'error',
+    'message' => (string) $_SESSION['error_message'],
+  ];
+  unset($_SESSION['error_message']);
+}
+
+if (!empty($flashToasts)) {
+  echo '<script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var toasts = ' . json_encode($flashToasts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';
+      toasts.forEach(function (toast) {
+        Toastify({
+          text: toast.message,
+          duration: 3500,
+          close: true,
+          gravity: "top",
+          position: "right",
+          style: {
+            background: toast.type === "success"
+              ? "linear-gradient(135deg, #16a34a, #22c55e)"
+              : "linear-gradient(135deg, #dc2626, #ef4444)"
+          }
+        }).showToast();
+      });
+    });
+  </script>';
+}
+?>
+
 <script>
   $(function() {
     $("#example1").DataTable({
@@ -88,6 +130,10 @@
             duration: 3000,
             close: true,
             gravity: "top",
+            position: "right",
+            style: {
+              background: "linear-gradient(135deg, #dc2626, #ef4444)"
+            }
         }).showToast();
 
         event.preventDefault();
