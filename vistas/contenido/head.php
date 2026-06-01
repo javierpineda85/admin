@@ -17,10 +17,10 @@
   <link rel="stylesheet" href="./css/adminlte.min.css">
 
   <!-- Bootstrap4 Duallistbox -->
-  <link rel="stylesheet" href="../../plugins/bootstrap4-duallistbox/bootstrap-duallistbox.min.css">
-  <link rel="stylesheet" href="../../plugins/bootstrap4-duallistbox/bootstrap-duallistbox.css">
+  <link rel="stylesheet" href="./plugins/bootstrap4-duallistbox/bootstrap-duallistbox.min.css">
+  <link rel="stylesheet" href="./plugins/bootstrap4-duallistbox/bootstrap-duallistbox.css">
   <!-- BS Stepper -->
-  <link rel="stylesheet" href="../../plugins/bs-stepper/css/bs-stepper.min.css">
+  <link rel="stylesheet" href="./plugins/bs-stepper/css/bs-stepper.min.css">
 
   <!-- DataTables -->
   <link rel="stylesheet" href="./css/dataTables.bootstrap4.min.css">

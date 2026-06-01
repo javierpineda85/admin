@@ -1,3 +1,22 @@
+<?php
+$rutaActual = isset($_GET['r']) ? trim($_GET['r']) : '';
+$rutasPublicas = ['login', 'forgot'];
+
+if ($rutaActual === 'logout') {
+  RutasController::cargarVista();
+  return;
+}
+
+if (in_array($rutaActual, $rutasPublicas, true)) {
+  RutasController::cargarVista();
+  return;
+}
+
+if (!isset($_SESSION['logueado']) || $_SESSION['logueado'] !== true) {
+  header('Location: index.php?r=login');
+  exit;
+}
+?>
 <?php include_once('contenido/head.php'); ?>
 
 <body class="hold-transition sidebar-mini sidebar-collapse">

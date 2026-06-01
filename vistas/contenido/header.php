@@ -14,6 +14,12 @@
 
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
+      <li class="nav-item d-none d-sm-inline-block">
+        <span class="nav-link text-muted">
+          <i class="fas fa-user-tag mr-1"></i>
+          <?php echo htmlspecialchars(ControladorPermisos::etiquetaRol(), ENT_QUOTES, 'UTF-8'); ?>
+        </span>
+      </li>
 
       <!-- Messages Dropdown Menu -->
       <li class="nav-item dropdown">

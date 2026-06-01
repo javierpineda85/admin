@@ -10,10 +10,15 @@
       <!-- Sidebar user (optional) -->
       <div class="user-panel mt-3 pb-3 mb-3 d-flex">
         <div class="image">
-          <img src="img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
+          <?php
+            $imgUsuario = $_SESSION['usuario']['img'] ?? 'user2-160x160.jpg';
+          ?>
+          <img src="img/<?php echo htmlspecialchars($imgUsuario, ENT_QUOTES, 'UTF-8'); ?>" class="img-circle elevation-2" alt="User Image">
         </div>
         <div class="info">
-          <a href="#" class="d-block">Javier Pineda</a>
+          <a href="#" class="d-block">
+            <?php echo htmlspecialchars($_SESSION['usuario']['nombre'] ?? 'Usuario', ENT_QUOTES, 'UTF-8'); ?>
+          </a>
         </div>
       </div>
 
@@ -43,148 +48,126 @@
             </a>
             
           </li>
-          <li class="nav-item"> <!-- perfil -->
-            <a href="" class="nav-link">
-              
-              <i class="nav-icon fas fa-user text-info"></i>
-              <p>
-                Perfil<i class="fas fa-angle-left right"></i>
-              </p>
-              
+          <?php if (ControladorPermisos::puedeVerMenu('perfil')): ?>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <i class="nav-icon fas fa-user text-info"></i>
+                <p>Perfil<i class="fas fa-angle-left right"></i></p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="index.php?r=perfil-usuario" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Mi perfil</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+          <?php endif; ?>
+
+          <?php if (ControladorPermisos::esAdministrador()): ?>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <i class="nav-icon fas fa-users text-info"></i>
+                <p>Usuarios<i class="right fas fa-angle-left"></i></p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="index.php?r=listado-usuarios" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Ver todos</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?r=crear-usuario" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Crear</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <i class="nav-icon fas fa-copy text-success"></i>
+                <p>Cursos<i class="fas fa-angle-left right"></i></p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="index.php?r=listado-cursos" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Ver todos</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?r=crear-curso" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Agregar</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <i class="nav-icon fas fa-book-open text-success"></i>
+                <p>Materias<i class="fas fa-angle-left right"></i></p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="index.php?r=listado-materias" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Ver todas</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?r=crear-materia" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Crear</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+          <?php else: ?>
+            <li class="nav-item">
+              <a href="index.php?r=listado-cursos" class="nav-link">
+                <i class="nav-icon fas fa-copy text-success"></i>
+                <p>Cursos</p>
+              </a>
+            </li>
+          <?php endif; ?>
+
+          <?php if (ControladorPermisos::puedeVerMenu('mensajes')): ?>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <i class="nav-icon far fa-envelope text-primary"></i>
+                <p>Mensajes<i class="fas fa-angle-left right"></i></p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="index.php?r=bandeja-entrada" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Bandeja de entrada</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?r=nuevo-mensaje" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Nuevo mensaje</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+          <?php endif; ?>
+
+        </ul>
+        <ul class="nav nav-pills nav-sidebar flex-column mt-3">
+          <li class="nav-item">
+            <a href="index.php?r=logout" class="nav-link text-danger">
+              <i class="nav-icon fas fa-sign-out-alt"></i>
+              <p>Cerrar sesión</p>
             </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="index.php?r=perfil-usuario" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Mi perfil</p>
-                  
-                </a>
-              </li>
-            </ul>
           </li>
-          <li class="nav-item"> <!-- usuarios -->
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-users text-info"></i>
-              <p>
-               Usuarios
-                <i class="right fas fa-angle-left"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="index.php?r=listado-usuarios" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Ver todos</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?r=crear-usuario" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Crear</p>
-                </a>
-
-            </ul>
-          </li>
-          <li class="nav-item"><!-- cursos -->
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-copy text-success"></i>
-              <p>
-                Cursos
-                <i class="fas fa-angle-left right"></i>
-                
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="index.php?r=listado-cursos" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Ver todos</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?r=crear-curso" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Agregar</p>
-                </a>
-              </li>
-
-            </ul>
-          </li>
-
-          <li class="nav-item"> <!-- materias -->
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-book-open text-success"></i>
-              <p>
-                Materias
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="index.php?r=listado-materias" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Ver todas</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?r=crear-materia" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Crear</p>
-                </a>
-
-            </ul>
-          </li>
-          <li class="nav-item">  <!-- mensajes -->
-            <a href="#" class="nav-link">
-              <i class="nav-icon far fa-envelope text-primary"></i>
-              <p>
-                Mensajes
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="index.php?r=bandeja-entrada" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Bandeja de entrada</p>
-                  <span class="badge badge-info right">6</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?r=nuevo-mensaje&t=" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Nuevo mensaje</p>
-                </a>
-              </li>
-
-            </ul>
-          </li>
-          <li class="nav-item">  <!-- calendario -->
-            <a href="../calendar.html" class="nav-link">
-              <i class="nav-icon far fa-calendar-alt text-olive"></i>
-              <p>
-                Calendario
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="../UI/general.html" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Ver todo</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="../UI/icons.html" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Crear Evento</p>
-                </a>
-
-            </ul>
-          </li>
-
-
-
         </ul>
       </nav>
       <!-- /.sidebar-menu -->

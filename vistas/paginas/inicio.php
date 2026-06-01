@@ -1,17 +1,18 @@
- <?php
- $db= new Conexion;
- $sql = "SELECT count(*) as totalUsuarios FROM usuarios";
- $usuarios = $db->consultas($sql);
+<?php
+$db = new Conexion;
+$sql = "SELECT count(*) as totalUsuarios FROM usuarios";
+$usuarios = $db->consultas($sql);
 
- $db= new Conexion;
- $sql = "SELECT count(*) as totalCursos FROM cursos";
- $cursos= $db->consultas($sql);
+$db = new Conexion;
+$sql = "SELECT count(*) as totalCursos FROM cursos";
+$cursos = $db->consultas($sql);
 
- $db= new Conexion;
- $sql = "SELECT count(*) as totalMaterias FROM secciones";
- $materias = $db->consultas($sql);
+$db = new Conexion;
+$sql = "SELECT count(*) as totalMaterias FROM secciones";
+$materias = $db->consultas($sql);
 
-  ?>
+$rolActual = ControladorPermisos::rolActual();
+?>
 
  <!-- Default box -->
  <div class="card">
@@ -92,6 +93,17 @@
      <div class="container-fluid">
 
     
+       <div class="alert alert-info border-0 shadow-sm">
+         Estás viendo el panel de <strong><?php echo htmlspecialchars($rolActual !== '' ? $rolActual : 'usuario', ENT_QUOTES, 'UTF-8'); ?></strong>.
+         <?php if (ControladorPermisos::esAdministrador()): ?>
+           Tenés acceso completo al sistema.
+         <?php elseif (ControladorPermisos::esDocente()): ?>
+           Tu acceso está enfocado en clases, materiales y comunicación.
+         <?php elseif (ControladorPermisos::esEstudiante()): ?>
+           Tu acceso está enfocado en cursos, clases y notas.
+         <?php endif; ?>
+       </div>
+
        <!-- Main row -->
        <div class="row">
          <!-- Left col -->

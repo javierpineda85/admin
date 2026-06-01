@@ -28,6 +28,24 @@ class ModeloUsuarios
         return isset($users[$username]) ? $users[$username] : null;
     }
 
+    static public function mdlObtenerUsuarioPorEmail($email)
+    {
+        $stmt = Conexion::conectar()->prepare("SELECT * FROM usuarios WHERE email = :email LIMIT 1");
+        $stmt->bindParam(":email", $email, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    static public function mdlActualizarPassword($idUsuario, $passwordHash)
+    {
+        $stmt = Conexion::conectar()->prepare("UPDATE usuarios SET pass = :pass, resetPass = 0 WHERE idUsuario = :idUsuario");
+        $stmt->bindParam(":pass", $passwordHash, PDO::PARAM_STR);
+        $stmt->bindParam(":idUsuario", $idUsuario, PDO::PARAM_INT);
+
+        return $stmt->execute() ? "ok" : "error";
+    }
+
     /*INSERTAR USUARIO */
     static public function mdlGuardarUsuario($tabla, $datos)
     {

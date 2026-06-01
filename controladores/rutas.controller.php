@@ -1,38 +1,84 @@
 <?php
-    // Defino la clase Rutas para mejor funcionamiento
-    class RutasController {
-        public static function cargarVista(){ // se crea el array de rutas para poder escalar el proyecto
 
-         $mapeo = [
-            //usuario - perfil
-            "crear-usuario" => "usuario/crear-usuario.php",
-            "listado-usuarios" => "usuario/listado-usuarios.php",
-            "perfil-usuario" => "usuario/perfil-usuario.php",
-            "editar-usuario" => "usuario/editar-usuario.php",
-            //cursos
-            "crear-curso" => "cursos/crear-curso.php",
-            "listado-cursos" => "cursos/listado-cursos.php",
-            "editar-curso" => "cursos/editar-curso.php",
-            "detalle-curso" => "cursos/detalle-curso.php",
-            //materias
-            "listado-materias" => "materias/listado-materias.php",
-            "crear-materia" => "materias/crear-materia.php",
-            //Mensajes
-            "bandeja-entrada" => "mensajes/bandeja-entrada.php",
-            "nuevo-mensaje" => "mensajes/nuevo-mensaje.php",
-            "mensajes-enviados" => "mensajes/mensajes-enviados.php",
-            //web
-            "login"=>"web/login.php",
-            "forgot"=>"web/forgot-password.php"
+class RutasController
+{
+    private static function rutasPublicas()
+    {
+        return ['login', 'forgot'];
+    }
 
+    private static function mapaRutas()
+    {
+        return [
+            // Usuario / perfil
+            'crear-usuario'   => 'usuario/crear-usuario.php',
+            'listado-usuarios'=> 'usuario/listado-usuarios.php',
+            'perfil-usuario'  => 'usuario/perfil-usuario.php',
+            'editar-usuario'  => 'usuario/editar-usuario.php',
+
+            // Cursos
+            'crear-curso'     => 'cursos/crear-curso.php',
+            'listado-cursos'  => 'cursos/listado-cursos.php',
+            'editar-curso'    => 'cursos/editar-curso.php',
+            'detalle-curso'   => 'cursos/detalle-curso.php',
+
+            // Materias
+            'listado-materias'=> 'materias/listado-materias.php',
+            'crear-materia'   => 'materias/crear-materia.php',
+            'editar-materia'  => 'materias/editar-materia.php',
+
+            // Mensajes
+            'bandeja-entrada' => 'mensajes/bandeja-entrada.php',
+            'nuevo-mensaje'   => 'mensajes/nuevo-mensaje.php',
+            'mensajes-enviados'=> 'mensajes/mensajes-enviados.php',
+
+            // Web pública
+            'login'           => 'web/login.php',
+            'forgot'          => 'web/forgot-password.php',
+            'logout'          => 'web/logout.php',
         ];
+    }
 
+    private static function rutaBasePaginas()
+    {
+        return __DIR__ . '/../vistas/paginas/';
+    }
 
-        if (isset($_GET['r']) && array_key_exists($_GET['r'], $mapeo)) {
-            $archivo = "vistas/paginas/" . $mapeo[$_GET['r']];
-            include(file_exists($archivo) ? $archivo : "vistas/paginas/404.php");
-        } else {
-            include("vistas/paginas/inicio.php");
+    public static function cargarVista()
+    {
+        $ruta = isset($_GET['r']) ? trim($_GET['r']) : '';
+        $mapeo = self::mapaRutas();
+
+        if ($ruta === 'logout') {
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                session_start();
+            }
+
+            session_unset();
+            session_destroy();
+            header('Location: index.php?r=login');
+            exit;
         }
+
+        $esPublica = $ruta !== '' && in_array($ruta, self::rutasPublicas(), true);
+        $tieneSesion = isset($_SESSION['logueado']) && $_SESSION['logueado'] === true;
+
+        if (!$esPublica && !$tieneSesion) {
+            header('Location: index.php?r=login');
+            exit;
+        }
+
+        if ($tieneSesion && !ControladorPermisos::puedeAccederRuta($ruta)) {
+            include self::rutaBasePaginas() . '404.php';
+            return;
+        }
+
+        if ($ruta !== '' && array_key_exists($ruta, $mapeo)) {
+            $archivo = self::rutaBasePaginas() . $mapeo[$ruta];
+            include is_file($archivo) ? $archivo : self::rutaBasePaginas() . '404.php';
+            return;
+        }
+
+        include self::rutaBasePaginas() . 'inicio.php';
     }
 }

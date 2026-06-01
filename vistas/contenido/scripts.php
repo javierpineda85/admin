@@ -32,7 +32,7 @@
 <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
 <script src="./js/pages/dashboard.js"></script>
 <!-- jQuery -->
-<script src="../../plugins/jquery/jquery.min.js"></script>
+<script src="./plugins/jquery/jquery.min.js"></script>
 <!-- Bootstrap 4 -->
 <script src="./plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- DataTables  & Plugins -->
@@ -49,7 +49,7 @@
 <script src="./plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="./plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 <!-- AdminLTE App -->
-<script src="../../dist/js/adminlte.min.js"></script>
+<script src="./js/adminlte.min.js"></script>
 <!-- Bootstrap4 Duallistbox -->
 <script src="./plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.js"></script>
 <script src="./plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js"></script>
