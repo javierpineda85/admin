@@ -1,3 +1,7 @@
+ACCESO:
+user: admin@correo.com
+pass: admin123
+
 Crear vistas en la BD ayuda a las consultas en el sistema... podria armar vistas
 con consultas complicadas y luego solo llamar a esas vistas
 
