@@ -222,6 +222,54 @@ body.classroom-app .profile-hero {
   box-shadow: var(--classroom-shadow);
 }
 
+body.classroom-app .entity-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #0f172a 0%, #111b33 50%, #1d4ed8 100%);
+  color: #fff;
+  box-shadow: var(--classroom-shadow);
+}
+
+body.classroom-app .entity-hero__content {
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
+}
+
+body.classroom-app .entity-kicker {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body.classroom-app .entity-title {
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+body.classroom-app .entity-lead {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+body.classroom-app .entity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.85rem;
+}
+
 body.classroom-app .profile-hero__content {
   position: relative;
   z-index: 1;

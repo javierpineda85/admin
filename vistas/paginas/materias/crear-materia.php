@@ -1,101 +1,87 @@
 <?php
 $db = new Conexion;
-$sql = "SELECT * FROM cursos ORDER BY nombreCurso ASC";
-$cursos = $db->consultas($sql);
-
+$cursos = $db->consultas("SELECT * FROM cursos ORDER BY nombreCurso ASC");
 $usuarios = ControladorUsuarios::crtSeleccionarUsuario('rol', 'DOCENTE');
+$registro = ControladorMaterias::crtGuardarMateria();
+$redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_message']));
 ?>
 
-<!-- Default box -->
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Crear nueva materia</h3>
+<?php if ($redirigir): ?>
+  <script>
+    setTimeout(function () {
+      window.location.href = 'index.php?r=listado-materias&c=materias';
+    }, 650);
+  </script>
+<?php endif; ?>
 
-        <div class="card-tools">
-            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                <i class="fas fa-minus"></i>
-            </button>
-
-        </div>
+<section class="content page-fade">
+  <div class="container-fluid">
+    <div class="entity-hero mb-4">
+      <div class="entity-hero__content">
+        <span class="entity-kicker mb-3">Secciones</span>
+        <h1 class="entity-title mb-2">Crear nueva materia</h1>
+        <p class="entity-lead mb-0">Asigná curso, docente y tutor desde una vista consistente con el resto de la plataforma.</p>
+      </div>
     </div>
-    <div class="card-body">
 
-        <!-- Main content -->
-        <section class="content">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title">General</h3>
-
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <!-- form start -->
-
-                            <form action="" method="POST">
-                                <div class="form-group">
-                                    <label for="inputName">Título materia</label>
-                                    <input type="text" id="inputName" class="form-control" name="tituloSeccion">
-                                </div>
-                                <div class="form-group">
-                                    <label for="inputDescription">Descripción</label>
-                                    <textarea id="inputDescription" class="form-control" rows="4" name="contenidoSeccion"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label for="inputName">Seleccione al curso que pertenece:</label>
-
-                                    <select class="custom-select" name="id_curso">
-                                        <?php foreach ($cursos as $campo => $valor) : ?>
-                                            <option value="<?php echo $valor["idCurso"]; ?>"><?php echo $valor['nombreCurso']; ?></option>
-                                        <?php endforeach ?>
-                                    </select>
-
-                                </div>
-                                <div class="form-group">
-                                    <label for="inputClientCompany">Docente a cargo:</label>
-                                    <select class="custom-select" name="docente">
-                                        <?php foreach ($usuarios as $campo => $valor) : ?>
-                                            <option value="<?php echo $valor["idUsuario"]; ?>"><?php echo $valor['nombreUsuario'] . " " . $valor['apellidoUsuario']; ?></option>
-                                        <?php endforeach ?>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="inputClientCompany">Tutor:</label>
-                                    <select class="custom-select" name="tutor">
-                                        <option value="NULL" disabel selected>Este curso no tiene tutor </option>
-                                        <?php foreach ($usuarios as $campo => $valor) : ?>
-                                            <option value="<?php echo $valor["idUsuario"]; ?>"><?php echo $valor['nombreUsuario'] . " " . $valor['apellidoUsuario']; ?></option>
-                                        <?php endforeach ?>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <input type="reset" class="btn btn-primary" value="Cancelar">
-
-                                    <?php $registro =  ControladorMaterias::crtGuardarMateria(); ?>
-
-                                    <input type="submit" value="Crear nueva materia" class="btn btn-success float-right">
-
-                                </div>
-                                <div></div>
-                            </form>
-                            <!-- / end form -->
-                        </div>
-
-                    </div>
-
-                </div>
+    <div class="card glass-card">
+      <div class="card-header">
+        <h3 class="card-title mb-0">Datos de la sección</h3>
+      </div>
+      <div class="card-body">
+        <form action="" method="POST">
+          <div class="row">
+            <div class="col-12">
+              <div class="form-group">
+                <label>Título de la materia</label>
+                <input type="text" class="form-control" name="tituloSeccion" placeholder="Ej. Matemática aplicada" required>
+              </div>
             </div>
+            <div class="col-12">
+              <div class="form-group">
+                <label>Descripción</label>
+                <textarea class="form-control" rows="4" name="contenidoSeccion" placeholder="Descripción del espacio..."></textarea>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Curso</label>
+                <select class="custom-select" name="id_curso" required>
+                  <?php foreach ($cursos as $curso): ?>
+                    <option value="<?php echo (int) $curso['idCurso']; ?>"><?php echo htmlspecialchars($curso['nombreCurso'], ENT_QUOTES, 'UTF-8'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Docente a cargo</label>
+                <select class="custom-select" name="docente" required>
+                  <?php foreach ($usuarios as $usuario): ?>
+                    <option value="<?php echo (int) $usuario['idUsuario']; ?>"><?php echo htmlspecialchars($usuario['nombreUsuario'] . ' ' . $usuario['apellidoUsuario'], ENT_QUOTES, 'UTF-8'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Tutor</label>
+                <select class="custom-select" name="tutor">
+                  <option value="">Sin tutor</option>
+                  <?php foreach ($usuarios as $usuario): ?>
+                    <option value="<?php echo (int) $usuario['idUsuario']; ?>"><?php echo htmlspecialchars($usuario['nombreUsuario'] . ' ' . $usuario['apellidoUsuario'], ENT_QUOTES, 'UTF-8'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+          </div>
 
-        </section>
-        <!-- / Main content -->
-
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4">
+            <a href="index.php?r=listado-materias&c=materias" class="btn btn-light border">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Crear materia</button>
+          </div>
+        </form>
+      </div>
     </div>
-    <!-- /.card-body -->
-
-</div>
-<!-- / Default box -->
+  </div>
+</section>

@@ -3,6 +3,18 @@ require_once('conexion.php');
 
 class ModeloMaterias
 {
+    static public function mdlBuscarMateriaPorId($idSeccion)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT * FROM secciones
+            WHERE idSeccion = :idSeccion
+            LIMIT 1
+        ");
+        $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
     /* GUARDAR MATERIA */
     static public function mdlGuardarMateria($tabla, $datos)
@@ -23,6 +35,32 @@ class ModeloMaterias
         }
         $registro->closeCursor();
         $registro = null;
+    }
+
+    static public function mdlModificarMateria($tabla, $datos)
+    {
+        $registro = Conexion::conectar()->prepare("
+            UPDATE $tabla
+            SET tituloSeccion = :tituloSeccion,
+                contenidoSeccion = :contenidoSeccion,
+                id_curso = :id_curso,
+                docente = :docente,
+                tutor = :tutor
+            WHERE idSeccion = :idSeccion
+        ");
+
+        $registro->bindParam(":tituloSeccion", $datos["tituloSeccion"], PDO::PARAM_STR);
+        $registro->bindParam(":contenidoSeccion", $datos["contenidoSeccion"], PDO::PARAM_STR);
+        $registro->bindParam(":id_curso", $datos["id_curso"], PDO::PARAM_INT);
+        $registro->bindParam(":docente", $datos["docente"], PDO::PARAM_INT);
+        $registro->bindParam(":tutor", $datos["tutor"], PDO::PARAM_INT);
+        $registro->bindParam(":idSeccion", $datos["idSeccion"], PDO::PARAM_INT);
+
+        if ($registro->execute()) {
+            return "ok";
+        }
+
+        return "error";
     }
 
 

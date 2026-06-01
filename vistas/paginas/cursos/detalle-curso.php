@@ -39,6 +39,16 @@ if (!$curso) {
 }
 ?>
 
+<section class="content page-fade">
+  <div class="container-fluid">
+    <div class="entity-hero mb-4">
+      <div class="entity-hero__content">
+        <span class="entity-kicker mb-3">Cursos</span>
+        <h1 class="entity-title mb-2"><?php echo htmlspecialchars($curso[0]['nombreCurso'], ENT_QUOTES, 'UTF-8'); ?></h1>
+        <p class="entity-lead mb-0">Gestioná el aula, sus secciones y la inscripción de estudiantes con una vista más clara y coherente.</p>
+      </div>
+    </div>
+
 <div class="row">
     <div class="card-body col-12">
         <div class="alert alert-info border-0 shadow-sm">
@@ -159,6 +169,8 @@ if (!$curso) {
         </section>
     </div>
 </div>
+</div>
+</section>
 
 <div class="row">
     <div class="card-body col-lg-12 col-md-12">

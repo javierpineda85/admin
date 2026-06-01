@@ -18,6 +18,7 @@ SET time_zone = "+00:00";
 
 --
 -- Base de datos: `classroom`
+-- Esquema consolidado final generado para importar desde cero
 --
 
 -- --------------------------------------------------------
