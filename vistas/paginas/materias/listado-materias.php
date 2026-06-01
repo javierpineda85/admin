@@ -1,7 +1,10 @@
 <?php
 
 $db= new Conexion;
-$sql = "SELECT idSeccion, tituloSeccion, contenidoSeccion,id_curso, docente, tutor, cursos.nombreCurso, usuarios.nombreUsuario , usuarios.apellidoUsuario FROM secciones JOIN cursos ON secciones.id_curso = cursos.idCurso JOIN usuarios ON secciones.docente = usuarios.idUsuario  ORDER BY tituloSeccion ASC";
+$sql = "SELECT idSeccion, tituloSeccion, contenidoSeccion,id_curso, docente, tutor, cursos.nombreCurso, usuarios.nombreUsuario , usuarios.apellidoUsuario FROM secciones 
+JOIN cursos ON secciones.id_curso = cursos.idCurso 
+JOIN usuarios ON secciones.docente = usuarios.idUsuario  
+ORDER BY tituloSeccion ASC";
 $materias = $db->consultas($sql);
 
 ?>

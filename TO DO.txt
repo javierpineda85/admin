@@ -1,0 +1,25 @@
+Crear vistas en la BD ayuda a las consultas en el sistema... podria armar vistas
+con consultas complicadas y luego solo llamar a esas vistas
+
+EN PERFIL
+
+Hacer con AJAX que permita modificar los datos excepto la contraseña. Ver genially como ejemplo
+
+<?php
+class Conexion{
+    static public function conectar(){
+        //Declaramos los parametros de conexion
+        $link =  new PDO("mysql:host=localhost; port=3306;dbname=classroom","root","");
+        $link->exec("set names utf8"); // esto es para no tener problemas con los caracteres
+        return $link;
+    }
+
+    /* datos de ferozo
+    static public function conectar(){
+        //Declaramos los parametros de conexion
+        $link =  new PDO("mysql:host=localhost; port=3306;dbname=c1641042_class","c1641042_class","RAnodesi63");
+        $link->exec("set names utf8"); // esto es para no tener problemas con los caracteres
+        return $link;
+    }*/
+
+}

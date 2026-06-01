@@ -9,6 +9,7 @@ require_once("controladores/perfiles.controller.php");
 require_once("controladores/mensajes.controller.php");
 
 
+
 $plantilla= new PlantillaController();
  // ejecutar metodo
 $plantilla->crtGetPlantilla();

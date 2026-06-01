@@ -108,12 +108,12 @@ $mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $_SESSION
                         <td>
                           <div class="btn-group">
                             <button type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Eliminar">
-                            <a href="#=<?php echo $valor['idMensaje'] ?>" class="text-dark"><i class="far fa-trash-alt"></i></a>
+                              <a href="#=<?php echo $valor['idMensaje'] ?>" class="text-dark"><i class="far fa-trash-alt"></i></a>
                             </button>
-                            <button type="button" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="top" title="Responder">
+                            <button type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Responder">
                               <a href="index.php?r=nuevo-mensaje&c=mensajes&idMsj=<?php echo $valor['idMensaje'] ?>&t=reply" class="text-dark"><i class="fas fa-reply"></i></a>
                             </button>
-                            <button type="button" class="btn btn-default btn-sm"  data-toggle="tooltip" data-placement="top" title="Reenviar">
+                            <button type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Reenviar">
                               <a href="index.php?r=nuevo-mensaje&c=mensajes&idMsj=<?php echo $valor['idMensaje'] ?>&t=share" class="text-dark"><i class="fas fa-share"></i></a>
                             </button>
                         </td>

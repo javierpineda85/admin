@@ -22,12 +22,5 @@ class ControladorPerfiles
         }
     }
 
-    static public function crtSeleccionarPerfil($item, $valor)
-    {
 
-        $respuesta = ModeloPerfiles::mdlSeleccionarPerfil($item, $valor);
-        return $respuesta;
-
-        exit;
-    }
 }
