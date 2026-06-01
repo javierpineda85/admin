@@ -3,6 +3,27 @@ require_once('modelos/usuarios.modelo.php');
 require_once('modelos/perfiles.modelo.php');
 class ControladorUsuarios
 {
+    static public function crtSeleccionarUsuario($item, $valor)
+    {
+        return ModeloUsuarios::mdlSeleccionarUsuarios($item, $valor);
+    }
+
+    static public function crtDestinatariosPermitidos()
+    {
+        $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+        $rolActual = $_SESSION['usuario']['rol'] ?? '';
+        return ModeloUsuarios::mdlDestinatariosPermitidos($idUsuarioActual, $rolActual);
+    }
+
+    static public function crtUsuarioActual()
+    {
+        $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+        if ($idUsuarioActual <= 0) {
+            return null;
+        }
+
+        return ModeloUsuarios::mdlObtenerUsuarioPorId($idUsuarioActual);
+    }
 
     /*GUARDAR USUARIOS */
     static public function crtGuardarUsuario()

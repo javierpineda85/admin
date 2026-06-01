@@ -37,6 +37,81 @@ class ModeloUsuarios
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    static public function mdlObtenerUsuarioPorId($idUsuario)
+    {
+        $stmt = Conexion::conectar()->prepare("SELECT * FROM usuarios WHERE idUsuario = :idUsuario LIMIT 1");
+        $stmt->bindParam(":idUsuario", $idUsuario, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    static public function mdlSeleccionarUsuarios($item, $valor)
+    {
+        if ($item === null || $valor === null) {
+            $stmt = Conexion::conectar()->prepare("SELECT * FROM usuarios WHERE activo = 1 ORDER BY apellidoUsuario ASC, nombreUsuario ASC");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $stmt = Conexion::conectar()->prepare("SELECT * FROM usuarios WHERE $item = :valor AND activo = 1 ORDER BY apellidoUsuario ASC, nombreUsuario ASC");
+        $stmt->bindParam(":valor", $valor, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    static public function mdlDestinatariosPermitidos($idUsuarioActual, $rolActual)
+    {
+        $rolActual = strtoupper(trim((string) $rolActual));
+
+        if (in_array($rolActual, ['ADMINISTRADOR', 'DOCENTE'], true)) {
+            $stmt = Conexion::conectar()->prepare("
+                SELECT idUsuario, nombreUsuario, apellidoUsuario, email, rol
+                FROM usuarios
+                WHERE activo = 1
+                  AND idUsuario <> :idUsuarioActual
+                ORDER BY rol ASC, apellidoUsuario ASC, nombreUsuario ASC
+            ");
+            $stmt->bindParam(":idUsuarioActual", $idUsuarioActual, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $stmt = Conexion::conectar()->prepare("
+            SELECT DISTINCT u.idUsuario, u.nombreUsuario, u.apellidoUsuario, u.email, u.rol
+            FROM usuarios u
+            INNER JOIN asignacioncursos a1 ON a1.id_estudiante = :idUsuarioActual
+            INNER JOIN asignacioncursos a2 ON a2.id_seccion = a1.id_seccion
+            WHERE u.idUsuario = a2.id_estudiante
+              AND u.activo = 1
+              AND u.rol = 'ESTUDIANTE'
+              AND u.idUsuario <> :idUsuarioActual
+            ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC
+        ");
+        $stmt->bindParam(":idUsuarioActual", $idUsuarioActual, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    static public function mdlCompartenCurso($idUsuario1, $idUsuario2)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT COUNT(*) AS total
+            FROM asignacioncursos a1
+            INNER JOIN asignacioncursos a2 ON a1.id_seccion = a2.id_seccion
+            WHERE a1.id_estudiante = :idUsuario1
+              AND a2.id_estudiante = :idUsuario2
+        ");
+        $stmt->bindParam(":idUsuario1", $idUsuario1, PDO::PARAM_INT);
+        $stmt->bindParam(":idUsuario2", $idUsuario2, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+        return !empty($resultado) && (int) $resultado['total'] > 0;
+    }
+
     static public function mdlActualizarPassword($idUsuario, $passwordHash)
     {
         $stmt = Conexion::conectar()->prepare("UPDATE usuarios SET pass = :pass, resetPass = 0 WHERE idUsuario = :idUsuario");

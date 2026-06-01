@@ -32,7 +32,7 @@
                         <!-- Start FORM-->
                         <form class="form-horizontal" method="POST" enctype="multipart/form-data" >
                             <div class="form-group row">
-                                <input type="text" value="<?php echo $_SESSION['id_usuario']; ?>" name="id_usuario" hidden>
+                                <input type="text" value="<?php echo (int) ($_SESSION['usuario']['id'] ?? 0); ?>" name="id_usuario" hidden>
                                 <label for="inputImgPerfil" class="col-sm-2 col-form-label">Foto de perfil</label>
                                 <div class="col-sm-10">
                                     <input type="file" class="form-control" id="inputImgPerfil" name="imgUsuario">

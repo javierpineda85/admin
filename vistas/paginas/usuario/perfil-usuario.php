@@ -1,13 +1,12 @@
 <?php
-
-$_SESSION['id_usuario'] = "65";
+$idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 
 $db = new Conexion;
-$sql = "SELECT * FROM usuarios WHERE idUsuario =" . $_SESSION['id_usuario'];
+$sql = "SELECT * FROM usuarios WHERE idUsuario =" . $idUsuarioActual;
 $usuario = $db->consultas($sql);
 
-$deb = new Conexion;
-$sql = "SELECT *,DATE_FORMAT(fnacPerfil, '%d/%m/%Y') AS fnac FROM perfiles WHERE id_usuario =" . $_SESSION['id_usuario'];
+$db = new Conexion;
+$sql = "SELECT *,DATE_FORMAT(fnacPerfil, '%d/%m/%Y') AS fnac FROM perfiles WHERE id_usuario =" . $idUsuarioActual;
 $perfil = $db->consultas($sql);
 
 ?>
@@ -124,7 +123,7 @@ $perfil = $db->consultas($sql);
                         <!-- Start FORM-->
                         <form class="form-horizontal" method="POST" enctype="multipart/form-data" id="editar-perfil">
                             <div class="form-group row">
-                                <input type="text" value="<?php echo $_SESSION['id_usuario']; ?>" name="id_usuario" hidden>
+                                <input type="text" value="<?php echo $idUsuarioActual; ?>" name="id_usuario" hidden>
                                 <label for="inputImgPerfil" class="col-sm-2 col-form-label">Foto de perfil</label>
                                 <div class="col-sm-10">
                                     <input type="file" class="form-control" id="inputImgPerfil" name="imgUsuario">

@@ -1,6 +1,6 @@
 <?php
-
-$mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $_SESSION['id_usuario']);
+$idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $idUsuarioActual);
 
 ?>
 
@@ -111,7 +111,7 @@ $mensajes = ControladorMensajes::crtMostrarMensajes('id_destinatario', $_SESSION
                               <a href="#=<?php echo $valor['idMensaje'] ?>" class="text-dark"><i class="far fa-trash-alt"></i></a>
                             </button>
                             <button type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Responder">
-                              <a href="index.php?r=nuevo-mensaje&c=mensajes&idMsj=<?php echo $valor['idMensaje'] ?>&t=reply" class="text-dark"><i class="fas fa-reply"></i></a>
+                          <a href="index.php?r=nuevo-mensaje&c=mensajes&idMsj=<?php echo $valor['idMensaje'] ?>&t=reply" class="text-dark"><i class="fas fa-reply"></i></a>
                             </button>
                             <button type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Reenviar">
                               <a href="index.php?r=nuevo-mensaje&c=mensajes&idMsj=<?php echo $valor['idMensaje'] ?>&t=share" class="text-dark"><i class="fas fa-share"></i></a>

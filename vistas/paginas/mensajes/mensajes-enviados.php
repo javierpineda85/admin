@@ -1,6 +1,6 @@
 <?php
-
-$mensajes = ControladorMensajes::crtMostrarMensajesEnviados('id_remitente', $_SESSION['id_usuario']);
+$idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$mensajes = ControladorMensajes::crtMostrarMensajesEnviados('id_remitente', $idUsuarioActual);
 
 ?>
 

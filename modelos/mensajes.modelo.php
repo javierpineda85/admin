@@ -5,33 +5,52 @@ class ModeloMensajes
 {
     static public function mdlMostrarMensajes($item, $valor){
 
-
-        $stmt = Conexion::conectar()->prepare("SELECT idMensaje, id_remitente, id_destinatario,contenidoMensaje, DATE_FORMAT(fechaMensaje, '%d/%m/%Y') AS fMensaje, DATE_FORMAT(fechaMensaje, '%H:%i') AS horaMensaje, nombreUsuario, apellidoUsuario FROM mensajes JOIN usuarios ON id_remitente = usuarios.idUsuario WHERE $item = $valor ORDER BY fechaMensaje DESC; ");
+        $stmt = Conexion::conectar()->prepare("
+            SELECT m.idMensaje, m.id_remitente, m.id_destinatario, m.contenidoMensaje,
+                   DATE_FORMAT(m.fechaMensaje, '%d/%m/%Y') AS fMensaje,
+                   DATE_FORMAT(m.fechaMensaje, '%H:%i') AS horaMensaje,
+                   u.nombreUsuario, u.apellidoUsuario
+            FROM mensajes m
+            JOIN usuarios u ON m.id_remitente = u.idUsuario
+            WHERE m.$item = :valor
+            ORDER BY m.fechaMensaje DESC
+        ");
+        $stmt->bindParam(":valor", $valor, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
-        $stmt->closeCursor();
-
-        $stmt = null;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     static public function mdlMostrarMensajesEnviados($item, $valor){
 
-
-        $stmt = Conexion::conectar()->prepare("SELECT idMensaje, id_remitente, id_destinatario,contenidoMensaje, DATE_FORMAT(fechaMensaje, '%d/%m/%Y') AS fMensaje, DATE_FORMAT(fechaMensaje, '%H:%i') AS horaMensaje, nombreUsuario, apellidoUsuario FROM mensajes JOIN usuarios ON id_destinatario = usuarios.idUsuario WHERE $item = $valor ORDER BY fechaMensaje DESC");
+        $stmt = Conexion::conectar()->prepare("
+            SELECT m.idMensaje, m.id_remitente, m.id_destinatario, m.contenidoMensaje,
+                   DATE_FORMAT(m.fechaMensaje, '%d/%m/%Y') AS fMensaje,
+                   DATE_FORMAT(m.fechaMensaje, '%H:%i') AS horaMensaje,
+                   u.nombreUsuario, u.apellidoUsuario
+            FROM mensajes m
+            JOIN usuarios u ON m.id_destinatario = u.idUsuario
+            WHERE m.$item = :valor
+            ORDER BY m.fechaMensaje DESC
+        ");
+        $stmt->bindParam(":valor", $valor, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
-        $stmt->closeCursor();
-
-        $stmt = null;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     static public function mdlMostrarUnMensaje($id){
 
-
-        $stmt = Conexion::conectar()->prepare("SELECT idMensaje, id_remitente, id_destinatario,contenidoMensaje, DATE_FORMAT(fechaMensaje, '%d/%m/%Y') AS fMensaje, DATE_FORMAT(fechaMensaje, '%H:%i') AS horaMensaje, nombreUsuario, apellidoUsuario FROM mensajes JOIN usuarios ON id_remitente = usuarios.idUsuario WHERE idMensaje = $id ORDER BY fechaMensaje DESC; ");
+        $stmt = Conexion::conectar()->prepare("
+            SELECT m.idMensaje, m.id_remitente, m.id_destinatario, m.contenidoMensaje,
+                   DATE_FORMAT(m.fechaMensaje, '%d/%m/%Y') AS fMensaje,
+                   DATE_FORMAT(m.fechaMensaje, '%H:%i') AS horaMensaje,
+                   u.nombreUsuario, u.apellidoUsuario
+            FROM mensajes m
+            JOIN usuarios u ON m.id_remitente = u.idUsuario
+            WHERE m.idMensaje = :idMensaje
+            ORDER BY m.fechaMensaje DESC
+            LIMIT 1
+        ");
+        $stmt->bindParam(":idMensaje", $id, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
-        $stmt->closeCursor();
-
-        $stmt = null;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     static public function mdlGuardarMensaje($datos){
@@ -42,7 +61,7 @@ class ModeloMensajes
         $registro->bindParam(":id_remitente", $datos["id_remitente"], PDO::PARAM_INT);
         $registro->bindParam(":id_destinatario", $datos["id_destinatario"], PDO::PARAM_INT);
         $registro->bindParam(":contenidoMensaje", $datos["contenidoMensaje"], PDO::PARAM_STR);
-        $registro->bindParam("fechaMensaje", $datos["fechaMensaje"], PDO::PARAM_STR);
+        $registro->bindParam(":fechaMensaje", $datos["fechaMensaje"], PDO::PARAM_STR);
 
         if ($registro->execute()) {
             return "ok";

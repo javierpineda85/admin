@@ -1,38 +1,30 @@
 <?php
+$idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$tipoMensaje = $_GET['t'] ?? '';
+$idMsj = (int) ($_GET['idMsj'] ?? 0);
 
-if (isset($_GET['t'])) {
-    if ($_GET['t'] == 'reply') {
-        /*traer el msj mensaje completo e imprimir solo el contenido, fecha y hora del mensaje
-    traer tb todos los usuarios
-    */
-        $mensaje = ControladorMensajes::crtMostrarUnMensaje($_GET['idMsj']);
-        $usuarios = ControladorUsuarios::crtSeleccionarUsuario('idUsuario', $mensaje[0]['id_remitente']); /*Busca el remitente */
-    } else if ($_GET['t'] == 'share') {
-        /*Cargar solo el id del destinatario
-            y despues todos los usuarios
-        */
-        $mensaje = ControladorMensajes::crtMostrarUnMensaje($_GET['idMsj']);
-        $usuarios = ControladorUsuarios::crtSeleccionarUsuario(null, null);
-    } else {
-        $usuarios = ControladorUsuarios::crtSeleccionarUsuario(null, null);
+$mensaje = [];
+$usuarios = ControladorMensajes::crtDestinatariosPermitidos();
+$destinatarioFijo = null;
+
+if ($tipoMensaje === 'reply' && $idMsj > 0) {
+    $mensaje = ControladorMensajes::crtMostrarUnMensaje($idMsj);
+    if (!empty($mensaje)) {
+        $destinatarioFijo = ControladorUsuarios::crtSeleccionarUsuario('idUsuario', $mensaje[0]['id_remitente']);
     }
+} elseif ($tipoMensaje === 'share' && $idMsj > 0) {
+    $mensaje = ControladorMensajes::crtMostrarUnMensaje($idMsj);
 }
-
 ?>
 
-<!-- Main content -->
 <section class="content">
-
-    <!-- Default box -->
     <div class="card">
         <div class="card-header bg-info">
             <h3 class="card-title">Mensajes</h3>
-
             <div class="card-tools">
                 <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
                     <i class="fas fa-minus"></i>
                 </button>
-
             </div>
         </div>
         <div class="card-body">
@@ -40,11 +32,9 @@ if (isset($_GET['t'])) {
                 <div class="row">
                     <div class="col-md-3">
                         <a href="index.php?r=bandeja-entrada&c=mensajes" class="btn btn-primary btn-block mb-3">Volver a bandeja de entrada</a>
-
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">Carpetas</h3>
-
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-tool" data-card-widget="collapse">
                                         <i class="fas fa-minus"></i>
@@ -53,10 +43,9 @@ if (isset($_GET['t'])) {
                             </div>
                             <div class="card-body p-0">
                                 <ul class="nav nav-pills flex-column">
-                                    <li class="nav-item active">
+                                    <li class="nav-item">
                                         <a href="index.php?r=bandeja-entrada&c=mensajes" class="nav-link">
                                             <i class="fas fa-inbox"></i> Bandeja de entrada
-                                            <span class="badge bg-primary float-right">12</span>
                                         </a>
                                     </li>
                                     <li class="nav-item">
@@ -64,78 +53,84 @@ if (isset($_GET['t'])) {
                                             <i class="far fa-envelope"></i> Enviados
                                         </a>
                                     </li>
-                                    <li class="nav-item">
-                                        <a href="#" class="nav-link">
-                                            <i class="far fa-trash-alt"></i> Papelera
-                                        </a>
-                                    </li>
                                 </ul>
                             </div>
-                            <!-- /.card-body -->
                         </div>
-
                     </div>
-                    <!-- /.col -->
+
                     <div class="col-md-7">
                         <div class="card card-primary card-outline">
                             <div class="card-header">
-                                <?php if ($_GET['t'] == 'reply') : ?>
+                                <?php if ($tipoMensaje === 'reply'): ?>
                                     <h3 class="card-title">Responder mensaje</h3>
-                                <?php elseif ($_GET['t'] == 'share') : ?>
-                                    <h3 class="card-title">Compartir mensaje</h3>
-                                <?php else : ?>
+                                <?php elseif ($tipoMensaje === 'share'): ?>
+                                    <h3 class="card-title">Reenviar mensaje</h3>
+                                <?php else: ?>
                                     <h3 class="card-title">Redactar nuevo mensaje</h3>
-                                <?php endif ?>
+                                <?php endif; ?>
                             </div>
-                            <!-- /.card-header -->
                             <div class="card-body">
+                                <?php if ($tipoMensaje === 'reply' && !empty($mensaje)): ?>
+                                    <div class="alert alert-light border">
+                                        <strong>Mensaje original:</strong><br>
+                                        <?php echo htmlspecialchars($mensaje[0]['contenidoMensaje'], ENT_QUOTES, 'UTF-8'); ?><br>
+                                        <small class="text-muted">
+                                            Enviado el <?php echo htmlspecialchars($mensaje[0]['fMensaje'] . ' - ' . $mensaje[0]['horaMensaje'], ENT_QUOTES, 'UTF-8'); ?>
+                                        </small>
+                                    </div>
+                                <?php elseif ($tipoMensaje === 'share' && !empty($mensaje)): ?>
+                                    <div class="alert alert-light border">
+                                        <strong>Contenido a reenviar:</strong><br>
+                                        <?php echo htmlspecialchars($mensaje[0]['contenidoMensaje'], ENT_QUOTES, 'UTF-8'); ?><br>
+                                        <small class="text-muted">
+                                            Enviado el <?php echo htmlspecialchars($mensaje[0]['fMensaje'] . ' - ' . $mensaje[0]['horaMensaje'], ENT_QUOTES, 'UTF-8'); ?>
+                                        </small>
+                                    </div>
+                                <?php endif; ?>
+
                                 <form action="" method="post">
-                                    <div class="form-group">
-                                        <input type="text" name="id_remitente" value="<?php echo $_SESSION['id_usuario']; ?>" hidden>
-                                        <select class="custom-select" name="id_destinatario">
-                                            <option value="NULL" disabel selected>Para: </option>
-                                            <?php if ($_GET['t'] == 'reply') : ?>
-                                                <option value="<?php echo $usuarios[0]["idUsuario"]; ?>" disabled selected> Para: <?php echo $usuarios[0]['nombreUsuario'] . " " . $usuarios[0]['apellidoUsuario']; ?></option>
-                                                <?php else : foreach ($usuarios as $campo => $valor) : ?>
-                                                    <option value="<?php echo $valor["idUsuario"]; ?>"><?php echo $valor['nombreUsuario'] . " " . $valor['apellidoUsuario']; ?></option>
-                                            <?php endforeach;
-                                            endif ?>
-                                        </select>
+                                    <input type="hidden" name="id_remitente" value="<?php echo $idUsuarioActual; ?>">
 
-                                    </div>
                                     <div class="form-group">
-                                        <?php if ($_GET['t'] == 'reply') : ?>
-                                            <textarea id="compose-textarea" class="form-control" style="height: 100px" name="contenidoMensaje" disabled> Mensaje anterior: <?php echo $mensaje[0]['contenidoMensaje'] ?>. - Enviado el: <?php echo $mensaje[0]['fMensaje'] . " - " . $mensaje[0]['horaMensaje']  ?> </textarea>
-                                            <textarea id="compose-textarea" class="form-control" style="height: 100px" name="contenidoMensaje"> <?php ?> </textarea>
-                                        <?php elseif ($_GET['t'] == 'share') : ?>
-                                            <textarea id="compose-textarea" class="form-control" style="height: 100px" name="contenidoMensaje"> <?php echo $mensaje[0]['contenidoMensaje'] ?>. - Enviado el: <?php echo $mensaje[0]['fMensaje'] . " - " . $mensaje[0]['horaMensaje']  ?> </textarea>
-                                        <?php else : ?>
-                                            <textarea id="compose-textarea" class="form-control" style="height: 100px" name="contenidoMensaje"> </textarea>
-                                        <?php endif ?>
+                                        <label>Para</label>
+                                        <?php if ($tipoMensaje === 'reply' && !empty($destinatarioFijo)): ?>
+                                            <input type="hidden" name="id_destinatario" value="<?php echo (int) $destinatarioFijo[0]['idUsuario']; ?>">
+                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($destinatarioFijo[0]['nombreUsuario'] . ' ' . $destinatarioFijo[0]['apellidoUsuario'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                                        <?php else: ?>
+                                            <select class="custom-select" name="id_destinatario" required>
+                                                <option value="" selected disabled>Elegí un destinatario</option>
+                                                <?php foreach ($usuarios as $valor): ?>
+                                                    <option value="<?php echo (int) $valor['idUsuario']; ?>">
+                                                        <?php echo htmlspecialchars($valor['nombreUsuario'] . ' ' . $valor['apellidoUsuario'] . ' (' . $valor['rol'] . ')', ENT_QUOTES, 'UTF-8'); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <?php if (empty($usuarios)): ?>
+                                                <small class="text-muted">No hay destinatarios disponibles para tu rol.</small>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
                                     </div>
 
-                                    <!-- /.card-body -->
-                                    <div class="card-footer">
+                                    <div class="form-group">
+                                        <label>Mensaje</label>
+                                        <textarea class="form-control" style="height: 140px" name="contenidoMensaje" required><?php echo $tipoMensaje === 'share' && !empty($mensaje) ? htmlspecialchars($mensaje[0]['contenidoMensaje'], ENT_QUOTES, 'UTF-8') : ''; ?></textarea>
+                                    </div>
+
+                                    <div class="card-footer px-0">
                                         <div class="float-right">
                                             <?php $registro = ControladorMensajes::crtGuardarMensaje(); ?>
-                                            <button type="submit" class="btn btn-primary"><i class="far fa-envelope"></i> Enviar</button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="far fa-envelope"></i> Enviar
+                                            </button>
                                         </div>
                                         <button type="reset" class="btn btn-default"><i class="fas fa-times"></i> Descartar</button>
                                     </div>
-                                    <!-- /.card-footer -->
                                 </form>
                             </div>
-                            <!-- /.card -->
                         </div>
-                        <!-- /.col -->
                     </div>
-                    <!-- /.row -->
+                </div>
             </section>
         </div>
-        <!-- /.card-body -->
-
     </div>
-    <!-- /.card -->
-
 </section>
-<!-- /.content -->
