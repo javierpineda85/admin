@@ -43,7 +43,13 @@ $e = static function ($valor) {
             <div class="col-md-4">
               <div class="form-group">
                 <label>Foto de perfil</label>
-                <input type="file" class="form-control" name="imgUsuario" accept="image/*">
+                <div class="profile-upload">
+                  <input type="file" class="profile-upload__input profile-file-input" id="perfilImgUsuario" name="imgUsuario" accept="image/*">
+                  <label class="profile-upload__button" for="perfilImgUsuario">
+                    <i class="fas fa-image mr-2"></i>Seleccionar foto
+                  </label>
+                  <span class="profile-file-name">Ningún archivo seleccionado</span>
+                </div>
               </div>
             </div>
             <div class="col-md-4">

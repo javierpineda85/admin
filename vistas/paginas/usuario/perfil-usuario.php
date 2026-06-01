@@ -1,12 +1,14 @@
 <?php
-$usuario = ControladorUsuarios::crtUsuarioActual();
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
-$perfil = $usuario ? $usuario : [];
+$usuarioBase = ControladorUsuarios::crtUsuarioCompleto($idUsuarioActual) ?: [];
+$perfilBase = ModeloPerfiles::mdlObtenerPerfilPorUsuario($idUsuarioActual) ?: [];
+$usuario = array_merge($usuarioBase, $perfilBase);
 $relacionesAcademicas = $idUsuarioActual > 0 ? ControladorUsuarios::crtRelacionesAcademicas($idUsuarioActual) : [];
 $historialCambios = $idUsuarioActual > 0 ? ControladorUsuarios::crtHistorialUsuario($idUsuarioActual) : [];
-$nombreCompleto = trim((string) (($perfil['nombreUsuario'] ?? '') . ' ' . ($perfil['apellidoUsuario'] ?? '')));
-$imagenUsuario = !empty($perfil['imgUsuario']) ? $perfil['imgUsuario'] : 'user2-160x160.jpg';
-$estaActivo = (int) ($perfil['activo'] ?? 0) === 1;
+$nombreCompleto = trim((string) (($usuario['nombreUsuario'] ?? '') . ' ' . ($usuario['apellidoUsuario'] ?? '')));
+$imagenUsuario = !empty($usuario['imgUsuario']) ? $usuario['imgUsuario'] : 'user2-160x160.jpg';
+$estaActivo = (int) ($usuario['activo'] ?? 0) === 1;
+$verUltimaConexion = ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente();
 $e = static function ($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
@@ -23,13 +25,13 @@ $e = static function ($valor) {
           <span class="profile-kicker">Mi perfil</span>
           <h1 class="profile-title mb-2"><?php echo $e($nombreCompleto !== '' ? $nombreCompleto : 'Usuario'); ?></h1>
           <p class="profile-lead mb-3">
-            <?php echo $e($perfil['rol'] ?? 'Sin rol'); ?> · <?php echo $estaActivo ? 'Cuenta activa' : 'Cuenta dada de baja'; ?>
+            <?php echo $e($usuario['rol'] ?? 'Sin rol'); ?> · <?php echo $estaActivo ? 'Cuenta activa' : 'Cuenta dada de baja'; ?>
           </p>
           <div class="d-flex flex-wrap gap-2">
-            <span class="badge badge-light badge-pill px-3 py-2"><?php echo $e($perfil['email'] ?? ''); ?></span>
-            <span class="badge badge-info badge-pill px-3 py-2"><?php echo $e($perfil['fechaAltaFmt'] ?? 'Fecha de alta pendiente'); ?></span>
+            <span class="badge badge-light badge-pill px-3 py-2"><?php echo $e($usuario['email'] ?? ''); ?></span>
+            <span class="badge badge-info badge-pill px-3 py-2"><?php echo $e($usuario['fechaAltaFmt'] ?? 'Fecha de alta pendiente'); ?></span>
             <?php if (!$estaActivo): ?>
-              <span class="badge badge-danger badge-pill px-3 py-2">Baja: <?php echo $e($perfil['fechaBajaFmt'] ?? ''); ?></span>
+              <span class="badge badge-danger badge-pill px-3 py-2">Baja: <?php echo $e($usuario['fechaBajaFmt'] ?? ''); ?></span>
             <?php endif; ?>
           </div>
           <div class="mt-3">
@@ -52,11 +54,11 @@ $e = static function ($valor) {
             </div>
             <div class="profile-meta-item">
               <span class="profile-meta-label">Correo electrónico</span>
-              <strong><?php echo $e($perfil['email'] ?? 'Sin correo'); ?></strong>
+              <strong><?php echo $e($usuario['email'] ?? 'Sin correo'); ?></strong>
             </div>
             <div class="profile-meta-item">
               <span class="profile-meta-label">Rol</span>
-              <strong><?php echo $e($perfil['rol'] ?? 'Sin rol'); ?></strong>
+              <strong><?php echo $e($usuario['rol'] ?? 'Sin rol'); ?></strong>
             </div>
             <div class="profile-meta-item">
               <span class="profile-meta-label">Estado</span>
@@ -64,20 +66,26 @@ $e = static function ($valor) {
             </div>
             <div class="profile-meta-item">
               <span class="profile-meta-label">Fecha de alta</span>
-              <strong><?php echo $e($perfil['fechaAltaFmt'] ?? 'Sin fecha'); ?></strong>
+              <strong><?php echo $e($usuario['fechaAltaFmt'] ?? 'Sin fecha'); ?></strong>
             </div>
+            <?php if ($verUltimaConexion): ?>
+              <div class="profile-meta-item">
+                <span class="profile-meta-label">Última conexión</span>
+                <strong><?php echo $e($usuario['ultimaConexionFmt'] ?? 'Sin registro'); ?></strong>
+              </div>
+            <?php endif; ?>
             <?php if (!$estaActivo): ?>
               <div class="profile-meta-item">
                 <span class="profile-meta-label">Fecha de baja</span>
-                <strong><?php echo $e($perfil['fechaBajaFmt'] ?? 'Sin fecha'); ?></strong>
+                <strong><?php echo $e($usuario['fechaBajaFmt'] ?? 'Sin fecha'); ?></strong>
               </div>
               <div class="profile-meta-item">
                 <span class="profile-meta-label">Motivo de baja</span>
-                <strong><?php echo $e($perfil['motivoBaja'] ?? ''); ?></strong>
+                <strong><?php echo $e($usuario['motivoBaja'] ?? ''); ?></strong>
               </div>
               <div class="profile-meta-item">
                 <span class="profile-meta-label">Dado de baja por</span>
-                <strong><?php echo $e($perfil['usuarioBajaNombre'] ?? ''); ?></strong>
+                <strong><?php echo $e($usuario['usuarioBajaNombre'] ?? ''); ?></strong>
               </div>
             <?php endif; ?>
           </div>
@@ -92,26 +100,26 @@ $e = static function ($valor) {
           <div class="card-body">
             <div class="row">
               <div class="col-md-6 mb-3">
-                <div class="profile-chip">DNI: <?php echo $e($perfil['dniPerfil'] ?? 'Sin completar'); ?></div>
+                <div class="profile-chip">DNI: <?php echo $e($usuario['dniPerfil'] ?? 'Sin completar'); ?></div>
               </div>
               <div class="col-md-6 mb-3">
-                <div class="profile-chip">Teléfono: <?php echo $e($perfil['telefonoPerfil'] ?? 'Sin completar'); ?></div>
+                <div class="profile-chip">Teléfono: <?php echo $e($usuario['telefonoPerfil'] ?? 'Sin completar'); ?></div>
               </div>
               <div class="col-md-6 mb-3">
-                <div class="profile-chip">Fecha de nacimiento: <?php echo $e($perfil['fnacFormateada'] ?? 'Sin completar'); ?></div>
+                <div class="profile-chip">Fecha de nacimiento: <?php echo $e($usuario['fnacFormateada'] ?? 'Sin completar'); ?></div>
               </div>
               <div class="col-md-6 mb-3">
-                <div class="profile-chip">Domicilio: <?php echo $e($perfil['domicilioPerfil'] ?? 'Sin completar'); ?></div>
+                <div class="profile-chip">Domicilio: <?php echo $e($usuario['domicilioPerfil'] ?? 'Sin completar'); ?></div>
               </div>
               <div class="col-md-6 mb-3">
-                <div class="profile-chip">Provincia: <?php echo $e($perfil['provinciaPerfil'] ?? 'Sin completar'); ?></div>
+                <div class="profile-chip">Provincia: <?php echo $e($usuario['provinciaPerfil'] ?? 'Sin completar'); ?></div>
               </div>
             </div>
 
             <div class="mt-3">
               <h4 class="section-title mb-2">Sobre mí</h4>
               <div class="profile-about">
-                <?php echo nl2br($e($perfil['contenidoPerfil'] ?? 'Todavía no completaste este espacio.')); ?>
+                <?php echo nl2br($e($usuario['contenidoPerfil'] ?? 'Todavía no completaste este espacio.')); ?>
               </div>
             </div>
           </div>

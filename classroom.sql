@@ -282,6 +282,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `activo` tinyint(1) NOT NULL,
   `rol` char(15) NOT NULL,
   `fechaAlta` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ultimaConexion` datetime DEFAULT NULL,
   `fechaBaja` datetime DEFAULT NULL,
   `motivoBaja` varchar(255) DEFAULT NULL,
   `usuarioBaja` int DEFAULT NULL,

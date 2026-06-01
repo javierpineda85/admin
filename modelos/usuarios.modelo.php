@@ -50,6 +50,7 @@ class ModeloUsuarios
                    p.provinciaPerfil,
                    p.contenidoPerfil,
                    DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
+                   DATE_FORMAT(u.ultimaConexion, '%d/%m/%Y %H:%i') AS ultimaConexionFmt,
                    DATE_FORMAT(u.fechaBaja, '%d/%m/%Y %H:%i') AS fechaBajaFmt,
                    CONCAT(u2.nombreUsuario, ' ', u2.apellidoUsuario) AS usuarioBajaNombre
             FROM usuarios u
@@ -105,6 +106,7 @@ class ModeloUsuarios
             $stmt = Conexion::conectar()->prepare("
                 SELECT u.*,
                        DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
+                       DATE_FORMAT(u.ultimaConexion, '%d/%m/%Y %H:%i') AS ultimaConexionFmt,
                        DATE_FORMAT(u.fechaBaja, '%d/%m/%Y %H:%i') AS fechaBajaFmt,
                        CONCAT(u2.nombreUsuario, ' ', u2.apellidoUsuario) AS usuarioBajaNombre
                 FROM usuarios u
@@ -196,6 +198,14 @@ class ModeloUsuarios
         $stmt->bindParam(":idUsuario", $idUsuario, PDO::PARAM_INT);
 
         return $stmt->execute() ? "ok" : "error";
+    }
+
+    public static function mdlActualizarUltimaConexion($idUsuario)
+    {
+        $stmt = Conexion::conectar()->prepare("UPDATE usuarios SET ultimaConexion = NOW() WHERE idUsuario = :idUsuario");
+        $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
+
+        return $stmt->execute() ? 'ok' : 'error';
     }
 
     public static function mdlGuardarUsuario($tabla, $datos)

@@ -37,6 +37,8 @@ class ControladorAuth
             ModeloUsuarios::mdlActualizarPassword($usuario['idUsuario'], password_hash($password, PASSWORD_DEFAULT));
         }
 
+        ModeloUsuarios::mdlActualizarUltimaConexion($usuario['idUsuario']);
+
         session_regenerate_id(true);
 
         $_SESSION['logueado'] = true;

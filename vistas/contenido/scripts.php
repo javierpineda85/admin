@@ -174,5 +174,10 @@ if (!empty($flashToasts)) {
           ]
         });
       }
+
+      $(document).on('change', '.profile-file-input', function () {
+        var fileName = this.files && this.files.length ? this.files[0].name : 'Ningún archivo seleccionado';
+        $(this).closest('.profile-upload').find('.profile-file-name').text(fileName);
+      });
     });
 </script>
