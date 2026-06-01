@@ -51,6 +51,8 @@ class ControladorPermisos
                 'bandeja-entrada',
                 'nuevo-mensaje',
                 'mensajes-enviados',
+                'papelera',
+                'detalle-mensaje',
             ],
             'ESTUDIANTE' => [
                 'perfil-usuario',
@@ -61,6 +63,8 @@ class ControladorPermisos
                 'bandeja-entrada',
                 'nuevo-mensaje',
                 'mensajes-enviados',
+                'papelera',
+                'detalle-mensaje',
             ],
         ];
 

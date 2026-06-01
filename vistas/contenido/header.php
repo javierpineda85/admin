@@ -3,7 +3,7 @@ $cabecera = ControladorPanel::crtIndicadoresCabecera();
 $mensajesRecientes = $cabecera['mensajesRecientes'] ?? [];
 $notificacionesRecientes = $cabecera['actividadReciente'] ?? [];
 $resumirTexto = static function ($texto, $longitud) {
-  $texto = (string) $texto;
+  $texto = trim(strip_tags((string) $texto));
   if (function_exists('mb_strimwidth')) {
     return mb_strimwidth($texto, 0, $longitud, '...');
   }

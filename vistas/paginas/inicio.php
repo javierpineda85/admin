@@ -168,7 +168,7 @@ if (ControladorPermisos::esAdministrador()) {
           <div class="mt-4">
             <div class="d-flex justify-content-between mb-2">
               <span class="text-muted">Mensajes</span>
-              <strong><?php echo (int) (ControladorMensajes::crtContarMensajesRecibidos((int) ($_SESSION['usuario']['id'] ?? 0))); ?></strong>
+              <strong><?php echo (int) (ControladorMensajes::crtContarMensajesNoLeidos((int) ($_SESSION['usuario']['id'] ?? 0))); ?></strong>
             </div>
             <div class="progress mb-3" style="height: 10px;">
               <div class="progress-bar bg-primary" style="width: 84%"></div>

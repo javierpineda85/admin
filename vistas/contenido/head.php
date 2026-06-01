@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="./css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="./css/responsive.bootstrap4.min.css">
   <link rel="stylesheet" href="./css/buttons.bootstrap4.min.css">
+  <link rel="stylesheet" href="./plugins/summernote/summernote-bs4.min.css">
 
   <!-- Toastify -->
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.css">

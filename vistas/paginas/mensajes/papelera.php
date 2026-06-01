@@ -1,7 +1,7 @@
 <?php
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $accion = ControladorMensajes::crtProcesarAccion();
-$mensajes = ControladorMensajes::crtMostrarMensajesEnviados('id_remitente', $idUsuarioActual);
+$mensajes = ControladorMensajes::crtMostrarPapelera();
 $totalRecibidos = ControladorMensajes::crtContarMensajesRecibidos($idUsuarioActual);
 $totalEnviados = ControladorMensajes::crtContarMensajesEnviados($idUsuarioActual);
 $totalPapelera = ControladorMensajes::crtContarMensajesPapelera($idUsuarioActual);
@@ -20,7 +20,7 @@ $resumir = static function ($texto, $longitud = 90) {
 };
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null) {
-  echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=mensajes-enviados&c=mensajes'; }, 650);</script>";
+  echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=papelera&c=mensajes'; }, 650);</script>";
 }
 ?>
 
@@ -28,11 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null) {
   <div class="card glass-card">
     <div class="card-header bg-info">
       <h3 class="card-title">Mensajes</h3>
-      <div class="card-tools">
-        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-          <i class="fas fa-minus"></i>
-        </button>
-      </div>
     </div>
     <div class="card-body">
       <div class="row">
@@ -40,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null) {
           <a href="index.php?r=nuevo-mensaje&c=mensajes&t=" class="btn btn-primary btn-block mb-3">
             <i class="fas fa-pen mr-1"></i>Redactar
           </a>
-
           <div class="card">
             <div class="card-body p-0">
               <ul class="nav nav-pills flex-column">
@@ -50,13 +44,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null) {
                     <span class="badge bg-primary float-right"><?php echo (int) $totalRecibidos; ?></span>
                   </a>
                 </li>
-                <li class="nav-item active">
+                <li class="nav-item">
                   <a href="index.php?r=mensajes-enviados&c=mensajes" class="nav-link">
                     <i class="far fa-envelope"></i> Enviados
                     <span class="badge bg-secondary float-right"><?php echo (int) $totalEnviados; ?></span>
                   </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item active">
                   <a href="index.php?r=papelera&c=mensajes" class="nav-link">
                     <i class="far fa-trash-alt"></i> Papelera
                     <span class="badge bg-danger float-right"><?php echo (int) $totalPapelera; ?></span>
@@ -70,8 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null) {
         <div class="col-md-9">
           <div class="card card-primary card-outline">
             <div class="card-header d-flex justify-content-between align-items-center">
-              <h3 class="card-title mb-0">Mensajes enviados</h3>
-              <div class="text-muted small"><?php echo (int) $totalEnviados; ?> enviados</div>
+              <h3 class="card-title mb-0">Papelera</h3>
+              <div class="text-muted small"><?php echo (int) $totalPapelera; ?> mensajes</div>
             </div>
             <div class="card-body p-0">
               <div class="mailbox-controls p-3 border-bottom">
@@ -85,44 +79,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null) {
                   <tbody>
                     <?php if (empty($mensajes)): ?>
                       <tr>
-                        <td colspan="6" class="text-center text-muted py-5">Todavía no enviaste mensajes.</td>
+                        <td colspan="6" class="text-center text-muted py-5">La papelera está vacía.</td>
                       </tr>
                     <?php endif; ?>
 
                     <?php foreach ($mensajes as $mensaje): ?>
                       <?php
                         $preview = $resumir($mensaje['contenidoMensaje'] ?? '', 100);
-                        $destinatarios = trim((string) ($mensaje['destinatariosResumen'] ?? ''));
+                        $origen = ((string) ($mensaje['rolParticipante'] ?? '') === 'REMITENTE') ? 'Enviado' : 'Recibido';
                       ?>
                       <tr>
-                        <td style="width: 34px;">
-                          <div class="icheck-primary">
-                            <input type="checkbox" value="" id="check-out-<?php echo (int) $mensaje['idMensajeParticipante']; ?>">
-                            <label for="check-out-<?php echo (int) $mensaje['idMensajeParticipante']; ?>"></label>
-                          </div>
-                        </td>
                         <td class="mailbox-name">
+                          <span class="badge badge-light border mr-2"><?php echo htmlspecialchars($origen, ENT_QUOTES, 'UTF-8'); ?></span>
                           <a href="index.php?r=detalle-mensaje&idMensaje=<?php echo (int) $mensaje['id_mensaje']; ?>" class="text-dark">
-                            Para: <?php echo htmlspecialchars($destinatarios !== '' ? $destinatarios : 'Destinatarios múltiples', ENT_QUOTES, 'UTF-8'); ?>
+                            <?php echo htmlspecialchars(trim(($mensaje['nombreUsuario'] ?? '') . ' ' . ($mensaje['apellidoUsuario'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>
                           </a>
                         </td>
                         <td class="mailbox-subject">
                           <a href="index.php?r=detalle-mensaje&idMensaje=<?php echo (int) $mensaje['id_mensaje']; ?>" class="text-dark">
                             <?php echo htmlspecialchars($preview, ENT_QUOTES, 'UTF-8'); ?>
                           </a>
-                          <?php if ((int) ($mensaje['totalAdjuntos'] ?? 0) > 0): ?>
-                            <span class="badge badge-light border ml-2"><i class="fas fa-paperclip mr-1"></i><?php echo (int) $mensaje['totalAdjuntos']; ?></span>
-                          <?php endif; ?>
                         </td>
-                        <td class="mailbox-date"><?php echo htmlspecialchars((string) ($mensaje['fechaMensaje'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td class="mailbox-date"><?php echo htmlspecialchars((string) ($mensaje['fechaPapelera'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                         <td style="width: 180px;">
                           <div class="btn-group btn-group-sm">
-                            <a href="index.php?r=detalle-mensaje&idMensaje=<?php echo (int) $mensaje['id_mensaje']; ?>" class="btn btn-default" title="Abrir">
-                              <i class="far fa-eye"></i>
-                            </a>
-                            <form method="post" class="d-inline" onsubmit="return confirm('Mover este mensaje a la papelera?');">
+                            <form method="post" class="d-inline">
                               <input type="hidden" name="id_mensaje" value="<?php echo (int) $mensaje['id_mensaje']; ?>">
-                              <button type="submit" name="accion" value="mover_papelera" class="btn btn-default" title="Papelera">
+                              <button type="submit" name="accion" value="restaurar_mensaje" class="btn btn-default" title="Restaurar">
+                                <i class="fas fa-undo"></i>
+                              </button>
+                            </form>
+                            <form method="post" class="d-inline" onsubmit="return confirm('Eliminar este mensaje de forma permanente?');">
+                              <input type="hidden" name="id_mensaje" value="<?php echo (int) $mensaje['id_mensaje']; ?>">
+                              <button type="submit" name="accion" value="eliminar_permanente" class="btn btn-danger" title="Eliminar permanentemente">
                                 <i class="far fa-trash-alt"></i>
                               </button>
                             </form>

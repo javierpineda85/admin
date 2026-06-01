@@ -32,6 +32,8 @@ class RutasController
             'bandeja-entrada' => 'mensajes/bandeja-entrada.php',
             'nuevo-mensaje'   => 'mensajes/nuevo-mensaje.php',
             'mensajes-enviados'=> 'mensajes/mensajes-enviados.php',
+            'papelera'        => 'mensajes/papelera.php',
+            'detalle-mensaje' => 'mensajes/detalle-mensaje.php',
 
             // Web pública
             'login'           => 'web/login.php',

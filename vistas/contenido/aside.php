@@ -141,6 +141,12 @@
           <?php endif; ?>
 
           <?php if (ControladorPermisos::puedeVerMenu('mensajes')): ?>
+            <?php
+              $idUsuarioSidebar = (int) ($_SESSION['usuario']['id'] ?? 0);
+              $mensajesNoLeidosSidebar = class_exists('ControladorMensajes') ? ControladorMensajes::crtContarMensajesNoLeidos($idUsuarioSidebar) : 0;
+              $mensajesPapeleraSidebar = class_exists('ControladorMensajes') ? ControladorMensajes::crtContarMensajesPapelera($idUsuarioSidebar) : 0;
+              $mensajesEnviadosSidebar = class_exists('ControladorMensajes') ? ControladorMensajes::crtContarMensajesEnviados($idUsuarioSidebar) : 0;
+            ?>
             <li class="nav-item">
               <a href="#" class="nav-link">
                 <i class="nav-icon far fa-envelope text-primary"></i>
@@ -150,13 +156,25 @@
                 <li class="nav-item">
                   <a href="index.php?r=bandeja-entrada" class="nav-link">
                     <i class="far fa-circle nav-icon"></i>
-                    <p>Bandeja de entrada</p>
-                  </a>
+                    <p>Bandeja de entrada <span class="badge badge-danger right"><?php echo (int) $mensajesNoLeidosSidebar; ?></span></p>
+                </a>
                 </li>
                 <li class="nav-item">
                   <a href="index.php?r=nuevo-mensaje" class="nav-link">
                     <i class="far fa-circle nav-icon"></i>
                     <p>Nuevo mensaje</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?r=mensajes-enviados" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Enviados <span class="badge badge-secondary right"><?php echo (int) $mensajesEnviadosSidebar; ?></span></p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?r=papelera" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Papelera <span class="badge badge-danger right"><?php echo (int) $mensajesPapeleraSidebar; ?></span></p>
                   </a>
                 </li>
               </ul>

@@ -155,5 +155,20 @@ if (!empty($flashToasts)) {
         var restantes = 8 - valor.length;
         caracteresRestantes.text('Caracteres restantes: ' + restantes);
       });
+
+      if ($('#contenidoMensaje').length) {
+        $('#contenidoMensaje').summernote({
+          height: 220,
+          placeholder: 'Escribí el mensaje y dale formato si hace falta...',
+          toolbar: [
+            ['style', ['style']],
+            ['font', ['bold', 'italic', 'underline', 'clear']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['insert', ['link', 'picture', 'table']],
+            ['view', ['fullscreen', 'codeview', 'help']]
+          ]
+        });
+      }
     });
 </script>
