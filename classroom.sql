@@ -11,7 +11,6 @@ SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
-
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
@@ -67,6 +66,7 @@ CREATE TABLE IF NOT EXISTS `calificaciones` (
   `id_curso` int NOT NULL,
   `calificacion` int NOT NULL,
   PRIMARY KEY (`idCalificacion`),
+  UNIQUE KEY `uq_calificacion` (`id_estudiante`,`id_seccion`,`id_modulo`),
   KEY `id_estudiante` (`id_estudiante`,`id_seccion`,`id_modulo`,`id_curso`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -91,6 +91,28 @@ CREATE TABLE IF NOT EXISTS `cursos` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `entregaslecciones`
+--
+
+DROP TABLE IF EXISTS `entregaslecciones`;
+CREATE TABLE IF NOT EXISTS `entregaslecciones` (
+  `idEntregaLeccion` int NOT NULL AUTO_INCREMENT,
+  `id_leccion` int NOT NULL,
+  `id_seccion` int NOT NULL,
+  `id_curso` int NOT NULL,
+  `id_estudiante` int NOT NULL,
+  `urlArchivo` varchar(255) NOT NULL,
+  `comentarioEntrega` tinytext DEFAULT NULL,
+  `fechaEntrega` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `estadoEntrega` varchar(15) NOT NULL DEFAULT 'ENTREGADA',
+  PRIMARY KEY (`idEntregaLeccion`),
+  UNIQUE KEY `uq_entrega` (`id_leccion`,`id_estudiante`),
+  KEY `id_seccion` (`id_seccion`,`id_curso`,`id_estudiante`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `lecciones`
 --
 
@@ -98,6 +120,7 @@ DROP TABLE IF EXISTS `lecciones`;
 CREATE TABLE IF NOT EXISTS `lecciones` (
   `idLeccion` int NOT NULL AUTO_INCREMENT,
   `nombreLeccion` char(30) NOT NULL,
+  `tipoLeccion` varchar(12) NOT NULL DEFAULT 'MATERIAL',
   `contenidoLeccion` tinytext NOT NULL,
   `id_modulo` int NOT NULL,
   PRIMARY KEY (`idLeccion`),
@@ -116,7 +139,7 @@ CREATE TABLE IF NOT EXISTS `mensajes` (
   `id_remitente` int NOT NULL,
   `id_destinatario` int NOT NULL,
   `contenidoMensaje` tinytext NOT NULL,
-  `fechaMensaje` timestamp NOT NULL,
+  `fechaMensaje` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`idMensaje`),
   KEY `id_remitente` (`id_remitente`,`id_destinatario`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -131,8 +154,11 @@ DROP TABLE IF EXISTS `perfiles`;
 CREATE TABLE IF NOT EXISTS `perfiles` (
   `idPerfil` int NOT NULL AUTO_INCREMENT,
   `id_usuario` int NOT NULL,
+  `dniPerfil` int DEFAULT NULL,
+  `telefonoPerfil` char(20) DEFAULT NULL,
   `fnacPerfil` date DEFAULT NULL,
   `domicilioPerfil` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `provinciaPerfil` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `contenidoPerfil` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
   PRIMARY KEY (`idPerfil`),
   KEY `id_usuario` (`id_usuario`)
@@ -146,12 +172,36 @@ CREATE TABLE IF NOT EXISTS `perfiles` (
 
 DROP TABLE IF EXISTS `posteos`;
 CREATE TABLE IF NOT EXISTS `posteos` (
-  `idPosteo` int NOT NULL,
+  `idPosteo` int NOT NULL AUTO_INCREMENT,
   `id_autor` int NOT NULL,
   `contenidoPosteo` tinytext NOT NULL,
-  `fechaPosteo` timestamp NOT NULL,
+  `fechaPosteo` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `id_curso` int NOT NULL,
-  KEY `id_autor` (`id_autor`,`id_curso`)
+  `id_leccion` int DEFAULT NULL,
+  `tipoPosteo` varchar(12) NOT NULL DEFAULT 'FORO',
+  PRIMARY KEY (`idPosteo`),
+  KEY `id_autor` (`id_autor`,`id_curso`),
+  KEY `id_leccion` (`id_leccion`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `recursoslecciones`
+--
+
+DROP TABLE IF EXISTS `recursoslecciones`;
+CREATE TABLE IF NOT EXISTS `recursoslecciones` (
+  `idRecursoLeccion` int NOT NULL AUTO_INCREMENT,
+  `id_leccion` int NOT NULL,
+  `tipoRecurso` varchar(10) NOT NULL,
+  `tituloRecurso` varchar(120) NOT NULL,
+  `urlRecurso` varchar(255) NOT NULL,
+  `creadoPor` int NOT NULL,
+  `fechaRecurso` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idRecursoLeccion`),
+  KEY `id_leccion` (`id_leccion`,`tipoRecurso`),
+  KEY `creadoPor` (`creadoPor`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -163,8 +213,8 @@ CREATE TABLE IF NOT EXISTS `posteos` (
 DROP TABLE IF EXISTS `secciones`;
 CREATE TABLE IF NOT EXISTS `secciones` (
   `idSeccion` int NOT NULL AUTO_INCREMENT,
-  `tituloSeccion` CHAR(10) NOT NULL,
-  `contenidoSeccion` TINYTEXT NULL,
+  `tituloSeccion` CHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `contenidoSeccion` TINYTEXT,
   `id_curso` int NOT NULL,
   `docente` int NOT NULL,
   `tutor` int DEFAULT NULL,
@@ -191,13 +241,13 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `rol` char(15) NOT NULL,
   PRIMARY KEY (`idUsuario`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-COMMIT;
+
+-- --------------------------------------------------------
 
 --
--- INSERTANDO DATOS
+-- Datos de ejemplo
 --
 
--- Insertar 10 usuarios con roles específicos
 INSERT INTO usuarios (nombreUsuario, apellidoUsuario, email, pass, resetPass, imgUsuario, activo, rol)
 VALUES 
   ('Nombre1', 'Apellido1', 'nombre1.apellido1@example.com', 'password1', 0, 'img1.jpg', 1, 'ADMINISTRADOR'),
@@ -211,8 +261,6 @@ VALUES
   ('Nombre9', 'Apellido9', 'nombre9.apellido9@example.com', 'password9', 0, 'img9.jpg', 1, 'ADMINISTRADOR'),
   ('Nombre10', 'Apellido10', 'nombre10.apellido10@example.com', 'password10', 0, 'img10.jpg', 1, 'DOCENTE');
 
-
-  -- Insertar 5 perfiles con información aleatoria y usuarios asociados
 INSERT INTO perfiles (id_usuario, fnacPerfil, domicilioPerfil, contenidoPerfil)
 VALUES 
   (1, '1990-01-01', 'Calle 123, Ciudad A', 'Este es el contenido del perfil para el usuario 1.'),
@@ -221,75 +269,22 @@ VALUES
   (4, '1988-11-10', 'Calle 456, Ciudad D', 'Información del perfil para el usuario 4.'),
   (5, '1995-04-03', 'Avenida ABC, Ciudad E', 'Este es el contenido del perfil para el usuario 5.');
 
-
--- Insertar 30 mensajes entre los usuarios
 INSERT INTO mensajes (id_remitente, id_destinatario, contenidoMensaje, fechaMensaje)
 VALUES 
   (1, 2, 'Hola, ¿cómo estás?', '2023-10-11 08:00:00'),
   (2, 1, '¡Hola! Estoy bien, ¿y tú?', '2023-10-11 08:05:00'),
   (3, 4, 'Buenos días, ¿puedes ayudarme con algo?', '2023-10-11 09:00:00'),
   (4, 3, 'Claro, ¿en qué necesitas ayuda?', '2023-10-11 09:05:00'),
-  -- ... continuar con más mensajes entre los usuarios
-
   (1, 3, '¡Hola! ¿Qué tal?', '2023-10-11 10:00:00'),
   (3, 1, 'Hola, todo bien. Gracias por preguntar.', '2023-10-11 10:05:00'),
   (5, 6, '¡Feliz cumpleaños!', '2023-10-11 11:00:00'),
   (6, 5, '¡Gracias! ¿Quieres venir a la celebración?', '2023-10-11 11:05:00'),
-  -- ... continuar con más mensajes entre los usuarios
-
   (8, 10, 'Hola, necesitamos discutir el proyecto.', '2023-10-11 14:00:00'),
   (10, 8, 'Por supuesto, ¿a qué hora te viene bien?', '2023-10-11 14:05:00'),
   (9, 7, '¡Qué bueno verte ayer en la reunión!', '2023-10-11 15:00:00'),
   (7, 9, 'Sí, fue genial. Hablamos pronto.', '2023-10-11 15:05:00');
 
--- --------------------------------------------------------
-
--- Estructura de tabla para la tabla `recursoslecciones`
-
-DROP TABLE IF EXISTS `recursoslecciones`;
-CREATE TABLE IF NOT EXISTS `recursoslecciones` (
-  `idRecursoLeccion` int NOT NULL AUTO_INCREMENT,
-  `id_leccion` int NOT NULL,
-  `tipoRecurso` varchar(10) NOT NULL,
-  `tituloRecurso` varchar(120) NOT NULL,
-  `urlRecurso` varchar(255) NOT NULL,
-  `creadoPor` int NOT NULL,
-  `fechaRecurso` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`idRecursoLeccion`),
-  KEY `id_leccion` (`id_leccion`,`tipoRecurso`),
-  KEY `creadoPor` (`creadoPor`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- --------------------------------------------------------
-
--- Migraciones del aula y calificaciones
-
-ALTER TABLE `lecciones`
-  ADD COLUMN IF NOT EXISTS `tipoLeccion` varchar(12) NOT NULL DEFAULT 'MATERIAL' AFTER `nombreLeccion`;
-
-ALTER TABLE `posteos`
-  ADD COLUMN IF NOT EXISTS `id_leccion` int DEFAULT NULL AFTER `id_curso`;
-
-ALTER TABLE `posteos`
-  ADD COLUMN IF NOT EXISTS `tipoPosteo` varchar(12) NOT NULL DEFAULT 'FORO' AFTER `id_leccion`;
-
-ALTER TABLE `calificaciones`
-  ADD UNIQUE KEY `uq_calificacion` (`id_estudiante`,`id_seccion`,`id_modulo`);
-
-CREATE TABLE IF NOT EXISTS `entregaslecciones` (
-  `idEntregaLeccion` int NOT NULL AUTO_INCREMENT,
-  `id_leccion` int NOT NULL,
-  `id_seccion` int NOT NULL,
-  `id_curso` int NOT NULL,
-  `id_estudiante` int NOT NULL,
-  `urlArchivo` varchar(255) NOT NULL,
-  `comentarioEntrega` tinytext DEFAULT NULL,
-  `fechaEntrega` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `estadoEntrega` varchar(15) NOT NULL DEFAULT 'ENTREGADA',
-  PRIMARY KEY (`idEntregaLeccion`),
-  UNIQUE KEY `uq_entrega` (`id_leccion`,`id_estudiante`),
-  KEY `id_seccion` (`id_seccion`,`id_curso`,`id_estudiante`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
