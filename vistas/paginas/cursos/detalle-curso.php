@@ -150,8 +150,7 @@ if (!$curso) {
                                             <td><?php echo htmlspecialchars($valor['nombreUsuario'] . ' ' . $valor['apellidoUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td>
                                                 <div class="row d-flex justify-content-around">
-                                                    <a href="#" class="btn btn-success btn-sm" title="Editar sección"><i class="fas fa-edit"></i></a>
-                                                    <a href="#" class="btn btn-info btn-sm" title="Ver sección"><i class="fas fa-eye"></i></a>
+                                                    <a href="index.php?r=detalle-seccion&idSeccion=<?php echo (int) $valor['idSeccion']; ?>" class="btn btn-info btn-sm" title="Abrir aula"><i class="fas fa-eye"></i></a>
                                                 </div>
                                             </td>
                                         </tr>
@@ -160,7 +159,7 @@ if (!$curso) {
                             </table>
                             <?php if (!$esAdmin): ?>
                                 <div class="alert alert-warning mt-3 mb-0">
-                                    La creación y edición de secciones quedará habilitada en la próxima etapa para docentes.
+                                    Desde el aula de cada sección podés ver el contenido y los recursos. La edición seguirá concentrada en administración.
                                 </div>
                             <?php endif; ?>
                         </div>

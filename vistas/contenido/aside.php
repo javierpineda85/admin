@@ -114,7 +114,7 @@
             <li class="nav-item">
               <a href="#" class="nav-link">
                 <i class="nav-icon fas fa-book-open text-success"></i>
-                <p>Materias<i class="fas fa-angle-left right"></i></p>
+                <p>Secciones<i class="fas fa-angle-left right"></i></p>
               </a>
               <ul class="nav nav-treeview">
                 <li class="nav-item">

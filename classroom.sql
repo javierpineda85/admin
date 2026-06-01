@@ -242,6 +242,24 @@ VALUES
   (9, 7, '¡Qué bueno verte ayer en la reunión!', '2023-10-11 15:00:00'),
   (7, 9, 'Sí, fue genial. Hablamos pronto.', '2023-10-11 15:05:00');
 
+-- --------------------------------------------------------
+
+-- Estructura de tabla para la tabla `recursoslecciones`
+
+DROP TABLE IF EXISTS `recursoslecciones`;
+CREATE TABLE IF NOT EXISTS `recursoslecciones` (
+  `idRecursoLeccion` int NOT NULL AUTO_INCREMENT,
+  `id_leccion` int NOT NULL,
+  `tipoRecurso` varchar(10) NOT NULL,
+  `tituloRecurso` varchar(120) NOT NULL,
+  `urlRecurso` varchar(255) NOT NULL,
+  `creadoPor` int NOT NULL,
+  `fechaRecurso` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idRecursoLeccion`),
+  KEY `id_leccion` (`id_leccion`,`tipoRecurso`),
+  KEY `creadoPor` (`creadoPor`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
