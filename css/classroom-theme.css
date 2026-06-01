@@ -300,7 +300,26 @@ body.classroom-app .profile-about {
   line-height: 1.7;
 }
 
-body.classroom-app .profile-form-banner,
+body.classroom-app .profile-form-banner {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f172a 0%, #111b33 50%, #1d4ed8 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  padding: 1rem 1.1rem;
+  box-shadow: var(--classroom-shadow);
+}
+
+body.classroom-app .profile-form-banner .text-muted {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+body.classroom-app .profile-form-banner .badge {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
 body.classroom-app .danger-panel {
   background: rgba(248, 250, 252, 0.9);
   border: 1px solid rgba(15, 23, 42, 0.08);

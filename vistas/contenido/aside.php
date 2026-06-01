@@ -82,6 +82,12 @@
                   </a>
                 </li>
                 <li class="nav-item">
+                  <a href="index.php?r=usuarios-inactivos" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Inactivos</p>
+                  </a>
+                </li>
+                <li class="nav-item">
                   <a href="index.php?r=crear-usuario" class="nav-link">
                     <i class="far fa-circle nav-icon"></i>
                     <p>Crear</p>
@@ -186,7 +192,7 @@
           <li class="nav-item">
             <a href="index.php?r=logout" class="nav-link text-danger">
               <i class="nav-icon fas fa-sign-out-alt"></i>
-              <p>Cerrar sesiÃ³n</p>
+              <p>Cerrar sesión</p>
             </a>
           </li>
         </ul>
@@ -195,3 +201,4 @@
     </div>
     <!-- /.sidebar -->
   </aside>
+

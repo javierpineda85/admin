@@ -121,7 +121,16 @@ class ModeloUsuarios
             return [];
         }
 
-        $stmt = Conexion::conectar()->prepare("SELECT * FROM usuarios WHERE $item = :valor ORDER BY apellidoUsuario ASC, nombreUsuario ASC");
+        $stmt = Conexion::conectar()->prepare("
+            SELECT u.*,
+                   DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
+                   DATE_FORMAT(u.fechaBaja, '%d/%m/%Y %H:%i') AS fechaBajaFmt,
+                   CONCAT(u2.nombreUsuario, ' ', u2.apellidoUsuario) AS usuarioBajaNombre
+            FROM usuarios u
+            LEFT JOIN usuarios u2 ON u2.idUsuario = u.usuarioBaja
+            WHERE u.$item = :valor
+            ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC
+        ");
         $stmt->bindParam(":valor", $valor, PDO::PARAM_STR);
         $stmt->execute();
 
@@ -221,6 +230,11 @@ class ModeloUsuarios
             ":rol" => $datos["rol"],
         ];
 
+        if (isset($datos["imgUsuario"]) && $datos["imgUsuario"] !== '') {
+            $consulta .= ", imgUsuario = :imgUsuario";
+            $valores[":imgUsuario"] = $datos["imgUsuario"];
+        }
+
         if (isset($datos["passUsuario"]) && $datos["passUsuario"] !== '') {
             $consulta .= ", pass = :passUsuario_hashed, resetPass = 1";
             $valores[":passUsuario_hashed"] = password_hash($datos["passUsuario"], PASSWORD_DEFAULT);
@@ -270,5 +284,49 @@ class ModeloUsuarios
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
 
         return $stmt->execute() ? 'ok' : 'error';
+    }
+
+    public static function mdlActualizarImagenUsuario($idUsuario, $imgUsuario)
+    {
+        $stmt = Conexion::conectar()->prepare("UPDATE usuarios SET imgUsuario = :imgUsuario WHERE idUsuario = :idUsuario");
+        $stmt->bindValue(':imgUsuario', (string) $imgUsuario, PDO::PARAM_STR);
+        $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
+
+        return $stmt->execute() ? 'ok' : 'error';
+    }
+
+    public static function mdlRegistrarHistorial($datos)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            INSERT INTO usuarios_historial
+                (id_usuario, accion, detalle, id_usuario_accion, fechaEvento)
+            VALUES
+                (:id_usuario, :accion, :detalle, :id_usuario_accion, :fechaEvento)
+        ");
+        $stmt->bindValue(':id_usuario', (int) $datos['id_usuario'], PDO::PARAM_INT);
+        $stmt->bindValue(':accion', (string) $datos['accion'], PDO::PARAM_STR);
+        $stmt->bindValue(':detalle', (string) $datos['detalle'], PDO::PARAM_STR);
+        $stmt->bindValue(':id_usuario_accion', (int) $datos['id_usuario_accion'], PDO::PARAM_INT);
+        $stmt->bindValue(':fechaEvento', (string) $datos['fechaEvento'], PDO::PARAM_STR);
+
+        return $stmt->execute() ? 'ok' : 'error';
+    }
+
+    public static function mdlHistorialUsuario($idUsuario)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT h.*,
+                   CONCAT(u.nombreUsuario, ' ', u.apellidoUsuario) AS usuarioAccionNombre,
+                   DATE_FORMAT(h.fechaEvento, '%d/%m/%Y %H:%i') AS fechaEventoFmt
+            FROM usuarios_historial h
+            LEFT JOIN usuarios u ON u.idUsuario = h.id_usuario_accion
+            WHERE h.id_usuario = :idUsuario
+            ORDER BY h.fechaEvento DESC, h.idHistorial DESC
+            LIMIT 20
+        ");
+        $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

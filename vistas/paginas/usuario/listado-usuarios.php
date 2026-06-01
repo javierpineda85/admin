@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['idReactivar'])) {
   echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=listado-usuarios&c=usuario'; }, 650);</script>";
 }
 
-$usuarios = ControladorUsuarios::crtSeleccionarUsuario(null, null);
+$usuarios = ControladorUsuarios::crtSeleccionarUsuario('activo', 1);
 
 ?>
 
@@ -52,7 +52,7 @@ $usuarios = ControladorUsuarios::crtSeleccionarUsuario(null, null);
                     </td>
                     <td>
                       <div class="row d-flex justify-content-around">
-                        <a href="index.php?r=editar-usuario&id=<?php echo $valor["idUsuario"]; ?>" class="btn btn-success btn-sm"><i class="fas fa-edit"></i></a>
+                        <a href="index.php?r=editar-usuario&id=<?php echo $valor["idUsuario"]; ?>" class="btn btn-success btn-sm" title="Ver detalle"><i class="far fa-eye"></i></a>
                         <?php if ((int) ($valor['activo'] ?? 0) === 0): ?>
                           <form method="post">
                             <input type="hidden" value="<?php echo (int) $valor["idUsuario"]; ?>" name="idReactivar">

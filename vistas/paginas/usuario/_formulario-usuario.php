@@ -15,9 +15,9 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
       <h3 class="card-title mb-1"><?php echo $modoFormulario === 'editar' ? 'Editar usuario' : 'Crear usuario'; ?></h3>
       <small class="text-muted">
         <?php if ($modoFormulario === 'editar'): ?>
-          Ajustá los datos de cuenta, perfil y estado del usuario.
+          Ajusta los datos de cuenta, perfil y estado del usuario.
         <?php else: ?>
-          Cargá la cuenta y el perfil inicial del nuevo usuario.
+          Carga la cuenta y el perfil inicial del nuevo usuario.
         <?php endif; ?>
       </small>
     </div>
@@ -26,7 +26,7 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
   <div class="card-body">
     <div class="profile-form-banner mb-4">
       <div>
-        <p class="mb-1 text-uppercase small text-muted font-weight-bold">Cuenta</p>
+        <p class="mb-1 text-uppercase small font-weight-bold">Cuenta</p>
         <h4 class="mb-0"><?php echo $modoFormulario === 'editar' ? 'Gestión de usuario' : 'Alta de usuario'; ?></h4>
       </div>
       <?php if ($modoFormulario === 'editar'): ?>
@@ -36,7 +36,7 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
       <?php endif; ?>
     </div>
 
-    <form action="" method="post" autocomplete="off">
+    <form action="" method="post" autocomplete="off" enctype="multipart/form-data">
       <input type="hidden" name="idUsuario" value="<?php echo (int) ($usuarioFormulario['idUsuario'] ?? 0); ?>">
 
       <div class="row">
@@ -74,6 +74,15 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
             <label>Contraseña</label>
             <input type="password" class="form-control" placeholder="<?php echo $modoFormulario === 'editar' ? 'Dejar vacío para no cambiar' : 'Asignar contraseña'; ?>" name="passUsuario">
             <small class="form-text text-muted"><?php echo $modoFormulario === 'editar' ? 'Opcional. Solo completalo si querés forzar un nuevo acceso.' : 'Se guardará la contraseña inicial del usuario.'; ?></small>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>Foto de perfil</label>
+            <input type="file" class="form-control" name="imgUsuario" accept="image/*">
+            <?php if (!empty($usuarioFormulario['imgUsuario'])): ?>
+              <small class="form-text text-muted">Actual: <?php echo $e($usuarioFormulario['imgUsuario']); ?></small>
+            <?php endif; ?>
           </div>
         </div>
       </div>

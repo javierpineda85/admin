@@ -3,6 +3,7 @@ $usuario = ControladorUsuarios::crtUsuarioActual();
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $perfil = $usuario ? $usuario : [];
 $relacionesAcademicas = $idUsuarioActual > 0 ? ControladorUsuarios::crtRelacionesAcademicas($idUsuarioActual) : [];
+$historialCambios = $idUsuarioActual > 0 ? ControladorUsuarios::crtHistorialUsuario($idUsuarioActual) : [];
 $nombreCompleto = trim((string) (($perfil['nombreUsuario'] ?? '') . ' ' . ($perfil['apellidoUsuario'] ?? '')));
 $imagenUsuario = !empty($perfil['imgUsuario']) ? $perfil['imgUsuario'] : 'user2-160x160.jpg';
 $estaActivo = (int) ($perfil['activo'] ?? 0) === 1;
@@ -30,6 +31,9 @@ $e = static function ($valor) {
             <?php if (!$estaActivo): ?>
               <span class="badge badge-danger badge-pill px-3 py-2">Baja: <?php echo $e($perfil['fechaBajaFmt'] ?? ''); ?></span>
             <?php endif; ?>
+          </div>
+          <div class="mt-3">
+            <a href="index.php?r=editar-perfil" class="btn btn-light border">Editar mi perfil</a>
           </div>
         </div>
       </div>
@@ -149,6 +153,47 @@ $e = static function ($valor) {
                             <span class="badge badge-success">Estudiante</span>
                           <?php endif; ?>
                         </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 mt-4">
+        <div class="card glass-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">Historial reciente</h3>
+            <span class="badge badge-light border"><?php echo count($historialCambios); ?> eventos</span>
+          </div>
+          <div class="card-body">
+            <?php if (empty($historialCambios)): ?>
+              <div class="empty-state">
+                <i class="fas fa-stream"></i>
+                <h4>No hay cambios registrados todavía</h4>
+                <p class="mb-0">Acá vas a ver altas, modificaciones, bajas y reactivaciones del usuario.</p>
+              </div>
+            <?php else: ?>
+              <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Acción</th>
+                      <th>Detalle</th>
+                      <th>Realizado por</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($historialCambios as $evento): ?>
+                      <tr>
+                        <td><?php echo $e($evento['fechaEventoFmt'] ?? ''); ?></td>
+                        <td><span class="badge badge-info"><?php echo $e($evento['accion'] ?? ''); ?></span></td>
+                        <td><?php echo $e($evento['detalle'] ?? ''); ?></td>
+                        <td><?php echo $e($evento['usuarioAccionNombre'] ?? ''); ?></td>
                       </tr>
                     <?php endforeach; ?>
                   </tbody>
