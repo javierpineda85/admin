@@ -40,7 +40,7 @@ $resumirTexto = static function ($texto, $longitud) {
         </a>
         <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
           <span class="dropdown-item dropdown-header">
-            <?php echo (int) ($cabecera['mensajes'] ?? 0); ?> mensajes recientes
+            <?php echo (int) ($cabecera['mensajes'] ?? 0); ?> mensajes sin leer
           </span>
           <div class="dropdown-divider"></div>
           <?php if (!empty($mensajesRecientes)): ?>
@@ -64,7 +64,7 @@ $resumirTexto = static function ($texto, $longitud) {
               <div class="dropdown-divider"></div>
             <?php endforeach; ?>
           <?php else: ?>
-            <div class="dropdown-item text-muted">No hay mensajes recientes.</div>
+            <div class="dropdown-item text-muted">No hay mensajes sin leer.</div>
             <div class="dropdown-divider"></div>
           <?php endif; ?>
           <a href="index.php?r=bandeja-entrada&c=mensajes" class="dropdown-item dropdown-footer">Ver todos los mensajes</a>

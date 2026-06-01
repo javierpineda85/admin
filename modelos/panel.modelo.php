@@ -1,5 +1,6 @@
 <?php
 require_once('conexion.php');
+require_once('mensajes.modelo.php');
 
 class ModeloPanel
 {
@@ -275,8 +276,9 @@ class ModeloPanel
              INNER JOIN mensajes m ON m.idMensaje = mp.id_mensaje
              INNER JOIN usuarios u ON u.idUsuario = m.id_remitente
              WHERE mp.id_usuario = :idUsuario
-               AND mp.rolParticipante = "DESTINATARIO"
-               AND mp.eliminado = 0
+              AND mp.rolParticipante = "DESTINATARIO"
+              AND mp.leido = 0
+              AND mp.eliminado = 0
              ORDER BY mp.leido ASC, m.fechaMensaje DESC
              LIMIT ' . (int) $limite,
             [':idUsuario' => $idUsuario]
@@ -506,12 +508,7 @@ class ModeloPanel
     {
         $idUsuario = (int) $idUsuario;
         $rol = self::normalizarRol($rol);
-        $mensajes = self::contar(
-            'SELECT COUNT(*) AS total
-             FROM mensajes
-             WHERE id_destinatario = :idUsuario',
-            [':idUsuario' => $idUsuario]
-        );
+        $mensajes = ModeloMensajes::mdlContarMensajesNoLeidos($idUsuario);
 
         $notificaciones = 0;
         if ($rol === 'ADMINISTRADOR') {
