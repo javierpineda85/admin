@@ -29,6 +29,7 @@ $usuarioFormulario = $usuarioCompleto;
 $modoFormulario = 'editar';
 $mostrarBaja = ((int) ($usuarioCompleto['activo'] ?? 1) === 1);
 $verUltimaConexion = ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente();
+$imagenUsuario = ControladorUsuarios::rutaImagenUsuario($usuarioCompleto['imgUsuario'] ?? '', 'user2-160x160.jpg');
 $e = static function ($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
@@ -47,7 +48,7 @@ $e = static function ($valor) {
     <div class="profile-hero mb-4">
       <div class="profile-hero__content">
         <div class="profile-hero__avatar">
-          <img src="./img/<?php echo $e($usuarioCompleto['imgUsuario'] ?? 'user2-160x160.jpg'); ?>" alt="Foto de perfil">
+          <img src="./img/<?php echo $e($imagenUsuario); ?>" alt="Foto de perfil">
         </div>
         <div class="profile-hero__copy">
           <span class="profile-kicker">Detalle de usuario</span>

@@ -6,6 +6,7 @@ $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_
 $nombreCompleto = trim((string) (($perfilActual['nombreUsuario'] ?? '') . ' ' . ($perfilActual['apellidoUsuario'] ?? '')));
 $puedeCambiarClave = (int) ($_SESSION['usuario']['id'] ?? 0) > 0
   && (int) ($_SESSION['usuario']['id'] ?? 0) === (int) ($perfilActual['idUsuario'] ?? 0);
+$imagenPerfil = ControladorUsuarios::rutaImagenUsuario($perfilActual['imgUsuario'] ?? '', 'user2-160x160.jpg');
 $e = static function ($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
@@ -24,7 +25,7 @@ $e = static function ($valor) {
     <div class="profile-hero mb-4">
       <div class="profile-hero__content">
         <div class="profile-hero__avatar">
-          <img src="./img/<?php echo $e($perfilActual['imgUsuario'] ?? 'user2-160x160.jpg'); ?>" alt="Foto de perfil">
+          <img src="./img/<?php echo $e($imagenPerfil); ?>" alt="Foto de perfil">
         </div>
         <div class="profile-hero__copy">
           <span class="profile-kicker">Editar mi perfil</span>

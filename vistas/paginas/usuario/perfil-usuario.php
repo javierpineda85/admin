@@ -6,7 +6,7 @@ $usuario = array_merge($usuarioBase, $perfilBase);
 $relacionesAcademicas = $idUsuarioActual > 0 ? ControladorUsuarios::crtRelacionesAcademicas($idUsuarioActual) : [];
 $historialCambios = $idUsuarioActual > 0 ? ControladorUsuarios::crtHistorialUsuario($idUsuarioActual) : [];
 $nombreCompleto = trim((string) (($usuario['nombreUsuario'] ?? '') . ' ' . ($usuario['apellidoUsuario'] ?? '')));
-$imagenUsuario = !empty($usuario['imgUsuario']) ? $usuario['imgUsuario'] : 'user2-160x160.jpg';
+$imagenUsuario = ControladorUsuarios::rutaImagenUsuario($usuario['imgUsuario'] ?? '', 'user2-160x160.jpg');
 $estaActivo = (int) ($usuario['activo'] ?? 0) === 1;
 $verUltimaConexion = ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente();
 $e = static function ($valor) {

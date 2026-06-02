@@ -62,6 +62,52 @@ class ControladorUsuarios
         return ModeloUsuarios::mdlObtenerUsuarioCompleto((int) $idUsuario);
     }
 
+    public static function rutaImagenUsuario($rutaImagen, $fallback = 'user2-160x160.jpg')
+    {
+        $rutaImagen = trim((string) $rutaImagen);
+        $fallback = trim((string) $fallback) !== '' ? trim((string) $fallback) : 'user2-160x160.jpg';
+
+        $candidatos = [];
+        if ($rutaImagen !== '') {
+            $rutaLimpia = ltrim($rutaImagen, './');
+            $candidatos[] = $rutaLimpia;
+
+            if (str_starts_with($rutaLimpia, 'img/')) {
+                $candidatos[] = substr($rutaLimpia, 4);
+            }
+
+            if (!str_starts_with($rutaLimpia, 'usuarios/')) {
+                $candidatos[] = 'usuarios/' . basename($rutaLimpia);
+            }
+
+            $base = basename($rutaLimpia);
+            if ($base !== '') {
+                $candidatos[] = 'usuarios/' . $base;
+                $candidatos[] = $base;
+            }
+        }
+
+        $candidatos[] = $fallback;
+
+        foreach (array_unique($candidatos) as $candidato) {
+            $normalizado = ltrim((string) $candidato, './');
+            $rutaFisica = __DIR__ . '/../img/' . $normalizado;
+            if (is_file($rutaFisica)) {
+                return $normalizado;
+            }
+
+            $base = basename($normalizado);
+            if ($base !== '') {
+                $coincidencias = glob(__DIR__ . '/../img/usuarios/' . $base . '*') ?: [];
+                if (!empty($coincidencias)) {
+                    return 'usuarios/' . basename($coincidencias[0]);
+                }
+            }
+        }
+
+        return $fallback;
+    }
+
     public static function crtRelacionesAcademicas($idUsuario)
     {
         return ModeloUsuarios::mdlRelacionesAcademicas((int) $idUsuario);
