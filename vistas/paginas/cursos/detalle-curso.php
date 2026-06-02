@@ -2,19 +2,12 @@
 $idCurso = (int) ($_GET['idCurso'] ?? 0);
 $rolActual = ControladorPermisos::rolActual();
 $esAdmin = ControladorPermisos::esAdministrador();
+$esDocente = ControladorPermisos::esDocente();
+$idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 
 $db = new Conexion;
 $sql = "SELECT * FROM cursos WHERE idCurso = $idCurso";
 $curso = $db->consultas($sql);
-
-$db = new Conexion;
-$sql = "SELECT idSeccion, tituloSeccion, contenidoSeccion, id_curso, docente, tutor, cursos.nombreCurso, usuarios.nombreUsuario, usuarios.apellidoUsuario
-        FROM secciones
-        JOIN cursos ON secciones.id_curso = cursos.idCurso
-        JOIN usuarios ON secciones.docente = usuarios.idUsuario
-        WHERE secciones.id_curso = $idCurso
-        ORDER BY tituloSeccion ASC";
-$secciones = $db->consultas($sql);
 
 $db = new Conexion;
 $sql = "SELECT * FROM usuarios WHERE rol = 'ESTUDIANTE' ORDER BY apellidoUsuario ASC, nombreUsuario ASC";
@@ -24,8 +17,12 @@ $db = new Conexion;
 $sql = "SELECT * FROM asignacioncursos
         RIGHT JOIN usuarios ON asignacioncursos.id_estudiante = usuarios.idUsuario
         WHERE usuarios.rol = 'ESTUDIANTE'
-          AND asignacioncursos.id_seccion = $idCurso";
+        AND asignacioncursos.id_seccion = $idCurso";
 $cursantes = $db->consultas($sql);
+
+$secciones = $esDocente && !$esAdmin
+    ? ControladorCursos::crtSeccionesPorCursoParaDocente($idCurso, $idUsuarioActual)
+    : ControladorCursos::crtSeccionesPorCurso($idCurso);
 
 if (!$curso) {
     $curso = [[
@@ -253,18 +250,18 @@ if (ControladorPermisos::esEstudiante()) {
     <div class="card-body col-lg-12 col-md-12">
         <section class="content">
             <div class="row">
-                <div class="col-12 col-lg-6">
-                    <div class="card card-info">
-                        <div class="card-header">
-                            <h3 class="card-title">Inscribir estudiantes</h3>
-                            <div class="card-tools">
-                                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                    <i class="fas fa-minus"></i>
-                                </button>
+                <?php if ($esAdmin): ?>
+                    <div class="col-12 col-lg-6">
+                        <div class="card card-info">
+                            <div class="card-header">
+                                <h3 class="card-title">Inscribir estudiantes</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        <div class="card-body">
-                            <?php if ($esAdmin): ?>
+                            <div class="card-body">
                                 <form action="" method="POST">
                                     <table id="example1" class="table table-bordered table-striped table-sm">
                                         <thead>
@@ -292,16 +289,12 @@ if (ControladorPermisos::esEstudiante()) {
                                     }
                                     ?>
                                 </form>
-                            <?php else: ?>
-                                <div class="alert alert-warning mb-0">
-                                    Solo el administrador puede inscribir estudiantes desde este panel.
-                                </div>
-                            <?php endif; ?>
+                            </div>
                         </div>
                     </div>
-                </div>
+                <?php endif; ?>
 
-                <div class="col-12 col-lg-6">
+                <div class="col-12 <?php echo $esAdmin ? 'col-lg-6' : 'col-lg-12'; ?>">
                     <div class="card card-info">
                         <div class="card-header">
                             <h3 class="card-title">Estudiantes inscriptos al curso</h3>
@@ -318,6 +311,7 @@ if (ControladorPermisos::esEstudiante()) {
                                         <th style="text-align: center;">Apellido y Nombre</th>
                                         <th style="text-align: center;">DNI</th>
                                         <th style="text-align: center;">Email</th>
+                                        <th style="text-align: center;">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -326,6 +320,11 @@ if (ControladorPermisos::esEstudiante()) {
                                             <td><?php echo htmlspecialchars($valor['apellidoUsuario'] . ' ' . $valor['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?php echo htmlspecialchars((string) $valor['idUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?php echo htmlspecialchars($valor['email'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td class="text-center">
+                                                <a href="index.php?r=nuevo-mensaje&id_destinatario=<?php echo (int) $valor['idUsuario']; ?>" class="btn btn-primary btn-sm" title="Enviar mensaje">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                </a>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>

@@ -55,6 +55,28 @@ class ModeloCursos
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    static public function mdlCursosPorDocente($idDocente)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT DISTINCT c.*,
+                   DATE_FORMAT(c.fechaInicioCurso, '%d/%m/%Y') AS fInicio,
+                   DATE_FORMAT(c.fechaFinCurso, '%d/%m/%Y') AS fFin,
+                   COUNT(DISTINCT s.idSeccion) AS totalSecciones,
+                   COUNT(DISTINCT l.idLeccion) AS totalLecciones
+            FROM secciones s
+            INNER JOIN cursos c ON c.idCurso = s.id_curso
+            LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
+            WHERE s.docente = :idDocente
+               OR s.tutor = :idDocente
+            GROUP BY c.idCurso, c.nombreCurso, c.contenidoCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso
+            ORDER BY c.nombreCurso ASC
+        ");
+        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     static public function mdlEstudianteInscriptoCurso($idEstudiante, $idCurso)
     {
         $stmt = Conexion::conectar()->prepare("
@@ -90,6 +112,33 @@ class ModeloCursos
             ORDER BY s.tituloSeccion ASC
         ");
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    static public function mdlSeccionesPorCursoParaDocente($idCurso, $idDocente)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
+                   c.nombreCurso,
+                   u.nombreUsuario, u.apellidoUsuario,
+                   COUNT(DISTINCT l.idLeccion) AS totalLecciones,
+                   SUM(CASE WHEN l.tipoLeccion = 'TAREA' THEN 1 ELSE 0 END) AS totalTareas,
+                   SUM(CASE WHEN l.tipoLeccion = 'MATERIAL' THEN 1 ELSE 0 END) AS totalMateriales,
+                   SUM(CASE WHEN l.tipoLeccion = 'PREGUNTA' THEN 1 ELSE 0 END) AS totalPreguntas
+            FROM secciones s
+            INNER JOIN cursos c ON c.idCurso = s.id_curso
+            INNER JOIN usuarios u ON u.idUsuario = s.docente
+            LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
+            WHERE s.id_curso = :idCurso
+              AND (s.docente = :idDocente OR s.tutor = :idDocente)
+            GROUP BY s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
+                     c.nombreCurso, u.nombreUsuario, u.apellidoUsuario
+            ORDER BY s.tituloSeccion ASC
+        ");
+        $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

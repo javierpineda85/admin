@@ -2,6 +2,7 @@
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $tipoMensaje = trim((string) ($_GET['t'] ?? ''));
 $idMsj = (int) ($_GET['idMsj'] ?? 0);
+$idDestinatarioPreseleccionado = (int) ($_GET['id_destinatario'] ?? 0);
 $accion = ControladorMensajes::crtProcesarAccion();
 $usuarios = ControladorMensajes::crtDestinatariosPermitidos();
 $secciones = ControladorMensajes::crtSeccionesDisponibles();
@@ -19,6 +20,10 @@ if ($tipoMensaje === 'reply' && $idMsj > 0) {
     if (!empty($mensajeOriginal)) {
         $textoInicial = (string) ($mensajeOriginal['contenidoMensaje'] ?? '');
     }
+}
+
+if ($idDestinatarioPreseleccionado > 0) {
+    $destinatariosSeleccionados[] = $idDestinatarioPreseleccionado;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null && isset($_SESSION['success_message'])) {

@@ -20,13 +20,16 @@ class ModeloMaterias
     static public function mdlGuardarMateria($tabla, $datos)
     {
 
-        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla (tituloSeccion, contenidoSeccion, id_curso, docente, tutor) VALUES (:tituloSeccion, :contenidoSeccion, :id_curso, :docente, :tutor)");
+        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla (tituloSeccion, contenidoSeccion, id_curso, docente, tutor, bannerSeccion, colorInicioBanner, colorFinBanner) VALUES (:tituloSeccion, :contenidoSeccion, :id_curso, :docente, :tutor, :bannerSeccion, :colorInicioBanner, :colorFinBanner)");
 
         $registro->bindParam(":tituloSeccion", $datos["tituloSeccion"], PDO::PARAM_STR);
         $registro->bindParam(":contenidoSeccion", $datos["contenidoSeccion"], PDO::PARAM_STR);
         $registro->bindParam(":id_curso", $datos["id_curso"], PDO::PARAM_INT);
         $registro->bindParam(":docente", $datos["docente"], PDO::PARAM_INT);
         $registro->bindParam(":tutor", $datos["tutor"], PDO::PARAM_INT);
+        $registro->bindParam(":bannerSeccion", $datos["bannerSeccion"], PDO::PARAM_STR);
+        $registro->bindParam(":colorInicioBanner", $datos["colorInicioBanner"], PDO::PARAM_STR);
+        $registro->bindParam(":colorFinBanner", $datos["colorFinBanner"], PDO::PARAM_STR);
 
         if ($registro->execute()) {
             return "ok";
@@ -45,7 +48,10 @@ class ModeloMaterias
                 contenidoSeccion = :contenidoSeccion,
                 id_curso = :id_curso,
                 docente = :docente,
-                tutor = :tutor
+                tutor = :tutor,
+                bannerSeccion = :bannerSeccion,
+                colorInicioBanner = :colorInicioBanner,
+                colorFinBanner = :colorFinBanner
             WHERE idSeccion = :idSeccion
         ");
 
@@ -54,6 +60,9 @@ class ModeloMaterias
         $registro->bindParam(":id_curso", $datos["id_curso"], PDO::PARAM_INT);
         $registro->bindParam(":docente", $datos["docente"], PDO::PARAM_INT);
         $registro->bindParam(":tutor", $datos["tutor"], PDO::PARAM_INT);
+        $registro->bindParam(":bannerSeccion", $datos["bannerSeccion"], PDO::PARAM_STR);
+        $registro->bindParam(":colorInicioBanner", $datos["colorInicioBanner"], PDO::PARAM_STR);
+        $registro->bindParam(":colorFinBanner", $datos["colorFinBanner"], PDO::PARAM_STR);
         $registro->bindParam(":idSeccion", $datos["idSeccion"], PDO::PARAM_INT);
 
         if ($registro->execute()) {
@@ -78,5 +87,24 @@ class ModeloMaterias
             $stmt->closeCursor();
             $stmt = null;
         }
+    }
+
+    static public function mdlBuscarMateriasPorDocente($idDocente)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
+                   s.bannerSeccion, s.colorInicioBanner, s.colorFinBanner,
+                   c.nombreCurso, u.nombreUsuario, u.apellidoUsuario
+            FROM secciones s
+            INNER JOIN cursos c ON s.id_curso = c.idCurso
+            INNER JOIN usuarios u ON s.docente = u.idUsuario
+            WHERE s.docente = :idDocente
+               OR s.tutor = :idDocente
+            ORDER BY c.nombreCurso ASC, s.tituloSeccion ASC
+        ");
+        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

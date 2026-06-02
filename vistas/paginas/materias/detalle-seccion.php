@@ -9,7 +9,9 @@ if ($accion !== '') {
 
 $seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
 $lecciones = $idSeccion > 0 ? ControladorLecciones::crtBuscarLeccionesPorSeccion($idSeccion) : [];
-$puedeGestionar = ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente();
+$esAdmin = ControladorPermisos::esAdministrador();
+$esDocente = ControladorPermisos::esDocente();
+$puedeGestionar = $esAdmin || $esDocente;
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $resumen = $idSeccion > 0 ? ControladorLecciones::crtResumenSeccion($idSeccion) : [];
 $estudiantesCurso = $puedeGestionar && $seccion ? ControladorLecciones::crtBuscarEstudiantesCurso((int) $seccion['id_curso']) : [];
@@ -20,6 +22,14 @@ $seguimientoPersonal = ControladorPermisos::esEstudiante() && $idSeccion > 0 && 
 $misCalificaciones = ControladorPermisos::esEstudiante() && $idSeccion > 0 && $idUsuarioActual > 0
     ? ControladorCalificaciones::crtCalificacionesPorEstudiante($idSeccion, $idUsuarioActual)
     : [];
+$puedeAccederDocente = !$esDocente || $esAdmin || ($seccion && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual));
+$bannerSeccion = (string) ($seccion['bannerSeccion'] ?? '');
+$colorInicioBanner = (string) ($seccion['colorInicioBanner'] ?? '#0f172a');
+$colorFinBanner = (string) ($seccion['colorFinBanner'] ?? '#1d4ed8');
+$heroStyle = 'background: linear-gradient(135deg, ' . htmlspecialchars($colorInicioBanner, ENT_QUOTES, 'UTF-8') . ', ' . htmlspecialchars($colorFinBanner, ENT_QUOTES, 'UTF-8') . ');';
+if ($bannerSeccion !== '') {
+    $heroStyle = 'background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(29, 78, 216, 0.74)), url(\'img/' . htmlspecialchars($bannerSeccion, ENT_QUOTES, 'UTF-8') . '\'); background-size: cover; background-position: center;';
+}
 
 $buscarCalificacion = function (array $lista, int $idLeccion, int $idEstudiante): ?array {
     foreach ($lista as $item) {
@@ -30,6 +40,22 @@ $buscarCalificacion = function (array $lista, int $idLeccion, int $idEstudiante)
 
     return null;
 };
+
+if (ControladorPermisos::esDocente() && !$puedeAccederDocente) {
+    ?>
+    <section class="content page-fade">
+      <div class="container-fluid">
+        <div class="empty-state">
+          <i class="fas fa-lock"></i>
+          <h4>No tenés acceso a esta materia</h4>
+          <p class="mb-3">Solo podés administrar materias donde figurás como docente o tutor.</p>
+          <a href="index.php?r=listado-materias" class="btn btn-primary">Volver a mis materias</a>
+        </div>
+      </div>
+    </section>
+    <?php
+    return;
+}
 
 if (!$seccion) {
     $seccion = [
@@ -76,7 +102,7 @@ if (ControladorPermisos::esEstudiante()) {
             <a href="index.php?r=listado-cursos" class="btn btn-primary">Volver a mis cursos</a>
           </div>
         <?php else: ?>
-          <div class="student-course-hero student-course-hero--subject mb-3">
+          <div class="student-course-hero student-course-hero--subject mb-3" style="<?php echo $heroStyle; ?>">
             <div class="student-course-hero__content">
               <span class="entity-kicker mb-3"><?php echo $e($seccion['nombreCurso'] ?? 'Curso'); ?></span>
               <h1><?php echo $e($seccion['tituloSeccion'] ?? 'Materia'); ?></h1>
@@ -128,6 +154,7 @@ if (ControladorPermisos::esEstudiante()) {
                       </div>
                     </a>
                   <?php endforeach; ?>
+                  </div>
                 </div>
               </div>
             </div>
@@ -149,6 +176,9 @@ if (ControladorPermisos::esEstudiante()) {
                     $posts = $tipoLeccion === 'PREGUNTA' ? ControladorLecciones::crtBuscarPostsPorLeccion((int) $leccion['idLeccion']) : [];
                     $entrega = $tipoLeccion === 'TAREA'
                         ? ControladorLecciones::crtBuscarEntregaPorLeccionEstudiante((int) $leccion['idLeccion'], $idUsuarioActual)
+                        : null;
+                    $notaEntrega = $tipoLeccion === 'TAREA'
+                        ? $buscarCalificacion($calificacionesSeccion, (int) $leccion['idLeccion'], $idUsuarioActual)
                         : null;
                     $collapseId = 'leccion-estudiante-' . (int) $leccion['idLeccion'];
                   ?>
@@ -192,26 +222,60 @@ if (ControladorPermisos::esEstudiante()) {
                         <?php if ($tipoLeccion === 'TAREA'): ?>
                           <?php if ($entrega): ?>
                             <div class="alert alert-success border-0">
-                              Entregaste esta tarea. <a href="<?php echo $e($entrega['urlArchivo'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">Ver archivo</a>
+                              <div class="d-flex justify-content-between align-items-start flex-wrap">
+                                <div>
+                                  <strong>Entregaste esta tarea.</strong>
+                                  <div class="small mt-1">
+                                    <a href="<?php echo $e($entrega['urlArchivo'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">Ver archivo</a>
+                                    <?php if (!empty($entrega['comentarioEntrega'])): ?>
+                                      · <?php echo $e($entrega['comentarioEntrega']); ?>
+                                    <?php endif; ?>
+                                  </div>
+                                </div>
+                                <?php if ($notaEntrega): ?>
+                                  <span class="badge badge-primary">Nota: <?php echo (int) ($notaEntrega['calificacion'] ?? 0); ?></span>
+                                <?php endif; ?>
+                              </div>
+                              <?php if (!empty($notaEntrega['devolucion'] ?? '')): ?>
+                                <hr class="my-2">
+                                <div class="small">
+                                  <strong>Devolución:</strong> <?php echo $e($notaEntrega['devolucion']); ?>
+                                </div>
+                              <?php endif; ?>
                             </div>
                           <?php endif; ?>
-                          <form method="post" enctype="multipart/form-data" class="row">
-                            <input type="hidden" name="accion" value="entregar_tarea">
-                            <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                            <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
-                            <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                            <div class="form-group col-md-5">
-                              <label class="small text-muted">Archivo</label>
-                              <input type="file" name="archivoEntrega" class="form-control form-control-sm" required>
+                          <?php if (!$notaEntrega): ?>
+                            <form method="post" enctype="multipart/form-data" class="row">
+                              <input type="hidden" name="accion" value="entregar_tarea">
+                              <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                              <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
+                              <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
+                              <div class="form-group col-md-5">
+                                <label class="small text-muted">Archivo</label>
+                                <input type="file" name="archivoEntrega" class="form-control form-control-sm">
+                              </div>
+                              <div class="form-group col-md-7">
+                                <label class="small text-muted">Comentario</label>
+                                <input type="text" name="comentarioEntrega" class="form-control form-control-sm" placeholder="Opcional" value="<?php echo $e((string) ($entrega['comentarioEntrega'] ?? '')); ?>">
+                              </div>
+                              <div class="form-group col-12 mb-0 text-right">
+                                <button type="submit" class="btn btn-primary btn-sm"><?php echo $entrega ? 'Actualizar entrega' : 'Enviar entrega'; ?></button>
+                              </div>
+                            </form>
+                          <?php else: ?>
+                            <div class="alert alert-light border mt-3 mb-0">
+                              Esta entrega ya fue calificada, por eso queda bloqueada para cambios.
                             </div>
-                            <div class="form-group col-md-7">
-                              <label class="small text-muted">Comentario</label>
-                              <input type="text" name="comentarioEntrega" class="form-control form-control-sm" placeholder="Opcional">
-                            </div>
-                            <div class="form-group col-12 mb-0 text-right">
-                              <button type="submit" class="btn btn-primary btn-sm">Enviar entrega</button>
-                            </div>
-                          </form>
+                          <?php endif; ?>
+                          <?php if ($entrega && empty($notaEntrega)): ?>
+                            <form method="post" class="text-right mt-2">
+                              <input type="hidden" name="accion" value="cancelar_entrega">
+                              <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                              <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
+                              <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
+                              <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Cancelar la entrega?');">Cancelar entrega</button>
+                            </form>
+                          <?php endif; ?>
                         <?php endif; ?>
 
                         <?php if ($tipoLeccion === 'PREGUNTA'): ?>
@@ -260,20 +324,9 @@ if (ControladorPermisos::esEstudiante()) {
               </div>
 
               <div class="people-panel mt-3">
-                <h3>Mis calificaciones</h3>
-                <?php if (empty($misCalificaciones)): ?>
-                  <p class="text-muted mb-0">Todavía no tenés notas cargadas.</p>
-                <?php else: ?>
-                  <?php foreach ($misCalificaciones as $calificacion): ?>
-                    <div class="people-row">
-                      <div class="classroom-avatar"><i class="fas fa-star"></i></div>
-                      <div>
-                        <strong><?php echo $e($calificacion['nombreLeccion'] ?? 'Actividad'); ?></strong>
-                        <small><?php echo (int) ($calificacion['calificacion'] ?? 0); ?> puntos</small>
-                      </div>
-                    </div>
-                  <?php endforeach; ?>
-                <?php endif; ?>
+                <h3>Calificaciones</h3>
+                <p class="text-muted mb-2">Podés ver el detalle completo de tus notas y devoluciones en una vista aparte.</p>
+                <a href="index.php?r=calificaciones-seccion&idSeccion=<?php echo (int) $idSeccion; ?>" class="btn btn-outline-primary btn-sm">Ver calificaciones</a>
               </div>
             </div>
           </div>
@@ -295,7 +348,7 @@ if (ControladorPermisos::esEstudiante()) {
 
 <section class="content page-fade">
   <div class="container-fluid">
-    <div class="entity-hero mb-4">
+    <div class="entity-hero mb-4" style="<?php echo $heroStyle; ?>">
       <div class="entity-hero__content">
         <span class="entity-kicker mb-3">Secciones</span>
         <h1 class="entity-title mb-2"><?php echo htmlspecialchars($seccion['tituloSeccion'], ENT_QUOTES, 'UTF-8'); ?></h1>
@@ -382,13 +435,19 @@ if (ControladorPermisos::esEstudiante()) {
                     ? ControladorLecciones::crtBuscarEntregaPorLeccionEstudiante((int) $leccion['idLeccion'], $idUsuarioActual)
                     : null;
               ?>
+              <?php $collapseIdDocente = 'leccion-docente-' . (int) $leccion['idLeccion']; ?>
               <div class="card card-light shadow-none border mb-3">
                 <div class="card-header bg-white border-bottom-0 pb-0">
                   <div class="d-flex align-items-center justify-content-between flex-wrap">
                     <h4 class="card-title mb-0">
                       <?php echo htmlspecialchars($leccion['nombreLeccion'], ENT_QUOTES, 'UTF-8'); ?>
                     </h4>
-                    <span class="badge badge-primary"><?php echo htmlspecialchars($tipoLeccion, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <div class="d-flex align-items-center">
+                      <span class="badge badge-primary mr-2"><?php echo htmlspecialchars($tipoLeccion, ENT_QUOTES, 'UTF-8'); ?></span>
+                      <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#<?php echo $collapseIdDocente; ?>" aria-expanded="true">
+                        <i class="fas fa-chevron-down"></i>
+                      </button>
+                    </div>
                   </div>
                   <small class="text-muted">
                     <?php echo (int) $leccion['totalRecursos']; ?> recursos ·
@@ -396,7 +455,8 @@ if (ControladorPermisos::esEstudiante()) {
                     <?php echo (int) $leccion['totalPosts']; ?> mensajes
                   </small>
                 </div>
-                <div class="card-body pt-3">
+                <div id="<?php echo $collapseIdDocente; ?>" class="collapse show">
+                  <div class="card-body pt-3">
                   <p class="text-muted mb-3">
                     <?php echo nl2br(htmlspecialchars((string) $leccion['contenidoLeccion'], ENT_QUOTES, 'UTF-8')); ?>
                   </p>
@@ -587,13 +647,15 @@ if (ControladorPermisos::esEstudiante()) {
                                     <a href="<?php echo htmlspecialchars($entregaDoc['urlArchivo'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Abrir archivo</a>
                                   </td>
                                   <td>
-                                    <form method="post" class="form-inline">
+                                    <form method="post" class="form-inline grade-form">
                                       <input type="hidden" name="accion" value="guardar_calificacion">
                                       <input type="hidden" name="id_estudiante" value="<?php echo (int) $entregaDoc['id_estudiante']; ?>">
                                       <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
                                       <input type="hidden" name="id_modulo" value="<?php echo (int) $leccion['idLeccion']; ?>">
                                       <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                                      <input type="number" name="calificacion" class="form-control form-control-sm mr-2" min="0" max="100" value="<?php echo (int) ($notaActual['calificacion'] ?? 0); ?>">
+                                      <input type="number" name="calificacion" class="form-control form-control-sm mr-2 grade-input" min="0" max="100" value="<?php echo (int) ($notaActual['calificacion'] ?? 0); ?>" readonly>
+                                      <button type="button" class="btn btn-outline-secondary btn-sm mr-2 grade-toggle">Editar nota</button>
+                                      <input type="text" name="devolucion" class="form-control form-control-sm mr-2" placeholder="Devolución" value="<?php echo htmlspecialchars((string) ($notaActual['devolucion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                                       <button type="submit" class="btn btn-success btn-sm">Guardar</button>
                                     </form>
                                   </td>
@@ -653,7 +715,7 @@ if (ControladorPermisos::esEstudiante()) {
 
       <div class="col-12 col-lg-4">
         <div class="card card-outline card-success shadow-sm">
-          <div class="card-header">
+          <div class="card-header section-header-soft">
             <h3 class="card-title">Detalle de la seccion</h3>
           </div>
           <div class="card-body">
@@ -674,7 +736,7 @@ if (ControladorPermisos::esEstudiante()) {
 
         <?php if ($puedeGestionar): ?>
           <div class="card card-outline card-primary shadow-sm">
-            <div class="card-header">
+            <div class="card-header section-header-soft">
               <h3 class="card-title">Crear leccion</h3>
             </div>
             <div class="card-body">
@@ -697,6 +759,29 @@ if (ControladorPermisos::esEstudiante()) {
                   <label class="small text-muted">Contenido</label>
                   <textarea name="contenidoLeccion" rows="5" class="form-control form-control-sm" placeholder="Resumen, instrucciones o consigna..."></textarea>
                 </div>
+                <div class="border rounded p-3 mb-3 bg-light">
+                  <div class="text-uppercase text-muted small mb-3">Recurso inicial opcional</div>
+                  <div class="form-group">
+                    <label class="small text-muted">Título del recurso</label>
+                    <input type="text" name="tituloRecursoInicial" class="form-control form-control-sm" placeholder="Ej. Apunte de la clase">
+                  </div>
+                  <div class="form-group">
+                    <label class="small text-muted">Tipo</label>
+                    <select name="tipoRecursoInicial" class="form-control form-control-sm">
+                      <option value="">Sin recurso</option>
+                      <option value="ARCHIVO">Archivo adjunto</option>
+                      <option value="ENLACE">Enlace externo</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="small text-muted">Archivo adjunto</label>
+                    <input type="file" name="archivoRecursoInicial" class="form-control form-control-sm">
+                  </div>
+                  <div class="form-group mb-0">
+                    <label class="small text-muted">URL del recurso</label>
+                    <input type="text" name="urlRecursoInicial" class="form-control form-control-sm" placeholder="https://...">
+                  </div>
+                </div>
                 <button type="submit" class="btn btn-primary btn-block btn-sm">
                   <i class="fas fa-plus mr-1"></i>Crear leccion
                 </button>
@@ -707,7 +792,7 @@ if (ControladorPermisos::esEstudiante()) {
 
         <?php if (ControladorPermisos::esEstudiante()): ?>
           <div class="card card-outline card-warning shadow-sm">
-            <div class="card-header">
+            <div class="card-header section-header-soft">
               <h3 class="card-title">Mi seguimiento</h3>
             </div>
             <div class="card-body">
@@ -725,7 +810,7 @@ if (ControladorPermisos::esEstudiante()) {
           </div>
 
           <div class="card card-outline card-info shadow-sm">
-            <div class="card-header">
+            <div class="card-header section-header-soft">
               <h3 class="card-title">Mis calificaciones</h3>
             </div>
             <div class="card-body">
@@ -760,7 +845,7 @@ if (ControladorPermisos::esEstudiante()) {
 
         <?php if ($puedeGestionar): ?>
           <div class="card card-outline card-info shadow-sm">
-            <div class="card-header">
+            <div class="card-header section-header-soft">
               <h3 class="card-title">Seguimiento docente</h3>
             </div>
             <div class="card-body">
@@ -820,3 +905,18 @@ if (ControladorPermisos::esEstudiante()) {
     }, 600);
   </script>
 <?php endif; ?>
+
+<script>
+  document.querySelectorAll('.grade-form').forEach(function (form) {
+    var toggle = form.querySelector('.grade-toggle');
+    var input = form.querySelector('.grade-input');
+    if (!toggle || !input) {
+      return;
+    }
+    toggle.addEventListener('click', function () {
+      input.removeAttribute('readonly');
+      input.focus();
+      input.select();
+    });
+  });
+</script>

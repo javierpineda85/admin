@@ -18,6 +18,11 @@ class ControladorCursos
         return ModeloCursos::mdlCursosPorEstudiante((int) $idEstudiante);
     }
 
+    static public function crtCursosPorDocente($idDocente)
+    {
+        return ModeloCursos::mdlCursosPorDocente((int) $idDocente);
+    }
+
     static public function crtEstudianteInscriptoCurso($idEstudiante, $idCurso)
     {
         return ModeloCursos::mdlEstudianteInscriptoCurso((int) $idEstudiante, (int) $idCurso);
@@ -26,6 +31,11 @@ class ControladorCursos
     static public function crtSeccionesPorCurso($idCurso)
     {
         return ModeloCursos::mdlSeccionesPorCurso((int) $idCurso);
+    }
+
+    static public function crtSeccionesPorCursoParaDocente($idCurso, $idDocente)
+    {
+        return ModeloCursos::mdlSeccionesPorCursoParaDocente((int) $idCurso, (int) $idDocente);
     }
 
     /*GUARDAR CURSO */

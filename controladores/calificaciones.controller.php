@@ -36,6 +36,7 @@ class ControladorCalificaciones
             'id_modulo' => (int) $_POST['id_modulo'],
             'id_curso' => (int) $_POST['id_curso'],
             'calificacion' => $calificacion,
+            'devolucion' => trim((string) ($_POST['devolucion'] ?? '')),
         ]);
 
         if ($respuesta === 'ok') {
@@ -55,5 +56,15 @@ class ControladorCalificaciones
     public static function crtCalificacionesPorEstudiante($idSeccion, $idEstudiante)
     {
         return ModeloCalificaciones::mdlCalificacionesPorEstudiante($idSeccion, $idEstudiante);
+    }
+
+    public static function crtCalificacionPorLeccionYEstudiante($idSeccion, $idLeccion, $idEstudiante)
+    {
+        return ModeloCalificaciones::mdlCalificacionPorLeccionYEstudiante($idSeccion, $idLeccion, $idEstudiante);
+    }
+
+    public static function crtCalificacionesPorSeccionYEstudiante($idSeccion, $idEstudiante)
+    {
+        return ModeloCalificaciones::mdlCalificacionPorSeccionYEstudiante($idSeccion, $idEstudiante);
     }
 }

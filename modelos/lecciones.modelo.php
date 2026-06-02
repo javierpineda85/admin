@@ -6,7 +6,7 @@ class ModeloLecciones
     public static function mdlBuscarSeccionPorId($idSeccion)
     {
         $stmt = Conexion::conectar()->prepare(
-            'SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
+            'SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.bannerSeccion, s.colorInicioBanner, s.colorFinBanner, s.id_curso, s.docente, s.tutor,
                     c.nombreCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso,
                     u.nombreUsuario, u.apellidoUsuario
              FROM secciones s
@@ -18,6 +18,20 @@ class ModeloLecciones
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public static function mdlSeccionAsignadaDocente($idSeccion, $idDocente)
+    {
+        $stmt = Conexion::conectar()->prepare(
+            'SELECT COUNT(*) AS total
+             FROM secciones
+             WHERE idSeccion = :idSeccion
+               AND (docente = :idDocente OR tutor = :idDocente)'
+        );
+        $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->execute();
+        return (int) (($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0)) > 0;
     }
 
     public static function mdlBuscarLeccionPorId($idLeccion)

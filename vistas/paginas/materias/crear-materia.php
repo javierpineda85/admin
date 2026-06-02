@@ -29,7 +29,7 @@ $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_
         <h3 class="card-title mb-0">Datos de la sección</h3>
       </div>
       <div class="card-body">
-        <form action="" method="POST">
+        <form action="" method="POST" enctype="multipart/form-data">
           <div class="row">
             <div class="col-12">
               <div class="form-group">
@@ -72,6 +72,25 @@ $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_
                     <option value="<?php echo (int) $usuario['idUsuario']; ?>"><?php echo htmlspecialchars($usuario['nombreUsuario'] . ' ' . $usuario['apellidoUsuario'], ENT_QUOTES, 'UTF-8'); ?></option>
                   <?php endforeach; ?>
                 </select>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-group">
+                <label>Banner de la sección</label>
+                <input type="file" class="form-control-file" name="bannerSeccion" accept="image/*">
+                <small class="text-muted d-block mt-1">Si no cargás una imagen, se usará un degradado por defecto.</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Color inicio del degradado</label>
+                <input type="color" class="form-control" name="colorInicioBanner" value="#0f172a">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Color fin del degradado</label>
+                <input type="color" class="form-control" name="colorFinBanner" value="#1d4ed8">
               </div>
             </div>
           </div>

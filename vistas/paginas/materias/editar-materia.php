@@ -9,6 +9,9 @@ $materia = $materia[0] ?? [
     'id_curso' => '',
     'docente' => '',
     'tutor' => '',
+    'bannerSeccion' => '',
+    'colorInicioBanner' => '#0f172a',
+    'colorFinBanner' => '#1d4ed8',
 ];
 $db = new Conexion;
 $cursos = $db->consultas("SELECT * FROM cursos ORDER BY nombreCurso ASC");
@@ -40,7 +43,7 @@ $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_
         <h3 class="card-title mb-0"><?php echo htmlspecialchars($materia['tituloSeccion'], ENT_QUOTES, 'UTF-8'); ?></h3>
       </div>
       <div class="card-body">
-        <form action="" method="POST">
+        <form action="" method="POST" enctype="multipart/form-data">
           <input type="hidden" name="idSeccion" value="<?php echo (int) $materia['idSeccion']; ?>">
           <div class="row">
             <div class="col-12">
@@ -90,6 +93,27 @@ $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_
                     </option>
                   <?php endforeach; ?>
                 </select>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-group">
+                <label>Banner de la sección</label>
+                <input type="file" class="form-control-file" name="bannerSeccion" accept="image/*">
+                <?php if (!empty($materia['bannerSeccion'])): ?>
+                  <small class="text-muted d-block mt-1">Banner actual: <?php echo htmlspecialchars((string) $materia['bannerSeccion'], ENT_QUOTES, 'UTF-8'); ?></small>
+                <?php endif; ?>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Color inicio del degradado</label>
+                <input type="color" class="form-control" name="colorInicioBanner" value="<?php echo htmlspecialchars((string) $materia['colorInicioBanner'], ENT_QUOTES, 'UTF-8'); ?>">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Color fin del degradado</label>
+                <input type="color" class="form-control" name="colorFinBanner" value="<?php echo htmlspecialchars((string) $materia['colorFinBanner'], ENT_QUOTES, 'UTF-8'); ?>">
               </div>
             </div>
           </div>

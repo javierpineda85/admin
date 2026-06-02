@@ -3,9 +3,28 @@ require_once('modelos/lecciones.modelo.php');
 
 class ControladorLecciones
 {
+    private static function puedeGestionarSeccion($idSeccion)
+    {
+        if (ControladorPermisos::esAdministrador()) {
+            return true;
+        }
+
+        if (!ControladorPermisos::esDocente()) {
+            return false;
+        }
+
+        $idDocente = (int) ($_SESSION['usuario']['id'] ?? 0);
+        return self::crtSeccionAsignadaDocente((int) $idSeccion, $idDocente);
+    }
+
     public static function crtBuscarSeccionPorId($idSeccion)
     {
         return ModeloLecciones::mdlBuscarSeccionPorId($idSeccion);
+    }
+
+    public static function crtSeccionAsignadaDocente($idSeccion, $idDocente)
+    {
+        return ModeloLecciones::mdlSeccionAsignadaDocente((int) $idSeccion, (int) $idDocente);
     }
 
     public static function crtBuscarLeccionesPorSeccion($idSeccion)
@@ -83,6 +102,8 @@ class ControladorLecciones
                 return self::crtGuardarPostLeccion();
             case 'entregar_tarea':
                 return self::crtGuardarEntregaLeccion();
+            case 'cancelar_entrega':
+                return self::crtCancelarEntregaLeccion();
         }
 
         return null;
@@ -114,6 +135,11 @@ class ControladorLecciones
             return 'error';
         }
 
+        if (!self::puedeGestionarSeccion($idModulo)) {
+            $_SESSION['error_message'] = 'No podes editar una materia donde no estas asignado.';
+            return 'denied';
+        }
+
         $respuesta = ModeloLecciones::mdlGuardarLeccion('lecciones', [
             'nombreLeccion' => $nombreLeccion,
             'tipoLeccion' => $tipoLeccion,
@@ -122,6 +148,13 @@ class ControladorLecciones
         ]);
 
         if ($respuesta === 'ok') {
+            $idLeccionNueva = (int) Conexion::conectar()->lastInsertId();
+            $recursoInicial = self::procesarRecursoInicial($idLeccionNueva);
+            if ($recursoInicial === false) {
+                ModeloLecciones::mdlEliminarLeccion($idLeccionNueva);
+                $_SESSION['error_message'] = 'No se pudo guardar el recurso inicial.';
+                return 'error';
+            }
             $_SESSION['success_message'] = 'Leccion creada correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudo crear la leccion.';
@@ -145,8 +178,9 @@ class ControladorLecciones
         $nombreLeccion = trim((string) $_POST['nombreLeccion']);
         $contenidoLeccion = trim((string) ($_POST['contenidoLeccion'] ?? ''));
         $tipoLeccion = strtoupper(trim((string) $_POST['tipoLeccion']));
+        $leccion = self::crtBuscarLeccionPorId($idLeccion);
 
-        if ($idLeccion <= 0 || $nombreLeccion === '') {
+        if ($idLeccion <= 0 || $nombreLeccion === '' || !$leccion) {
             $_SESSION['error_message'] = 'No se pudo actualizar la leccion.';
             return 'error';
         }
@@ -154,6 +188,11 @@ class ControladorLecciones
         if (!in_array($tipoLeccion, ['MATERIAL', 'TAREA', 'PREGUNTA'], true)) {
             $_SESSION['error_message'] = 'El tipo de leccion no es valido.';
             return 'error';
+        }
+
+        if (!self::puedeGestionarSeccion((int) ($leccion['id_modulo'] ?? 0))) {
+            $_SESSION['error_message'] = 'No podes editar una materia donde no estas asignado.';
+            return 'denied';
         }
 
         $respuesta = ModeloLecciones::mdlActualizarLeccion('lecciones', [
@@ -189,6 +228,11 @@ class ControladorLecciones
         if (!$leccion) {
             $_SESSION['error_message'] = 'La leccion no existe.';
             return 'error';
+        }
+
+        if (!self::puedeGestionarSeccion((int) ($leccion['id_modulo'] ?? 0))) {
+            $_SESSION['error_message'] = 'No podes editar una materia donde no estas asignado.';
+            return 'denied';
         }
 
         $recursos = self::crtBuscarRecursosPorLeccion($idLeccion);
@@ -228,10 +272,16 @@ class ControladorLecciones
         $tipoRecurso = strtoupper(trim((string) $_POST['tipoRecurso']));
         $tituloRecurso = trim((string) $_POST['tituloRecurso']);
         $creadoPor = (int) ($_SESSION['usuario']['id'] ?? 0);
+        $leccion = self::crtBuscarLeccionPorId($idLeccion);
 
-        if ($idLeccion <= 0 || $tituloRecurso === '') {
+        if ($idLeccion <= 0 || $tituloRecurso === '' || !$leccion) {
             $_SESSION['error_message'] = 'Completa el titulo del recurso.';
             return 'error';
+        }
+
+        if (!self::puedeGestionarSeccion((int) ($leccion['id_modulo'] ?? 0))) {
+            $_SESSION['error_message'] = 'No podes editar una materia donde no estas asignado.';
+            return 'denied';
         }
 
         if (!in_array($tipoRecurso, ['ARCHIVO', 'ENLACE'], true)) {
@@ -304,10 +354,16 @@ class ControladorLecciones
         $tipoRecurso = strtoupper(trim((string) $_POST['tipoRecurso']));
         $tituloRecurso = trim((string) $_POST['tituloRecurso']);
         $recurso = self::crtBuscarRecursoPorId($idRecurso);
+        $leccion = self::crtBuscarLeccionPorId($idLeccion);
 
-        if (!$recurso || $idLeccion <= 0 || $tituloRecurso === '') {
+        if (!$recurso || $idLeccion <= 0 || $tituloRecurso === '' || !$leccion) {
             $_SESSION['error_message'] = 'No se pudo actualizar el recurso.';
             return 'error';
+        }
+
+        if (!self::puedeGestionarSeccion((int) ($leccion['id_modulo'] ?? 0))) {
+            $_SESSION['error_message'] = 'No podes editar una materia donde no estas asignado.';
+            return 'denied';
         }
 
         if (!in_array($tipoRecurso, ['ARCHIVO', 'ENLACE'], true)) {
@@ -358,10 +414,16 @@ class ControladorLecciones
 
         $idRecurso = (int) $_POST['idRecursoLeccion'];
         $recurso = self::crtBuscarRecursoPorId($idRecurso);
+        $leccion = $recurso ? self::crtBuscarLeccionPorId((int) ($recurso['id_leccion'] ?? 0)) : null;
 
-        if (!$recurso) {
+        if (!$recurso || !$leccion) {
             $_SESSION['error_message'] = 'El recurso no existe.';
             return 'error';
+        }
+
+        if (!self::puedeGestionarSeccion((int) ($leccion['id_modulo'] ?? 0))) {
+            $_SESSION['error_message'] = 'No podes editar una materia donde no estas asignado.';
+            return 'denied';
         }
 
         self::eliminarArchivoLocal((string) $recurso['urlRecurso']);
@@ -445,14 +507,24 @@ class ControladorLecciones
             return 'error';
         }
 
-        if (empty($_FILES['archivoEntrega']['name']) || ($_FILES['archivoEntrega']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            $_SESSION['error_message'] = 'Subi un archivo valido para entregar la tarea.';
-            return 'error';
+        $entregaAnterior = self::crtBuscarEntregaPorLeccionEstudiante((int) $_POST['id_leccion'], $idEstudiante);
+        $urlArchivo = (string) ($entregaAnterior['urlArchivo'] ?? '');
+
+        if (!empty($_FILES['archivoEntrega']['name']) && ($_FILES['archivoEntrega']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $nuevoArchivo = self::subirArchivo($_FILES['archivoEntrega']);
+            if ($nuevoArchivo === '') {
+                $_SESSION['error_message'] = 'No se pudo guardar la entrega.';
+                return 'error';
+            }
+
+            if ($urlArchivo !== '') {
+                self::eliminarArchivoLocal($urlArchivo);
+            }
+            $urlArchivo = $nuevoArchivo;
         }
 
-        $urlArchivo = self::subirArchivo($_FILES['archivoEntrega']);
         if ($urlArchivo === '') {
-            $_SESSION['error_message'] = 'No se pudo guardar la entrega.';
+            $_SESSION['error_message'] = 'Subi un archivo valido para entregar la tarea.';
             return 'error';
         }
 
@@ -471,6 +543,45 @@ class ControladorLecciones
             $_SESSION['success_message'] = 'Entrega enviada correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudo registrar la entrega.';
+        }
+
+        return $respuesta;
+    }
+
+    public static function crtCancelarEntregaLeccion()
+    {
+        if (!isset($_POST['id_leccion'], $_POST['id_seccion'], $_POST['id_curso'])) {
+            return null;
+        }
+
+        if (!ControladorPermisos::esEstudiante()) {
+            $_SESSION['error_message'] = 'Solo los estudiantes pueden cancelar entregas.';
+            return 'denied';
+        }
+
+        $idEstudiante = (int) ($_SESSION['usuario']['id'] ?? 0);
+        $idLeccion = (int) $_POST['id_leccion'];
+        $idSeccion = (int) $_POST['id_seccion'];
+
+        $calificacion = ControladorCalificaciones::crtCalificacionPorLeccionYEstudiante($idSeccion, $idLeccion, $idEstudiante);
+        if (!empty($calificacion)) {
+            $_SESSION['error_message'] = 'No podes cancelar una entrega que ya tiene nota.';
+            return 'denied';
+        }
+
+        $entrega = self::crtBuscarEntregaPorLeccionEstudiante($idLeccion, $idEstudiante);
+        if (!$entrega) {
+            $_SESSION['error_message'] = 'No encontramos una entrega para cancelar.';
+            return 'error';
+        }
+
+        self::eliminarArchivoLocal((string) ($entrega['urlArchivo'] ?? ''));
+        $respuesta = ModeloLecciones::mdlEliminarEntregaLeccion((int) $entrega['idEntregaLeccion']);
+
+        if ($respuesta === 'ok') {
+            $_SESSION['success_message'] = 'Entrega cancelada correctamente.';
+        } else {
+            $_SESSION['error_message'] = 'No se pudo cancelar la entrega.';
         }
 
         return $respuesta;
@@ -500,6 +611,52 @@ class ControladorLecciones
         }
 
         return 'uploads/lecciones/' . $nombreSeguro;
+    }
+
+    private static function procesarRecursoInicial($idLeccion)
+    {
+        $titulo = trim((string) ($_POST['tituloRecursoInicial'] ?? ''));
+        $tipo = strtoupper(trim((string) ($_POST['tipoRecursoInicial'] ?? '')));
+        $tieneArchivo = !empty($_FILES['archivoRecursoInicial']['name']);
+        $tieneUrl = trim((string) ($_POST['urlRecursoInicial'] ?? '')) !== '';
+
+        if ($titulo === '' && !$tieneArchivo && !$tieneUrl) {
+            return [];
+        }
+
+        if ($titulo === '' || !in_array($tipo, ['ARCHIVO', 'ENLACE'], true)) {
+            return false;
+        }
+
+        if ($tipo === 'ARCHIVO') {
+            if (!$tieneArchivo || ($_FILES['archivoRecursoInicial']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                return false;
+            }
+
+            $urlRecurso = self::subirArchivo($_FILES['archivoRecursoInicial']);
+            if ($urlRecurso === '') {
+                return false;
+            }
+        } else {
+            $urlRecurso = trim((string) ($_POST['urlRecursoInicial'] ?? ''));
+            if ($urlRecurso === '') {
+                return false;
+            }
+            if (!filter_var($urlRecurso, FILTER_VALIDATE_URL)) {
+                $urlRecurso = 'https://' . ltrim($urlRecurso, '/');
+            }
+            if (!filter_var($urlRecurso, FILTER_VALIDATE_URL)) {
+                return false;
+            }
+        }
+
+        return ModeloLecciones::mdlGuardarRecursoLeccion('recursoslecciones', [
+            'id_leccion' => (int) $idLeccion,
+            'tipoRecurso' => $tipo,
+            'tituloRecurso' => $titulo,
+            'urlRecurso' => $urlRecurso,
+            'creadoPor' => (int) ($_SESSION['usuario']['id'] ?? 0),
+        ]);
     }
 
     private static function eliminarArchivoLocal($ruta)

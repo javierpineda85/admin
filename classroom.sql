@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS `calificaciones` (
   `id_modulo` int NOT NULL,
   `id_curso` int NOT NULL,
   `calificacion` int NOT NULL,
+  `devolucion` text,
   PRIMARY KEY (`idCalificacion`),
   UNIQUE KEY `uq_calificacion` (`id_estudiante`,`id_seccion`,`id_modulo`),
   KEY `id_estudiante` (`id_estudiante`,`id_seccion`,`id_modulo`,`id_curso`)
@@ -261,6 +262,9 @@ CREATE TABLE IF NOT EXISTS `secciones` (
   `id_curso` int NOT NULL,
   `docente` int NOT NULL,
   `tutor` int DEFAULT NULL,
+  `bannerSeccion` varchar(255) DEFAULT NULL,
+  `colorInicioBanner` varchar(20) DEFAULT '#0f172a',
+  `colorFinBanner` varchar(20) DEFAULT '#1d4ed8',
   PRIMARY KEY (`idSeccion`),
   KEY `id_curso` (`id_curso`,`docente`,`tutor`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
