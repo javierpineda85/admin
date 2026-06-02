@@ -4,6 +4,8 @@ $perfilDatos = $perfilActual ? ModeloPerfiles::mdlObtenerPerfilPorUsuario((int) 
 $registro = ControladorPerfiles::crtEditarPerfil();
 $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_message']));
 $nombreCompleto = trim((string) (($perfilActual['nombreUsuario'] ?? '') . ' ' . ($perfilActual['apellidoUsuario'] ?? '')));
+$puedeCambiarClave = (int) ($_SESSION['usuario']['id'] ?? 0) > 0
+  && (int) ($_SESSION['usuario']['id'] ?? 0) === (int) ($perfilActual['idUsuario'] ?? 0);
 $e = static function ($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
@@ -71,6 +73,38 @@ $e = static function ($valor) {
               </div>
             </div>
           </div>
+
+          <?php if ($puedeCambiarClave): ?>
+            <div class="profile-security-box mt-4">
+              <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <div>
+                  <h4 class="section-title mb-1">Cambiar contraseña</h4>
+                  <p class="text-muted mb-0">Solo se muestra cuando editas tu propio perfil.</p>
+                </div>
+                <span class="badge badge-light border px-3 py-2">Seguridad</span>
+              </div>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Contraseña actual</label>
+                    <input type="password" class="form-control" name="passActual" autocomplete="current-password" placeholder="Ingresá tu contraseña actual">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Nueva contraseña</label>
+                    <input type="password" class="form-control" name="passNueva" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Confirmar nueva contraseña</label>
+                    <input type="password" class="form-control" name="passNuevaConfirmar" autocomplete="new-password" minlength="8" placeholder="Repetí la nueva contraseña">
+                  </div>
+                </div>
+              </div>
+            </div>
+          <?php endif; ?>
 
           <div class="d-flex justify-content-end gap-2">
             <a href="index.php?r=perfil-usuario" class="btn btn-light border">Volver</a>

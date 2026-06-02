@@ -424,6 +424,13 @@ body.classroom-app .profile-about {
   line-height: 1.7;
 }
 
+body.classroom-app .profile-security-box {
+  border-radius: 20px;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(135deg, rgba(79, 140, 255, 0.08), rgba(34, 197, 94, 0.06));
+  border: 1px solid rgba(79, 140, 255, 0.12);
+}
+
 body.classroom-app .profile-upload {
   display: flex;
   flex-direction: column;

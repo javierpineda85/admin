@@ -4,42 +4,108 @@ require_once('modelos/usuarios.modelo.php');
 
 class ControladorPerfiles
 {
-
     static public function crtEditarPerfil()
     {
-      
-        if (isset($_POST["id_usuario"])) {
-            $idUsuario = (int) $_POST["id_usuario"];
-            $imagenPerfil = self::procesarImagenPerfil($idUsuario);
-            if ($imagenPerfil === false) {
+        if (!isset($_POST["id_usuario"])) {
+            return null;
+        }
+
+        $idUsuario = (int) $_POST["id_usuario"];
+        $idUsuarioSesion = (int) ($_SESSION['usuario']['id'] ?? 0);
+        $puedeCambiarClave = $idUsuarioSesion > 0 && $idUsuarioSesion === $idUsuario;
+
+        $cambiarClave = $puedeCambiarClave
+            && trim((string) ($_POST['passActual'] ?? '')) !== ''
+            && trim((string) ($_POST['passNueva'] ?? '')) !== ''
+            && trim((string) ($_POST['passNuevaConfirmar'] ?? '')) !== '';
+
+        if ($cambiarClave) {
+            $usuarioActual = ModeloUsuarios::mdlObtenerUsuarioPorId($idUsuario);
+            $passActual = (string) $_POST['passActual'];
+            $passNueva = (string) $_POST['passNueva'];
+            $passNuevaConfirmar = (string) $_POST['passNuevaConfirmar'];
+
+            if (!$usuarioActual || !password_verify($passActual, (string) ($usuarioActual['pass'] ?? ''))) {
+                $_SESSION['error_message'] = 'La contrasena actual no es correcta.';
                 return false;
             }
 
-            $datos = array(
-                "idUsuario" => $idUsuario,
-                "fnac" => $_POST["fnacPerfil"],
-                "domicilioPerfil" => $_POST["domicilioPerfil"],
-                "contenidoPerfil" => $_POST["contenidoPerfil"]
-            );
-
-            $respuesta = ModeloPerfiles::mdlEditarPerfil($datos);
-            if ($respuesta === 'ok') {
-                if ($imagenPerfil !== '') {
-                    ModeloUsuarios::mdlActualizarImagenUsuario($idUsuario, $imagenPerfil);
-                }
-                ModeloUsuarios::mdlRegistrarHistorial([
-                    'id_usuario' => $idUsuario,
-                    'accion' => 'PERFIL',
-                    'detalle' => 'El usuario actualizó sus datos personales.',
-                    'id_usuario_accion' => $idUsuario,
-                    'fechaEvento' => date('Y-m-d H:i:s'),
-                ]);
-                $_SESSION['success_message'] = 'Perfil actualizado exitosamente';
-            } else {
-                $_SESSION['error_message'] = 'No se pudo actualizar el perfil';
+            if (strlen($passNueva) < 8) {
+                $_SESSION['error_message'] = 'La nueva contrasena debe tener al menos 8 caracteres.';
+                return false;
             }
+
+            if ($passNueva !== $passNuevaConfirmar) {
+                $_SESSION['error_message'] = 'La nueva contrasena y su confirmacion no coinciden.';
+                return false;
+            }
+        }
+
+        $imagenPerfil = self::procesarImagenPerfil($idUsuario);
+        if ($imagenPerfil === false) {
+            return false;
+        }
+
+        $datos = array(
+            "idUsuario" => $idUsuario,
+            "fnac" => $_POST["fnacPerfil"],
+            "domicilioPerfil" => $_POST["domicilioPerfil"],
+            "contenidoPerfil" => $_POST["contenidoPerfil"]
+        );
+
+        $conexion = Conexion::conectar();
+        if ($conexion instanceof PDO && !$conexion->inTransaction()) {
+            $conexion->beginTransaction();
+        }
+
+        $respuesta = ModeloPerfiles::mdlEditarPerfil($datos);
+        if ($respuesta !== 'ok') {
+            if ($conexion instanceof PDO && $conexion->inTransaction()) {
+                $conexion->rollBack();
+            }
+            $_SESSION['error_message'] = 'No se pudo actualizar el perfil';
             return $respuesta;
         }
+
+        if ($imagenPerfil !== '') {
+            $respuestaImagen = ModeloUsuarios::mdlActualizarImagenUsuario($idUsuario, $imagenPerfil);
+            if ($respuestaImagen !== 'ok') {
+                if ($conexion instanceof PDO && $conexion->inTransaction()) {
+                    $conexion->rollBack();
+                }
+                $_SESSION['error_message'] = 'No se pudo guardar la foto de perfil.';
+                return false;
+            }
+        }
+
+        if ($cambiarClave) {
+            $respuestaClave = ModeloUsuarios::mdlActualizarPassword($idUsuario, password_hash((string) $_POST['passNueva'], PASSWORD_DEFAULT));
+            if ($respuestaClave !== 'ok') {
+                if ($conexion instanceof PDO && $conexion->inTransaction()) {
+                    $conexion->rollBack();
+                }
+                $_SESSION['error_message'] = 'No se pudo actualizar la contrasena.';
+                return false;
+            }
+        }
+
+        ModeloUsuarios::mdlRegistrarHistorial([
+            'id_usuario' => $idUsuario,
+            'accion' => 'PERFIL',
+            'detalle' => 'El usuario actualizo sus datos personales.' . ($cambiarClave ? ' Tambien cambio su contrasena.' : ''),
+            'id_usuario_accion' => $idUsuarioSesion > 0 ? $idUsuarioSesion : $idUsuario,
+            'fechaEvento' => date('Y-m-d H:i:s'),
+        ]);
+
+        if ($conexion instanceof PDO && $conexion->inTransaction()) {
+            $conexion->commit();
+        }
+
+        $_SESSION['success_message'] = $cambiarClave
+            ? 'Perfil y contrasena actualizados exitosamente'
+            : 'Perfil actualizado exitosamente';
+
+        return $respuesta;
     }
 
     private static function procesarImagenPerfil($idUsuario)
@@ -70,6 +136,4 @@ class ControladorPerfiles
 
         return 'usuarios/' . $nombreArchivo;
     }
-
-
 }
