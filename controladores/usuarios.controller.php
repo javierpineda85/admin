@@ -89,7 +89,13 @@ class ControladorUsuarios
 
     public static function crtGuardarUsuario()
     {
-        if (!isset($_POST["nombreUsuario"], $_POST["apellidoUsuario"], $_POST["email"], $_POST["pass"], $_POST["rol"])) {
+        $nombreUsuario = trim((string) ($_POST["nombreUsuario"] ?? ''));
+        $apellidoUsuario = trim((string) ($_POST["apellidoUsuario"] ?? ''));
+        $emailUsuario = trim((string) ($_POST["emailUsuario"] ?? ($_POST["email"] ?? '')));
+        $passUsuario = (string) ($_POST["passUsuario"] ?? ($_POST["pass"] ?? ''));
+        $rolUsuario = trim((string) ($_POST["rol"] ?? ''));
+
+        if ($nombreUsuario === '' || $apellidoUsuario === '' || $emailUsuario === '' || $passUsuario === '' || $rolUsuario === '') {
             return null;
         }
 
@@ -101,13 +107,13 @@ class ControladorUsuarios
 
             $tabla = "usuarios";
             $datosUsuario = [
-                "nombreUsuario" => trim((string) $_POST["nombreUsuario"]),
-                "apellidoUsuario" => trim((string) $_POST["apellidoUsuario"]),
-                "email" => trim((string) $_POST["email"]),
-                "pass" => password_hash((string) $_POST["pass"], PASSWORD_DEFAULT),
+                "nombreUsuario" => $nombreUsuario,
+                "apellidoUsuario" => $apellidoUsuario,
+                "email" => $emailUsuario,
+                "pass" => password_hash($passUsuario, PASSWORD_DEFAULT),
                 "resetPass" => 1,
                 "activo" => 1,
-                "rol" => trim((string) $_POST["rol"]),
+                "rol" => $rolUsuario,
                 "fechaAlta" => date('Y-m-d H:i:s'),
             ];
 
