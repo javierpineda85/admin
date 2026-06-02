@@ -3,6 +3,30 @@ require_once('modelos/cursos.modelo.php');
 
 class ControladorCursos
 {
+    static public function crtBuscarCursoPorId($idCurso)
+    {
+        return ModeloCursos::mdlBuscarCursoPorId((int) $idCurso);
+    }
+
+    static public function crtListarCursos()
+    {
+        return ModeloCursos::mdlListarCursos();
+    }
+
+    static public function crtCursosPorEstudiante($idEstudiante)
+    {
+        return ModeloCursos::mdlCursosPorEstudiante((int) $idEstudiante);
+    }
+
+    static public function crtEstudianteInscriptoCurso($idEstudiante, $idCurso)
+    {
+        return ModeloCursos::mdlEstudianteInscriptoCurso((int) $idEstudiante, (int) $idCurso);
+    }
+
+    static public function crtSeccionesPorCurso($idCurso)
+    {
+        return ModeloCursos::mdlSeccionesPorCurso((int) $idCurso);
+    }
 
     /*GUARDAR CURSO */
     static public function crtGuardarCurso()

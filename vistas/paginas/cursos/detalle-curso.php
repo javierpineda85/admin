@@ -37,6 +37,83 @@ if (!$curso) {
         'horarioCurso' => '',
     ]];
 }
+
+if (ControladorPermisos::esEstudiante()) {
+    $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+    $cursoEstudiante = ControladorCursos::crtBuscarCursoPorId($idCurso);
+    $estaInscripto = $idCurso > 0 && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, $idCurso);
+    $seccionesEstudiante = $estaInscripto ? ControladorCursos::crtSeccionesPorCurso($idCurso) : [];
+    $e = static function ($valor) {
+        return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
+    };
+    ?>
+
+    <section class="content page-fade">
+      <div class="container-fluid">
+        <?php if (!$cursoEstudiante || !$estaInscripto): ?>
+          <div class="empty-state">
+            <i class="fas fa-lock"></i>
+            <h4>No tenés acceso a este curso</h4>
+            <p class="mb-3">Solo podés ver cursos en los que estás inscripto.</p>
+            <a href="index.php?r=listado-cursos" class="btn btn-primary">Volver a mis cursos</a>
+          </div>
+        <?php else: ?>
+          <div class="student-course-hero mb-4">
+            <div class="student-course-hero__content">
+              <span class="entity-kicker mb-3">Curso</span>
+              <h1><?php echo $e($cursoEstudiante['nombreCurso'] ?? 'Curso'); ?></h1>
+              <p><?php echo $e($cursoEstudiante['contenidoCurso'] ?? ''); ?></p>
+              <div class="d-flex flex-wrap" style="gap: .6rem;">
+                <span class="entity-chip"><i class="fas fa-circle"></i><?php echo $e($cursoEstudiante['estado'] ?? 'Activo'); ?></span>
+                <span class="entity-chip"><i class="fas fa-calendar"></i><?php echo $e($cursoEstudiante['fInicio'] ?? ''); ?></span>
+                <span class="entity-chip"><i class="fas fa-book-open"></i><?php echo count($seccionesEstudiante); ?> materias</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+            <div>
+              <div class="section-title">Materias del curso</div>
+              <div class="section-subtitle">Elegí una materia para entrar al tablón, tareas, materiales y foro.</div>
+            </div>
+            <a href="index.php?r=listado-cursos" class="btn btn-light border">
+              <i class="fas fa-arrow-left mr-1"></i>Mis cursos
+            </a>
+          </div>
+
+          <?php if (empty($seccionesEstudiante)): ?>
+            <div class="empty-state">
+              <i class="fas fa-book"></i>
+              <h4>Este curso todavía no tiene materias</h4>
+              <p class="mb-0">Cuando se carguen materias, las vas a ver acá.</p>
+            </div>
+          <?php else: ?>
+            <div class="student-class-grid">
+              <?php foreach ($seccionesEstudiante as $index => $seccionItem): ?>
+                <a class="student-class-card theme-<?php echo (int) (($index + 1) % 4); ?>" href="index.php?r=detalle-seccion&idSeccion=<?php echo (int) $seccionItem['idSeccion']; ?>">
+                  <div class="student-class-card__cover">
+                    <div>
+                      <h2><?php echo $e($seccionItem['tituloSeccion'] ?? 'Materia'); ?></h2>
+                      <p><?php echo $e(trim(($seccionItem['nombreUsuario'] ?? '') . ' ' . ($seccionItem['apellidoUsuario'] ?? ''))); ?></p>
+                    </div>
+                  </div>
+                  <div class="student-class-card__body">
+                    <p><?php echo $e($seccionItem['contenidoSeccion'] ?? 'Sin descripción cargada.'); ?></p>
+                  </div>
+                  <div class="student-class-card__footer">
+                    <span><i class="fas fa-tasks"></i> <?php echo (int) ($seccionItem['totalLecciones'] ?? 0); ?> clases</span>
+                    <span><i class="fas fa-file-alt"></i> <?php echo (int) ($seccionItem['totalTareas'] ?? 0); ?> tareas</span>
+                  </div>
+                </a>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+        <?php endif; ?>
+      </div>
+    </section>
+    <?php
+    return;
+}
 ?>
 
 <section class="content page-fade">
