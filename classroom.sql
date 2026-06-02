@@ -80,8 +80,8 @@ CREATE TABLE IF NOT EXISTS `calificaciones` (
 DROP TABLE IF EXISTS `cursos`;
 CREATE TABLE IF NOT EXISTS `cursos` (
   `idCurso` int NOT NULL AUTO_INCREMENT,
-  `nombreCurso` char(20) NOT NULL,
-  `contenidoCurso` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `nombreCurso` varchar(120) NOT NULL,
+  `contenidoCurso` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `estado` CHAR(15) NOT NULL,
   `fechaInicioCurso` date NOT NULL,
   `fechaFinCurso` date DEFAULT NULL,
@@ -256,8 +256,8 @@ CREATE TABLE IF NOT EXISTS `recursoslecciones` (
 DROP TABLE IF EXISTS `secciones`;
 CREATE TABLE IF NOT EXISTS `secciones` (
   `idSeccion` int NOT NULL AUTO_INCREMENT,
-  `tituloSeccion` CHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `contenidoSeccion` TINYTEXT,
+  `tituloSeccion` varchar(140) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `contenidoSeccion` text,
   `id_curso` int NOT NULL,
   `docente` int NOT NULL,
   `tutor` int DEFAULT NULL,

@@ -503,11 +503,19 @@ body.classroom-app .student-class-card__cover h2 {
   font-size: 1.35rem;
   line-height: 1.15;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 body.classroom-app .student-class-card__cover p,
 body.classroom-app .student-class-card__body p {
   margin: 0;
+}
+
+body.classroom-app .student-class-card__body p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
 }
 
 body.classroom-app .student-class-card__body {
@@ -560,12 +568,14 @@ body.classroom-app .student-course-hero h1 {
   font-size: 2.35rem;
   line-height: 1.08;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 body.classroom-app .student-course-hero p {
   max-width: 64ch;
   margin-bottom: 1rem;
   color: rgba(255, 255, 255, 0.84);
+  overflow-wrap: anywhere;
 }
 
 body.classroom-app .classroom-tabs {
@@ -646,6 +656,13 @@ body.classroom-app .resource-pill small {
   color: #64748b;
 }
 
+body.classroom-app .classroom-stream-item strong,
+body.classroom-app .people-row strong,
+body.classroom-app .classwork-summary strong,
+body.classroom-app .resource-pill strong {
+  overflow-wrap: anywhere;
+}
+
 body.classroom-app .classwork-list {
   display: flex;
   flex-direction: column;
@@ -697,6 +714,7 @@ body.classroom-app .resource-pill {
   display: flex;
   gap: 0.75rem;
   align-items: center;
+  min-width: 0;
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 8px;
   background: #fff;
@@ -840,6 +858,42 @@ body.login-page.classroom-auth .input-group-text {
 }
 
 @media (max-width: 767.98px) {
+  body.classroom-app .student-class-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.classroom-app .student-course-hero {
+    min-height: 180px;
+  }
+
+  body.classroom-app .student-course-hero__content {
+    padding: 1.25rem;
+  }
+
+  body.classroom-app .student-course-hero h1 {
+    font-size: 1.8rem;
+  }
+
+  body.classroom-app .classroom-tabs {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  body.classroom-app .classwork-summary {
+    flex-wrap: wrap;
+  }
+
+  body.classroom-app .classwork-status {
+    width: 100%;
+    margin-left: 3.25rem;
+    white-space: normal;
+  }
+
+  body.classroom-app .resource-grid {
+    grid-template-columns: 1fr;
+  }
+
   body.classroom-app .hero-content {
     padding: 1.25rem;
   }
