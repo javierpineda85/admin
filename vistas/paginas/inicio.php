@@ -1,5 +1,6 @@
 <?php
 $rolActual = ControladorPermisos::rolActual();
+$idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $nombreUsuario = trim((string) ($_SESSION['usuario']['nombre'] ?? 'Usuario'));
 $apellidoUsuario = trim((string) ($_SESSION['usuario']['apellido'] ?? ''));
 $nombreCompleto = trim($nombreUsuario . ' ' . $apellidoUsuario);
@@ -24,13 +25,89 @@ if (ControladorPermisos::esDocente()) {
   $ctaPrincipalIcono = 'fas fa-play-circle';
 }
 
-$mensajeRol = 'Tu panel está listo para trabajar.';
+$mensajeRol = 'Tu panel esta listo para trabajar.';
 if (ControladorPermisos::esAdministrador()) {
-  $mensajeRol = 'Administrás usuarios, cursos, materias y la estructura completa del sistema.';
+  $mensajeRol = 'Administras usuarios, cursos, materias y la estructura completa del sistema.';
 } elseif (ControladorPermisos::esDocente()) {
   $mensajeRol = 'Tu espacio centraliza aulas, materiales, tareas, foros y calificaciones.';
 } elseif (ControladorPermisos::esEstudiante()) {
-  $mensajeRol = 'Acá tenés el acceso directo a tus clases, notas, entregas y mensajes permitidos.';
+  $mensajeRol = 'Aqui tenes el acceso directo a tus clases, notas, entregas y mensajes permitidos.';
+}
+
+$tarjetasDashboard = [];
+foreach (($resumen['tarjetas'] ?? []) as $tarjeta) {
+  $etiqueta = trim((string) ($tarjeta['label'] ?? ''));
+  if ($etiqueta !== '') {
+    $tarjetasDashboard[$etiqueta] = $tarjeta;
+  }
+}
+
+$contextoPanel = [
+  'titulo' => 'Tu panel hoy',
+  'subtitulo' => 'Lo que este inicio te marca de un vistazo',
+  'descripcion' => 'Los valores de abajo resumen mensajes, actividad reciente y el estado academico o de gestion segun tu rol. Los accesos rapidos siguen estando mas abajo para ir directo a lo que usas mas.',
+  'items' => [
+    [
+      'label' => 'Mensajes sin leer',
+      'value' => (int) ControladorMensajes::crtContarMensajesNoLeidos($idUsuarioActual),
+      'note' => 'Conversaciones que esperan respuesta',
+      'icon' => 'fas fa-comments',
+      'class' => 'context-item--primary',
+    ],
+    [
+      'label' => 'Actividad reciente',
+      'value' => (int) (($resumen['actividad'] ?? []) ? count($resumen['actividad']) : 0),
+      'note' => 'Eventos visibles en este arranque',
+      'icon' => 'fas fa-bolt',
+      'class' => 'context-item--success',
+    ],
+  ],
+];
+
+if (ControladorPermisos::esAdministrador()) {
+  $contextoPanel['titulo'] = 'Tu panel de administracion';
+  $contextoPanel['subtitulo'] = 'Control y seguimiento del sistema';
+  $contextoPanel['descripcion'] = 'Aqui ves primero lo que conviene revisar: mensajes, actividad y pendientes de correccion o gestion.';
+  $contextoPanel['items'][] = [
+    'label' => 'Pendientes',
+    'value' => (int) ($tarjetasDashboard['Pendientes']['value'] ?? 0),
+    'note' => 'Entregas sin calificar',
+    'icon' => 'fas fa-clipboard-check',
+    'class' => 'context-item--warning',
+  ];
+} elseif (ControladorPermisos::esDocente()) {
+  $contextoPanel['titulo'] = 'Tu panel docente';
+  $contextoPanel['subtitulo'] = 'Aulas, entregas y calificaciones';
+  $contextoPanel['descripcion'] = 'El foco esta en tus aulas, las entregas pendientes y las notas que todavia faltan cerrar.';
+  $contextoPanel['items'][] = [
+    'label' => 'Entregas por corregir',
+    'value' => (int) ($tarjetasDashboard['Pendientes']['value'] ?? 0),
+    'note' => 'Trabajos que esperan devolucion',
+    'icon' => 'fas fa-hourglass-half',
+    'class' => 'context-item--warning',
+  ];
+} elseif (ControladorPermisos::esEstudiante()) {
+  $contextoPanel['titulo'] = 'Tu panel de estudiante';
+  $contextoPanel['subtitulo'] = 'Clases, tareas y tu avance';
+  $contextoPanel['descripcion'] = 'Te muestra lo que tenes por revisar, lo que ya entregaste y como viene tu desempeno general.';
+  $contextoPanel['items'][] = [
+    'label' => 'Promedio general',
+    'value' => (string) ($tarjetasDashboard['Promedio']['value'] ?? '0'),
+    'note' => 'Tu rendimiento acumulado',
+    'icon' => 'fas fa-star',
+    'class' => 'context-item--warning',
+  ];
+} else {
+  $contextoPanel['titulo'] = 'Tu panel';
+  $contextoPanel['subtitulo'] = 'Estado general de tu cuenta';
+  $contextoPanel['descripcion'] = 'Revisa tu acceso para mostrar un contexto adaptado a tu perfil y permisos.';
+  $contextoPanel['items'][] = [
+    'label' => 'Perfil',
+    'value' => 'OK',
+    'note' => 'Acceso cargado correctamente',
+    'icon' => 'fas fa-user-check',
+    'class' => 'context-item--warning',
+  ];
 }
 ?>
 
@@ -45,7 +122,7 @@ if (ControladorPermisos::esAdministrador()) {
           </div>
           <h1 class="hero-title mb-3">
             Bienvenido, <?php echo htmlspecialchars($nombreCompleto, ENT_QUOTES, 'UTF-8'); ?>.
-            <?php echo $rolActual !== '' ? htmlspecialchars(strtolower($rolActual), ENT_QUOTES, 'UTF-8') : 'Tu panel'; ?> está listo.
+            <?php echo $rolActual !== '' ? htmlspecialchars(strtolower($rolActual), ENT_QUOTES, 'UTF-8') : 'Tu panel'; ?> esta listo.
           </h1>
           <p class="hero-lead mb-4">
             <?php echo htmlspecialchars($mensajeRol, ENT_QUOTES, 'UTF-8'); ?>
@@ -117,7 +194,7 @@ if (ControladorPermisos::esAdministrador()) {
         <div class="card-body">
           <?php if (empty($resumen['actividad'])): ?>
             <div class="alert alert-light border mb-0">
-              Todavía no hay actividad reciente para mostrar.
+              Todavia no hay actividad reciente para mostrar.
             </div>
           <?php else: ?>
             <div class="timeline">
@@ -144,52 +221,31 @@ if (ControladorPermisos::esAdministrador()) {
     <div class="col-lg-5 mb-4">
       <div class="card glass-card h-100">
         <div class="card-header bg-white border-0">
-          <div class="section-title">Tu experiencia</div>
-          <div class="section-subtitle">Atajos y contexto según tu rol</div>
+          <div class="section-title"><?php echo htmlspecialchars($contextoPanel['titulo'], ENT_QUOTES, 'UTF-8'); ?></div>
+          <div class="section-subtitle"><?php echo htmlspecialchars($contextoPanel['subtitulo'], ENT_QUOTES, 'UTF-8'); ?></div>
         </div>
         <div class="card-body">
-          <?php if (ControladorPermisos::esAdministrador()): ?>
-            <div class="alert alert-primary border-0">
-              Administrás la estructura completa del sistema. Usá el panel para revisar actividad, mensajes y pendientes de corrección.
-            </div>
-          <?php elseif (ControladorPermisos::esDocente()): ?>
-            <div class="alert alert-success border-0">
-              Tu foco está en aulas, material, entregas y seguimiento académico. Podés abrir una sección y gestionar todo desde ahí.
-            </div>
-          <?php elseif (ControladorPermisos::esEstudiante()): ?>
-            <div class="alert alert-warning border-0">
-              Encontrás tus clases, tareas y notas en un solo lugar, con accesos claros para volver a lo que te falta.
-            </div>
-          <?php else: ?>
-            <div class="alert alert-light border">
-              Revisá tu configuración de acceso para mostrar contenido adaptado al rol.
-            </div>
-          <?php endif; ?>
+          <div class="context-summary mb-4">
+            <p class="mb-0">
+              <?php echo htmlspecialchars($contextoPanel['descripcion'], ENT_QUOTES, 'UTF-8'); ?>
+            </p>
+          </div>
 
-          <div class="mt-4">
-            <div class="d-flex justify-content-between mb-2">
-              <span class="text-muted">Mensajes</span>
-              <strong><?php echo (int) (ControladorMensajes::crtContarMensajesNoLeidos((int) ($_SESSION['usuario']['id'] ?? 0))); ?></strong>
-            </div>
-            <div class="progress mb-3" style="height: 10px;">
-              <div class="progress-bar bg-primary" style="width: 84%"></div>
-            </div>
-
-            <div class="d-flex justify-content-between mb-2">
-              <span class="text-muted">Actividad reciente</span>
-              <strong><?php echo (int) (($resumen['actividad'] ?? []) ? count($resumen['actividad']) : 0); ?></strong>
-            </div>
-            <div class="progress mb-3" style="height: 10px;">
-              <div class="progress-bar bg-success" style="width: 66%"></div>
-            </div>
-
-            <div class="d-flex justify-content-between mb-2">
-              <span class="text-muted">Seguimiento académico</span>
-              <strong><?php echo ControladorPermisos::esEstudiante() ? 'En progreso' : 'Activo'; ?></strong>
-            </div>
-            <div class="progress" style="height: 10px;">
-              <div class="progress-bar bg-warning" style="width: 52%"></div>
-            </div>
+          <div class="dashboard-context-list">
+            <?php foreach (($contextoPanel['items'] ?? []) as $item): ?>
+              <div class="dashboard-context-item">
+                <div class="dashboard-context-icon <?php echo htmlspecialchars((string) ($item['class'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                  <i class="<?php echo htmlspecialchars((string) ($item['icon'] ?? 'fas fa-info-circle'), ENT_QUOTES, 'UTF-8'); ?>"></i>
+                </div>
+                <div class="dashboard-context-copy">
+                  <div class="dashboard-context-head">
+                    <span class="dashboard-context-label"><?php echo htmlspecialchars((string) ($item['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <strong class="dashboard-context-value"><?php echo htmlspecialchars((string) ($item['value'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
+                  </div>
+                  <div class="dashboard-context-note"><?php echo htmlspecialchars((string) ($item['note'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                </div>
+              </div>
+            <?php endforeach; ?>
           </div>
 
           <div class="mt-4">
@@ -197,14 +253,14 @@ if (ControladorPermisos::esAdministrador()) {
               <span class="qa-icon" style="background: linear-gradient(135deg, #db2777, #f43f5e);"><i class="fas fa-inbox"></i></span>
               <div>
                 <strong>Ir a mensajes</strong>
-                <div class="text-muted small">Revisá tus conversaciones activas</div>
+                <div class="text-muted small">Revisa tus conversaciones activas</div>
               </div>
             </a>
             <a href="index.php?r=perfil-usuario" class="quick-action text-dark">
               <span class="qa-icon" style="background: linear-gradient(135deg, #1d4ed8, #4f8cff);"><i class="fas fa-user-circle"></i></span>
               <div>
                 <strong>Editar perfil</strong>
-                <div class="text-muted small">Mantené tus datos actualizados</div>
+                <div class="text-muted small">Mantene tus datos actualizados</div>
               </div>
             </a>
           </div>

@@ -181,6 +181,82 @@ body.classroom-app .section-subtitle {
   font-size: 0.94rem;
 }
 
+body.classroom-app .context-summary {
+  padding: 1rem 1rem 0.95rem;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(79, 140, 255, 0.08), rgba(34, 197, 94, 0.06));
+  border: 1px solid rgba(79, 140, 255, 0.12);
+  color: #334155;
+}
+
+body.classroom-app .dashboard-context-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+body.classroom-app .dashboard-context-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: #fff;
+}
+
+body.classroom-app .dashboard-context-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+body.classroom-app .dashboard-context-icon.context-item--primary {
+  background: linear-gradient(135deg, #1d4ed8, #4f8cff);
+}
+
+body.classroom-app .dashboard-context-icon.context-item--success {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+}
+
+body.classroom-app .dashboard-context-icon.context-item--warning {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+}
+
+body.classroom-app .dashboard-context-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+body.classroom-app .dashboard-context-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+body.classroom-app .dashboard-context-label {
+  color: #475569;
+  font-weight: 700;
+}
+
+body.classroom-app .dashboard-context-value {
+  color: #0f172a;
+  font-size: 1.2rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+body.classroom-app .dashboard-context-note {
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
 body.classroom-app .quick-action {
   display: flex;
   align-items: center;
@@ -892,6 +968,11 @@ body.login-page.classroom-auth .input-group-text {
 
   body.classroom-app .resource-grid {
     grid-template-columns: 1fr;
+  }
+
+  body.classroom-app .dashboard-context-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   body.classroom-app .hero-content {
