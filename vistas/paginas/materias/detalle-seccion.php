@@ -367,7 +367,7 @@ if (ControladorPermisos::esEstudiante()) {
     </div>
 
     <div class="row">
-      <div class="col-12 col-lg-8">
+      <div class="col-12 col-lg-7">
         <div class="card card-outline card-primary shadow-sm">
           <div class="card-header d-flex align-items-center justify-content-between">
             <div>
@@ -737,7 +737,7 @@ if (ControladorPermisos::esEstudiante()) {
         </div>
       </div>
 
-      <div class="col-12 col-lg-4">
+      <div class="col-12 col-lg-5">
         <div class="card card-outline card-success shadow-sm">
           <div class="card-header section-header-soft">
             <h3 class="card-title">Detalle de la seccion</h3>
@@ -759,8 +759,8 @@ if (ControladorPermisos::esEstudiante()) {
         </div>
 
         <?php if ($puedeGestionar): ?>
-          <div class="card card-outline card-primary shadow-sm">
-            <div class="card-header section-header-soft">
+          <div class="card card-outline card-primary shadow-sm lesson-builder-card">
+            <div class="card-header section-header-soft lesson-builder-header">
               <h3 class="card-title">Crear leccion</h3>
             </div>
             <div class="card-body">
@@ -800,8 +800,8 @@ if (ControladorPermisos::esEstudiante()) {
                   <div class="form-group">
                     <label class="small text-muted">Archivo adjunto</label>
                     <div class="classroom-file">
-                      <input type="file" class="classroom-file__input" id="archivoRecursoInicial<?php echo (int) $leccion['idLeccion']; ?>" name="archivoRecursoInicial">
-                      <label class="classroom-file__button" for="archivoRecursoInicial<?php echo (int) $leccion['idLeccion']; ?>">
+                      <input type="file" class="classroom-file__input" id="archivoRecursoInicialSeccion<?php echo (int) $idSeccion; ?>" name="archivoRecursoInicial">
+                      <label class="classroom-file__button" for="archivoRecursoInicialSeccion<?php echo (int) $idSeccion; ?>">
                         <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
                       </label>
                       <span class="classroom-file__name">Ningún archivo seleccionado</span>

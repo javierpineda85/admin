@@ -957,6 +957,23 @@ body.login-page.classroom-auth .input-group-text {
   font-weight: 700;
 }
 
+.lesson-builder-card {
+  border-width: 1px;
+}
+
+.lesson-builder-card .card-body {
+  padding: 1.35rem;
+}
+
+.lesson-builder-header {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.18), rgba(15, 23, 42, 0.09));
+  border-bottom: 1px solid rgba(37, 99, 235, 0.16) !important;
+}
+
+.lesson-builder-header .card-title {
+  color: #0f172a;
+}
+
 .grade-form {
   gap: .5rem;
   flex-wrap: wrap;
