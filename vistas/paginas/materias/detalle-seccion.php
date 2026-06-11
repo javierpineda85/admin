@@ -252,7 +252,13 @@ if (ControladorPermisos::esEstudiante()) {
                               <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
                               <div class="form-group col-md-5">
                                 <label class="small text-muted">Archivo</label>
-                                <input type="file" name="archivoEntrega" class="form-control form-control-sm">
+                                <div class="classroom-file">
+                                  <input type="file" class="classroom-file__input" id="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega">
+                                  <label class="classroom-file__button" for="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>">
+                                    <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                                  </label>
+                                  <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                                </div>
                               </div>
                               <div class="form-group col-md-7">
                                 <label class="small text-muted">Comentario</label>
@@ -537,7 +543,13 @@ if (ControladorPermisos::esEstudiante()) {
                                 </div>
                                 <div class="form-group col-md-5">
                                   <label class="small text-muted">Archivo o URL</label>
-                                  <input type="file" name="archivoRecurso" class="form-control form-control-sm mb-2">
+                                  <div class="classroom-file">
+                                    <input type="file" class="classroom-file__input" id="archivoRecursoEdit<?php echo (int) $recurso['idRecursoLeccion']; ?>" name="archivoRecurso">
+                                    <label class="classroom-file__button" for="archivoRecursoEdit<?php echo (int) $recurso['idRecursoLeccion']; ?>">
+                                      <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                                    </label>
+                                    <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                                  </div>
                                   <input type="text" name="urlRecurso" class="form-control form-control-sm" value="<?php echo htmlspecialchars($recurso['urlRecurso'], ENT_QUOTES, 'UTF-8'); ?>">
                                 </div>
                                 <div class="form-group col-12 text-right mb-0">
@@ -579,7 +591,13 @@ if (ControladorPermisos::esEstudiante()) {
                         </div>
                         <div class="form-group col-md-4">
                           <label class="small text-muted">Archivo o URL</label>
-                          <input type="file" name="archivoRecurso" class="form-control form-control-sm mb-2">
+                          <div class="classroom-file">
+                            <input type="file" class="classroom-file__input" id="archivoRecursoNuevo<?php echo (int) $leccion['idLeccion']; ?>" name="archivoRecurso">
+                            <label class="classroom-file__button" for="archivoRecursoNuevo<?php echo (int) $leccion['idLeccion']; ?>">
+                              <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                            </label>
+                            <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                          </div>
                           <input type="text" name="urlRecurso" class="form-control form-control-sm" placeholder="https://...">
                         </div>
                         <div class="form-group col-12 mb-0 text-right">
@@ -606,7 +624,13 @@ if (ControladorPermisos::esEstudiante()) {
                           <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
                           <div class="form-group col-md-5">
                             <label class="small text-muted">Archivo</label>
-                            <input type="file" name="archivoEntrega" class="form-control form-control-sm" required>
+                            <div class="classroom-file">
+                              <input type="file" class="classroom-file__input" id="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega" required>
+                              <label class="classroom-file__button" for="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>">
+                                <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                              </label>
+                              <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                            </div>
                           </div>
                           <div class="form-group col-md-7">
                             <label class="small text-muted">Comentario</label>
@@ -775,7 +799,13 @@ if (ControladorPermisos::esEstudiante()) {
                   </div>
                   <div class="form-group">
                     <label class="small text-muted">Archivo adjunto</label>
-                    <input type="file" name="archivoRecursoInicial" class="form-control form-control-sm">
+                    <div class="classroom-file">
+                      <input type="file" class="classroom-file__input" id="archivoRecursoInicial<?php echo (int) $leccion['idLeccion']; ?>" name="archivoRecursoInicial">
+                      <label class="classroom-file__button" for="archivoRecursoInicial<?php echo (int) $leccion['idLeccion']; ?>">
+                        <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                      </label>
+                      <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                    </div>
                   </div>
                   <div class="form-group mb-0">
                     <label class="small text-muted">URL del recurso</label>

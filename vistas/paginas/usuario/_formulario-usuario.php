@@ -79,12 +79,12 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
         <div class="col-md-4">
           <div class="form-group">
             <label>Foto de perfil</label>
-            <div class="profile-upload">
-              <input type="file" class="profile-upload__input profile-file-input" id="imgUsuarioCampo" name="imgUsuario" accept="image/*">
-              <label class="profile-upload__button" for="imgUsuarioCampo">
+            <div class="classroom-file profile-upload">
+              <input type="file" class="classroom-file__input profile-upload__input profile-file-input" id="imgUsuarioCampo" name="imgUsuario" accept="image/*">
+              <label class="classroom-file__button profile-upload__button" for="imgUsuarioCampo">
                 <i class="fas fa-image mr-2"></i>Seleccionar foto
               </label>
-              <span class="profile-file-name">
+              <span class="classroom-file__name profile-file-name">
                 <?php echo !empty($usuarioFormulario['imgUsuario']) ? $e($usuarioFormulario['imgUsuario']) : 'Ningún archivo seleccionado'; ?>
               </span>
             </div>

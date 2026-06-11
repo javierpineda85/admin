@@ -98,7 +98,13 @@ $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_
             <div class="col-12">
               <div class="form-group">
                 <label>Banner de la sección</label>
-                <input type="file" class="form-control-file" name="bannerSeccion" accept="image/*">
+                <div class="classroom-file">
+                  <input type="file" class="classroom-file__input" id="bannerSeccionEditar" name="bannerSeccion" accept="image/*">
+                  <label class="classroom-file__button" for="bannerSeccionEditar">
+                    <i class="fas fa-image mr-2"></i>Seleccionar imagen
+                  </label>
+                  <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                </div>
                 <?php if (!empty($materia['bannerSeccion'])): ?>
                   <small class="text-muted d-block mt-1">Banner actual: <?php echo htmlspecialchars((string) $materia['bannerSeccion'], ENT_QUOTES, 'UTF-8'); ?></small>
                 <?php endif; ?>

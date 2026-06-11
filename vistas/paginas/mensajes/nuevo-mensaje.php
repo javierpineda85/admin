@@ -136,7 +136,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null && isset($_SESSION
 
                                 <div class="form-group">
                                     <label>Adjuntos</label>
-                                    <input type="file" class="form-control" name="adjuntos[]" multiple>
+                                    <div class="classroom-file">
+                                        <input type="file" class="classroom-file__input" id="adjuntosMensaje" name="adjuntos[]" multiple>
+                                        <label class="classroom-file__button" for="adjuntosMensaje">
+                                            <i class="fas fa-paperclip mr-2"></i>Seleccionar archivos
+                                        </label>
+                                        <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                                    </div>
                                     <small class="text-muted d-block mt-1">Podés adjuntar varios archivos.</small>
                                 </div>
 

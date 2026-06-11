@@ -77,7 +77,13 @@ $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_
             <div class="col-12">
               <div class="form-group">
                 <label>Banner de la sección</label>
-                <input type="file" class="form-control-file" name="bannerSeccion" accept="image/*">
+                <div class="classroom-file">
+                  <input type="file" class="classroom-file__input" id="bannerSeccionCrear" name="bannerSeccion" accept="image/*">
+                  <label class="classroom-file__button" for="bannerSeccionCrear">
+                    <i class="fas fa-image mr-2"></i>Seleccionar imagen
+                  </label>
+                  <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                </div>
                 <small class="text-muted d-block mt-1">Si no cargás una imagen, se usará un degradado por defecto.</small>
               </div>
             </div>

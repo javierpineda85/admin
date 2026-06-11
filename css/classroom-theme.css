@@ -431,12 +431,14 @@ body.classroom-app .profile-security-box {
   border: 1px solid rgba(79, 140, 255, 0.12);
 }
 
+body.classroom-app .classroom-file,
 body.classroom-app .profile-upload {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
 }
 
+body.classroom-app .classroom-file__input,
 body.classroom-app .profile-upload__input {
   position: absolute;
   width: 1px;
@@ -449,11 +451,13 @@ body.classroom-app .profile-upload__input {
   border: 0;
 }
 
+body.classroom-app .classroom-file__button,
 body.classroom-app .profile-upload__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  width: 100%;
   padding: 0.8rem 1rem;
   border-radius: 16px;
   border: 1px solid rgba(79, 140, 255, 0.18);
@@ -464,12 +468,14 @@ body.classroom-app .profile-upload__button {
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
+body.classroom-app .classroom-file__button:hover,
 body.classroom-app .profile-upload__button:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
   border-color: rgba(79, 140, 255, 0.3);
 }
 
+body.classroom-app .classroom-file__name,
 body.classroom-app .profile-file-name {
   display: inline-flex;
   align-items: center;
@@ -479,6 +485,7 @@ body.classroom-app .profile-file-name {
   border: 1px dashed rgba(148, 163, 184, 0.7);
   background: rgba(255, 255, 255, 0.8);
   color: #64748b;
+  word-break: break-word;
 }
 
 body.classroom-app .profile-form-banner {

@@ -141,6 +141,24 @@ if (!empty($flashToasts)) {
     }
   });
 
+  function actualizarNombreArchivo($input) {
+    var $contenedor = $input.closest('.classroom-file, .profile-upload');
+    var $nombre = $contenedor.find('.classroom-file__name, .profile-file-name').first();
+    var archivos = $input[0] && $input[0].files ? $input[0].files : [];
+    var placeholder = $input.data('placeholder') || 'Ningún archivo seleccionado';
+    var texto = placeholder;
+
+    if (archivos.length > 0) {
+      if ($input.prop('multiple')) {
+        texto = archivos.length === 1 ? archivos[0].name : archivos.length + ' archivos seleccionados';
+      } else {
+        texto = archivos[0].name;
+      }
+    }
+
+    $nombre.text(texto);
+  }
+
   $(document).ready(function() {
       $('#inputDNI').on('input', function() {
         var valor = $(this).val();
@@ -175,9 +193,8 @@ if (!empty($flashToasts)) {
         });
       }
 
-      $(document).on('change', '.profile-file-input', function () {
-        var fileName = this.files && this.files.length ? this.files[0].name : 'Ningún archivo seleccionado';
-        $(this).closest('.profile-upload').find('.profile-file-name').text(fileName);
+      $(document).on('change', '.classroom-file__input, .profile-upload__input, .profile-file-input', function () {
+        actualizarNombreArchivo($(this));
       });
     });
 </script>
