@@ -927,9 +927,10 @@ body.login-page.classroom-auth .login-card-body {
 body.login-page.classroom-auth {
   font-family: 'Montserrat', sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(89, 36, 155, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(255, 145, 77, 0.14), transparent 24%),
-    linear-gradient(180deg, #f6f7fb 0%, #eef1f8 100%);
+    radial-gradient(circle at top left, rgba(255, 145, 77, 0.22), transparent 26%),
+    radial-gradient(circle at top right, rgba(109, 40, 217, 0.34), transparent 30%),
+    linear-gradient(135deg, #0b1020 0%, #1e1b4b 44%, #59249b 100%) !important;
+  color: #fff;
 }
 
 body.login-page.classroom-auth .login-logo img {
@@ -996,13 +997,22 @@ body.login-page.classroom-auth .input-group-text {
   background: #fff;
 }
 
-.section-header-soft {
-  background: linear-gradient(90deg, rgba(15, 23, 42, 0.05), rgba(29, 78, 216, 0.07));
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+.section-header-soft,
+.section-header-lilac,
+.lesson-builder-header {
+  background: linear-gradient(90deg, rgba(89, 36, 155, 0.1), rgba(89, 36, 155, 0.04)) !important;
+  border-bottom: 1px solid rgba(89, 36, 155, 0.14) !important;
 }
 
-.section-header-soft .card-title {
-  letter-spacing: 0.02em;
+.section-header-orange {
+  background: linear-gradient(90deg, rgba(255, 145, 77, 0.16), rgba(255, 145, 77, 0.06)) !important;
+  border-bottom: 1px solid rgba(255, 145, 77, 0.2) !important;
+}
+
+.section-header-soft .card-title,
+.section-header-lilac .card-title,
+.section-header-orange .card-title {
+  letter-spacing: 0.01em;
   font-weight: 700;
 }
 
@@ -1014,13 +1024,8 @@ body.login-page.classroom-auth .input-group-text {
   padding: 1.35rem;
 }
 
-.lesson-builder-header {
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.18), rgba(15, 23, 42, 0.09));
-  border-bottom: 1px solid rgba(37, 99, 235, 0.16) !important;
-}
-
 .lesson-builder-header .card-title {
-  color: #0f172a;
+  color: var(--text);
 }
 
 .grade-form {
@@ -1228,6 +1233,16 @@ body.classroom-app .student-course-hero h1 {
   color: var(--text);
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+body.classroom-app .hero-shell h1,
+body.classroom-app .hero-title,
+body.classroom-app .entity-hero h1,
+body.classroom-app .entity-title,
+body.classroom-app .profile-hero h1,
+body.classroom-app .profile-title,
+body.classroom-app .student-course-hero h1 {
+  color: #fff !important;
 }
 
 body.classroom-app .card-body,
@@ -1621,18 +1636,35 @@ body.classroom-app .timeline-icon.bg-danger {
   background: var(--danger) !important;
 }
 
-body.classroom-app .section-header-soft {
-  background: #fff;
-  border-bottom: 1px solid var(--border) !important;
+body.classroom-app .section-header-soft,
+body.classroom-app .section-header-lilac,
+body.classroom-app .lesson-builder-header {
+  background: linear-gradient(90deg, rgba(89, 36, 155, 0.1), rgba(89, 36, 155, 0.04)) !important;
+  border-bottom: 1px solid rgba(89, 36, 155, 0.14) !important;
 }
 
-body.classroom-app .lesson-builder-header {
-  background: linear-gradient(90deg, rgba(89, 36, 155, 0.08), rgba(255, 145, 77, 0.1)) !important;
-  border-bottom: 1px solid rgba(89, 36, 155, 0.14) !important;
+body.classroom-app .section-header-orange,
+body.classroom-app .card.card-outline.card-success > .section-header-soft,
+body.classroom-app .card.card-outline.card-warning > .section-header-soft,
+body.classroom-app .card.card-outline.card-secondary > .section-header-soft {
+  background: linear-gradient(90deg, rgba(255, 145, 77, 0.16), rgba(255, 145, 77, 0.06)) !important;
+  border-bottom: 1px solid rgba(255, 145, 77, 0.2) !important;
+}
+
+body.classroom-app .section-header-soft .card-title,
+body.classroom-app .section-header-lilac .card-title,
+body.classroom-app .section-header-orange .card-title,
+body.classroom-app .lesson-builder-header .card-title {
+  color: var(--text);
 }
 
 body.classroom-app .lesson-builder-card .card-body {
   padding: 1.5rem;
+}
+
+body.classroom-app .lesson-side-card .card-title {
+  font-size: 0.95rem;
+  line-height: 1.25;
 }
 
 body.classroom-app .quick-action {
@@ -1705,6 +1737,123 @@ body.classroom-app .main-footer {
 body.classroom-app .card-header .badge,
 body.classroom-app .small-box .badge {
   border-radius: 999px;
+}
+
+body.classroom-app {
+  background:
+    radial-gradient(circle at top left, rgba(89, 36, 155, 0.08), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 145, 77, 0.08), transparent 28%),
+    linear-gradient(180deg, var(--background) 0%, #eef0f6 100%) !important;
+}
+
+body.classroom-app .main-header.navbar {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+body.classroom-app .main-sidebar {
+  background: var(--sidebar-bg) !important;
+}
+
+body.classroom-app .brand-link {
+  background: rgba(89, 36, 155, 0.16) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.classroom-app .nav-sidebar .nav-link:hover,
+body.classroom-app .nav-sidebar .nav-link.active {
+  background: rgba(89, 36, 155, 0.25) !important;
+  border-left: 4px solid var(--secondary);
+  color: var(--sidebar-text) !important;
+}
+
+body.classroom-app .bg-primary,
+body.classroom-app .bg-info,
+body.classroom-app div.bg-primary,
+body.classroom-app div.bg-info {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+body.classroom-app .bg-secondary,
+body.classroom-app .bg-success,
+body.classroom-app .bg-warning,
+body.classroom-app div.bg-secondary,
+body.classroom-app div.bg-success,
+body.classroom-app div.bg-warning {
+  background: var(--secondary) !important;
+  color: #fff !important;
+}
+
+body.classroom-app .bg-light,
+body.classroom-app div.bg-light {
+  background: rgba(89, 36, 155, 0.04) !important;
+  color: var(--text) !important;
+}
+
+body.classroom-app .bg-white,
+body.classroom-app div.bg-white {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+body.classroom-app .bg-dark,
+body.classroom-app div.bg-dark {
+  background: #1e1b4b !important;
+  color: #fff !important;
+}
+
+body.classroom-app .bg-danger,
+body.classroom-app div.bg-danger {
+  background: var(--danger) !important;
+  color: #fff !important;
+}
+
+body.classroom-app .card-header.bg-primary,
+body.classroom-app .card-header.bg-info {
+  background: linear-gradient(90deg, rgba(89, 36, 155, 0.1), rgba(89, 36, 155, 0.04)) !important;
+  color: var(--text) !important;
+}
+
+body.classroom-app .card-header.bg-secondary,
+body.classroom-app .card-header.bg-success,
+body.classroom-app .card-header.bg-warning {
+  background: linear-gradient(90deg, rgba(255, 145, 77, 0.16), rgba(255, 145, 77, 0.06)) !important;
+  color: var(--text) !important;
+}
+
+body.classroom-app .border.rounded.bg-light,
+body.classroom-app div.border.rounded.bg-light {
+  background: rgba(89, 36, 155, 0.035) !important;
+  border-color: rgba(89, 36, 155, 0.12) !important;
+}
+
+body.classroom-app .p-3.rounded.bg-white,
+body.classroom-app .p-4.rounded.bg-white,
+body.classroom-app div.p-3.rounded.bg-white,
+body.classroom-app div.p-4.rounded.bg-white {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+body.classroom-app .small-box.bg-info,
+body.classroom-app .small-box.bg-primary {
+  border-top-color: var(--primary) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+body.classroom-app .small-box.bg-success,
+body.classroom-app .small-box.bg-warning {
+  border-top-color: var(--secondary) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+body.classroom-app .small-box.bg-danger {
+  border-top-color: var(--danger) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
 }
 
 @media (max-width: 767.98px) {

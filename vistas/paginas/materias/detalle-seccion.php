@@ -3,8 +3,8 @@ $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
 $accion = trim((string) ($_POST['accion'] ?? ''));
 
 if ($accion !== '') {
-    ControladorLecciones::crtProcesarAcciones();
-    ControladorCalificaciones::crtProcesarAcciones();
+  ControladorLecciones::crtProcesarAcciones();
+  ControladorCalificaciones::crtProcesarAcciones();
 }
 
 $seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
@@ -17,338 +17,338 @@ $resumen = $idSeccion > 0 ? ControladorLecciones::crtResumenSeccion($idSeccion) 
 $estudiantesCurso = $puedeGestionar && $seccion ? ControladorLecciones::crtBuscarEstudiantesCurso((int) $seccion['id_curso']) : [];
 $calificacionesSeccion = $idSeccion > 0 ? ControladorCalificaciones::crtCalificacionesPorSeccion($idSeccion) : [];
 $seguimientoPersonal = ControladorPermisos::esEstudiante() && $idSeccion > 0 && $idUsuarioActual > 0
-    ? ControladorLecciones::crtResumenEstudianteSeccion($idSeccion, $idUsuarioActual)
-    : [];
+  ? ControladorLecciones::crtResumenEstudianteSeccion($idSeccion, $idUsuarioActual)
+  : [];
 $misCalificaciones = ControladorPermisos::esEstudiante() && $idSeccion > 0 && $idUsuarioActual > 0
-    ? ControladorCalificaciones::crtCalificacionesPorEstudiante($idSeccion, $idUsuarioActual)
-    : [];
+  ? ControladorCalificaciones::crtCalificacionesPorEstudiante($idSeccion, $idUsuarioActual)
+  : [];
 $puedeAccederDocente = !$esDocente || $esAdmin || ($seccion && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual));
 $bannerSeccion = (string) ($seccion['bannerSeccion'] ?? '');
 $colorInicioBanner = (string) ($seccion['colorInicioBanner'] ?? '#0f172a');
 $colorFinBanner = (string) ($seccion['colorFinBanner'] ?? '#1d4ed8');
 $heroStyle = 'background: linear-gradient(135deg, ' . htmlspecialchars($colorInicioBanner, ENT_QUOTES, 'UTF-8') . ', ' . htmlspecialchars($colorFinBanner, ENT_QUOTES, 'UTF-8') . ');';
 if ($bannerSeccion !== '') {
-    $heroStyle = 'background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(29, 78, 216, 0.74)), url(\'img/' . htmlspecialchars($bannerSeccion, ENT_QUOTES, 'UTF-8') . '\'); background-size: cover; background-position: center;';
+  $heroStyle = 'background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(29, 78, 216, 0.74)), url(\'img/' . htmlspecialchars($bannerSeccion, ENT_QUOTES, 'UTF-8') . '\'); background-size: cover; background-position: center;';
 }
 
 $buscarCalificacion = function (array $lista, int $idLeccion, int $idEstudiante): ?array {
-    foreach ($lista as $item) {
-        if ((int) ($item['id_modulo'] ?? 0) === $idLeccion && (int) ($item['id_estudiante'] ?? 0) === $idEstudiante) {
-            return $item;
-        }
+  foreach ($lista as $item) {
+    if ((int) ($item['id_modulo'] ?? 0) === $idLeccion && (int) ($item['id_estudiante'] ?? 0) === $idEstudiante) {
+      return $item;
     }
+  }
 
-    return null;
+  return null;
 };
 
 if (ControladorPermisos::esDocente() && !$puedeAccederDocente) {
-    ?>
-    <section class="content page-fade">
-      <div class="container-fluid">
-        <div class="empty-state">
-          <i class="fas fa-lock"></i>
-          <h4>No tenés acceso a esta materia</h4>
-          <p class="mb-3">Solo podés administrar materias donde figurás como docente o tutor.</p>
-          <a href="index.php?r=listado-materias" class="btn btn-primary">Volver a mis materias</a>
-        </div>
+?>
+  <section class="content page-fade">
+    <div class="container-fluid">
+      <div class="empty-state">
+        <i class="fas fa-lock"></i>
+        <h4>No tenés acceso a esta materia</h4>
+        <p class="mb-3">Solo podés administrar materias donde figurás como docente o tutor.</p>
+        <a href="index.php?r=listado-materias" class="btn btn-primary">Volver a mis materias</a>
       </div>
-    </section>
-    <?php
-    return;
+    </div>
+  </section>
+<?php
+  return;
 }
 
 if (!$seccion) {
-    $seccion = [
-        'tituloSeccion' => 'Seccion no encontrada',
-        'contenidoSeccion' => '',
-        'nombreCurso' => '',
-        'estado' => '',
-        'nombreUsuario' => '',
-        'apellidoUsuario' => '',
-        'id_curso' => 0,
-        'idSeccion' => $idSeccion,
-    ];
+  $seccion = [
+    'tituloSeccion' => 'Seccion no encontrada',
+    'contenidoSeccion' => '',
+    'nombreCurso' => '',
+    'estado' => '',
+    'nombreUsuario' => '',
+    'apellidoUsuario' => '',
+    'id_curso' => 0,
+    'idSeccion' => $idSeccion,
+  ];
 }
 
 if (ControladorPermisos::esEstudiante()) {
-    $estaInscripto = !empty($seccion['id_curso'])
-        && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, (int) $seccion['id_curso']);
-    $e = static function ($valor) {
-        return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
-    };
-    $tareasPendientes = 0;
-    $proximasTareas = [];
+  $estaInscripto = !empty($seccion['id_curso'])
+    && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, (int) $seccion['id_curso']);
+  $e = static function ($valor) {
+    return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
+  };
+  $tareasPendientes = 0;
+  $proximasTareas = [];
 
-    foreach ($lecciones as $leccionPendiente) {
-        if (strtoupper((string) ($leccionPendiente['tipoLeccion'] ?? '')) !== 'TAREA') {
-            continue;
-        }
-
-        $entregaPendiente = ControladorLecciones::crtBuscarEntregaPorLeccionEstudiante((int) $leccionPendiente['idLeccion'], $idUsuarioActual);
-        if (!$entregaPendiente) {
-            $tareasPendientes++;
-            $proximasTareas[] = $leccionPendiente;
-        }
+  foreach ($lecciones as $leccionPendiente) {
+    if (strtoupper((string) ($leccionPendiente['tipoLeccion'] ?? '')) !== 'TAREA') {
+      continue;
     }
-    ?>
 
-    <section class="content page-fade">
-      <div class="container-fluid student-classroom">
-        <?php if (!$estaInscripto): ?>
-          <div class="empty-state">
-            <i class="fas fa-lock"></i>
-            <h4>No tenés acceso a esta materia</h4>
-            <p class="mb-3">Solo podés entrar a materias de tus cursos asignados.</p>
-            <a href="index.php?r=listado-cursos" class="btn btn-primary">Volver a mis cursos</a>
+    $entregaPendiente = ControladorLecciones::crtBuscarEntregaPorLeccionEstudiante((int) $leccionPendiente['idLeccion'], $idUsuarioActual);
+    if (!$entregaPendiente) {
+      $tareasPendientes++;
+      $proximasTareas[] = $leccionPendiente;
+    }
+  }
+?>
+
+  <section class="content page-fade">
+    <div class="container-fluid student-classroom">
+      <?php if (!$estaInscripto): ?>
+        <div class="empty-state">
+          <i class="fas fa-lock"></i>
+          <h4>No tenés acceso a esta materia</h4>
+          <p class="mb-3">Solo podés entrar a materias de tus cursos asignados.</p>
+          <a href="index.php?r=listado-cursos" class="btn btn-primary">Volver a mis cursos</a>
+        </div>
+      <?php else: ?>
+        <div class="student-course-hero student-course-hero--subject mb-3" style="<?php echo $heroStyle; ?>">
+          <div class="student-course-hero__content">
+            <span class="entity-kicker mb-3"><?php echo $e($seccion['nombreCurso'] ?? 'Curso'); ?></span>
+            <h1><?php echo $e($seccion['tituloSeccion'] ?? 'Materia'); ?></h1>
+            <p><?php echo $e(trim(($seccion['nombreUsuario'] ?? '') . ' ' . ($seccion['apellidoUsuario'] ?? ''))); ?></p>
           </div>
-        <?php else: ?>
-          <div class="student-course-hero student-course-hero--subject mb-3" style="<?php echo $heroStyle; ?>">
-            <div class="student-course-hero__content">
-              <span class="entity-kicker mb-3"><?php echo $e($seccion['nombreCurso'] ?? 'Curso'); ?></span>
-              <h1><?php echo $e($seccion['tituloSeccion'] ?? 'Materia'); ?></h1>
-              <p><?php echo $e(trim(($seccion['nombreUsuario'] ?? '') . ' ' . ($seccion['apellidoUsuario'] ?? ''))); ?></p>
-            </div>
-          </div>
+        </div>
 
-          <ul class="nav nav-tabs classroom-tabs mb-4" role="tablist">
-            <li class="nav-item">
-              <a class="nav-link active" data-toggle="tab" href="#tablon" role="tab">Tablón</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" data-toggle="tab" href="#trabajo-clase" role="tab">Trabajo de clase</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" data-toggle="tab" href="#personas" role="tab">Personas</a>
-            </li>
-          </ul>
+        <ul class="nav nav-tabs classroom-tabs mb-4" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link active" data-toggle="tab" href="#tablon" role="tab">Tablón</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#trabajo-clase" role="tab">Trabajo de clase</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#personas" role="tab">Personas</a>
+          </li>
+        </ul>
 
-          <div class="tab-content">
-            <div class="tab-pane fade show active" id="tablon" role="tabpanel">
-              <div class="row">
-                <div class="col-lg-3 mb-4">
-                  <div class="classroom-sidebox">
-                    <h3>Próximas entregas</h3>
-                    <?php if ($tareasPendientes === 0): ?>
-                      <p>No tenés tareas pendientes por ahora.</p>
-                    <?php else: ?>
-                      <p><?php echo (int) $tareasPendientes; ?> tarea<?php echo $tareasPendientes === 1 ? '' : 's'; ?> pendiente<?php echo $tareasPendientes === 1 ? '' : 's'; ?>.</p>
-                    <?php endif; ?>
-                    <a href="#trabajo-clase" data-toggle="tab">Ver todo</a>
-                  </div>
-                </div>
-                <div class="col-lg-9">
-                  <div class="classroom-announcement mb-3">
-                    <div class="classroom-avatar"><?php echo strtoupper(substr((string) ($seccion['tituloSeccion'] ?? 'M'), 0, 1)); ?></div>
-                    <div>
-                      <strong><?php echo $e($seccion['tituloSeccion'] ?? 'Materia'); ?></strong>
-                      <p class="mb-0"><?php echo nl2br($e($seccion['contenidoSeccion'] ?? 'Todavía no hay novedades publicadas.')); ?></p>
-                    </div>
-                  </div>
-
-                  <?php foreach (array_slice($lecciones, -5) as $leccionStream): ?>
-                    <a class="classroom-stream-item" href="#trabajo-clase" data-toggle="tab">
-                      <span class="classroom-item-icon"><i class="fas fa-file-alt"></i></span>
-                      <div>
-                        <strong><?php echo $e($leccionStream['nombreLeccion'] ?? 'Clase'); ?></strong>
-                        <small><?php echo $e($leccionStream['tipoLeccion'] ?? 'MATERIAL'); ?> · <?php echo (int) ($leccionStream['totalRecursos'] ?? 0); ?> recursos</small>
-                      </div>
-                    </a>
-                  <?php endforeach; ?>
-                  </div>
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="tablon" role="tabpanel">
+            <div class="row">
+              <div class="col-lg-3 mb-4">
+                <div class="classroom-sidebox">
+                  <h3>Próximas entregas</h3>
+                  <?php if ($tareasPendientes === 0): ?>
+                    <p>No tenés tareas pendientes por ahora.</p>
+                  <?php else: ?>
+                    <p><?php echo (int) $tareasPendientes; ?> tarea<?php echo $tareasPendientes === 1 ? '' : 's'; ?> pendiente<?php echo $tareasPendientes === 1 ? '' : 's'; ?>.</p>
+                  <?php endif; ?>
+                  <a href="#trabajo-clase" data-toggle="tab">Ver todo</a>
                 </div>
               </div>
-            </div>
-
-            <div class="tab-pane fade" id="trabajo-clase" role="tabpanel">
-              <?php if (empty($lecciones)): ?>
-                <div class="empty-state">
-                  <i class="fas fa-tasks"></i>
-                  <h4>Todavía no hay trabajo de clase</h4>
-                  <p class="mb-0">Cuando el docente publique materiales, tareas o preguntas, aparecerán acá.</p>
-                </div>
-              <?php endif; ?>
-
-              <div class="classwork-list">
-                <?php foreach ($lecciones as $leccion): ?>
-                  <?php
-                    $tipoLeccion = strtoupper((string) ($leccion['tipoLeccion'] ?? 'MATERIAL'));
-                    $recursos = ControladorLecciones::crtBuscarRecursosPorLeccion((int) $leccion['idLeccion']);
-                    $posts = $tipoLeccion === 'PREGUNTA' ? ControladorLecciones::crtBuscarPostsPorLeccion((int) $leccion['idLeccion']) : [];
-                    $entrega = $tipoLeccion === 'TAREA'
-                        ? ControladorLecciones::crtBuscarEntregaPorLeccionEstudiante((int) $leccion['idLeccion'], $idUsuarioActual)
-                        : null;
-                    $notaEntrega = $tipoLeccion === 'TAREA'
-                        ? $buscarCalificacion($calificacionesSeccion, (int) $leccion['idLeccion'], $idUsuarioActual)
-                        : null;
-                    $collapseId = 'leccion-estudiante-' . (int) $leccion['idLeccion'];
-                  ?>
-                  <div class="classwork-item">
-                    <button class="classwork-summary" type="button" data-toggle="collapse" data-target="#<?php echo $collapseId; ?>" aria-expanded="false">
-                      <span class="classroom-item-icon">
-                        <i class="<?php echo $tipoLeccion === 'TAREA' ? 'fas fa-clipboard-list' : ($tipoLeccion === 'PREGUNTA' ? 'fas fa-comments' : 'fas fa-book-open'); ?>"></i>
-                      </span>
-                      <span class="classwork-summary__main">
-                        <strong><?php echo $e($leccion['nombreLeccion'] ?? 'Clase'); ?></strong>
-                        <small><?php echo $e($tipoLeccion); ?> · <?php echo (int) ($leccion['totalRecursos'] ?? 0); ?> recursos</small>
-                      </span>
-                      <span class="classwork-status">
-                        <?php if ($tipoLeccion === 'TAREA' && $entrega): ?>
-                          Entregado
-                        <?php elseif ($tipoLeccion === 'TAREA'): ?>
-                          Pendiente
-                        <?php else: ?>
-                          Sin fecha
-                        <?php endif; ?>
-                      </span>
-                    </button>
-                    <div id="<?php echo $collapseId; ?>" class="collapse">
-                      <div class="classwork-detail">
-                        <p><?php echo nl2br($e($leccion['contenidoLeccion'] ?? '')); ?></p>
-
-                        <?php if (!empty($recursos)): ?>
-                          <div class="resource-grid mb-3">
-                            <?php foreach ($recursos as $recurso): ?>
-                              <a class="resource-pill" href="<?php echo $e($recurso['urlRecurso'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">
-                                <i class="fas fa-paperclip"></i>
-                                <span>
-                                  <strong><?php echo $e($recurso['tituloRecurso'] ?? 'Recurso'); ?></strong>
-                                  <small><?php echo $e($recurso['tipoRecurso'] ?? ''); ?></small>
-                                </span>
-                              </a>
-                            <?php endforeach; ?>
-                          </div>
-                        <?php endif; ?>
-
-                        <?php if ($tipoLeccion === 'TAREA'): ?>
-                          <?php if ($entrega): ?>
-                            <div class="alert alert-success border-0">
-                              <div class="d-flex justify-content-between align-items-start flex-wrap">
-                                <div>
-                                  <strong>Entregaste esta tarea.</strong>
-                                  <div class="small mt-1">
-                                    <a href="<?php echo $e($entrega['urlArchivo'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">Ver archivo</a>
-                                    <?php if (!empty($entrega['comentarioEntrega'])): ?>
-                                      · <?php echo $e($entrega['comentarioEntrega']); ?>
-                                    <?php endif; ?>
-                                  </div>
-                                </div>
-                                <?php if ($notaEntrega): ?>
-                                  <span class="badge badge-primary">Nota: <?php echo (int) ($notaEntrega['calificacion'] ?? 0); ?></span>
-                                <?php endif; ?>
-                              </div>
-                              <?php if (!empty($notaEntrega['devolucion'] ?? '')): ?>
-                                <hr class="my-2">
-                                <div class="small">
-                                  <strong>Devolución:</strong> <?php echo $e($notaEntrega['devolucion']); ?>
-                                </div>
-                              <?php endif; ?>
-                            </div>
-                          <?php endif; ?>
-                          <?php if (!$notaEntrega): ?>
-                            <form method="post" enctype="multipart/form-data" class="row">
-                              <input type="hidden" name="accion" value="entregar_tarea">
-                              <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                              <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
-                              <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                              <div class="form-group col-md-5">
-                                <label class="small text-muted">Archivo</label>
-                                <div class="classroom-file">
-                                  <input type="file" class="classroom-file__input" id="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega">
-                                  <label class="classroom-file__button" for="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>">
-                                    <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
-                                  </label>
-                                  <span class="classroom-file__name">Ningún archivo seleccionado</span>
-                                </div>
-                              </div>
-                              <div class="form-group col-md-7">
-                                <label class="small text-muted">Comentario</label>
-                                <input type="text" name="comentarioEntrega" class="form-control form-control-sm" placeholder="Opcional" value="<?php echo $e((string) ($entrega['comentarioEntrega'] ?? '')); ?>">
-                              </div>
-                              <div class="form-group col-12 mb-0 text-right">
-                                <button type="submit" class="btn btn-primary btn-sm"><?php echo $entrega ? 'Actualizar entrega' : 'Enviar entrega'; ?></button>
-                              </div>
-                            </form>
-                          <?php else: ?>
-                            <div class="alert alert-light border mt-3 mb-0">
-                              Esta entrega ya fue calificada, por eso queda bloqueada para cambios.
-                            </div>
-                          <?php endif; ?>
-                          <?php if ($entrega && empty($notaEntrega)): ?>
-                            <form method="post" class="text-right mt-2">
-                              <input type="hidden" name="accion" value="cancelar_entrega">
-                              <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                              <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
-                              <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                              <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Cancelar la entrega?');">Cancelar entrega</button>
-                            </form>
-                          <?php endif; ?>
-                        <?php endif; ?>
-
-                        <?php if ($tipoLeccion === 'PREGUNTA'): ?>
-                          <div class="forum-thread mb-3">
-                            <?php foreach ($posts as $post): ?>
-                              <div class="forum-post">
-                                <strong><?php echo $e(($post['apellidoUsuario'] ?? '') . ' ' . ($post['nombreUsuario'] ?? '')); ?></strong>
-                                <small><?php echo $e($post['fechaPosteo'] ?? ''); ?></small>
-                                <p><?php echo nl2br($e($post['contenidoPosteo'] ?? '')); ?></p>
-                              </div>
-                            <?php endforeach; ?>
-                            <?php if (empty($posts)): ?>
-                              <div class="text-muted small">Todavía no hay comentarios.</div>
-                            <?php endif; ?>
-                          </div>
-                          <form method="post">
-                            <input type="hidden" name="accion" value="crear_post">
-                            <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                            <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                            <div class="form-group">
-                              <label class="small text-muted">Tu respuesta</label>
-                              <textarea name="contenidoPosteo" rows="3" class="form-control form-control-sm" required></textarea>
-                            </div>
-                            <div class="text-right">
-                              <button type="submit" class="btn btn-primary btn-sm">Publicar</button>
-                            </div>
-                          </form>
-                        <?php endif; ?>
-                      </div>
-                    </div>
+              <div class="col-lg-9">
+                <div class="classroom-announcement mb-3">
+                  <div class="classroom-avatar"><?php echo strtoupper(substr((string) ($seccion['tituloSeccion'] ?? 'M'), 0, 1)); ?></div>
+                  <div>
+                    <strong><?php echo $e($seccion['tituloSeccion'] ?? 'Materia'); ?></strong>
+                    <p class="mb-0"><?php echo nl2br($e($seccion['contenidoSeccion'] ?? 'Todavía no hay novedades publicadas.')); ?></p>
                   </div>
+                </div>
+
+                <?php foreach (array_slice($lecciones, -5) as $leccionStream): ?>
+                  <a class="classroom-stream-item" href="#trabajo-clase" data-toggle="tab">
+                    <span class="classroom-item-icon"><i class="fas fa-file-alt"></i></span>
+                    <div>
+                      <strong><?php echo $e($leccionStream['nombreLeccion'] ?? 'Clase'); ?></strong>
+                      <small><?php echo $e($leccionStream['tipoLeccion'] ?? 'MATERIAL'); ?> · <?php echo (int) ($leccionStream['totalRecursos'] ?? 0); ?> recursos</small>
+                    </div>
+                  </a>
                 <?php endforeach; ?>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div class="tab-pane fade" id="personas" role="tabpanel">
-              <div class="people-panel">
-                <h3>Docente</h3>
-                <div class="people-row">
-                  <div class="classroom-avatar"><?php echo strtoupper(substr((string) ($seccion['nombreUsuario'] ?? 'D'), 0, 1)); ?></div>
-                  <div>
-                    <strong><?php echo $e(trim(($seccion['nombreUsuario'] ?? '') . ' ' . ($seccion['apellidoUsuario'] ?? ''))); ?></strong>
-                    <small>Responsable de la materia</small>
+        <div class="tab-pane fade" id="trabajo-clase" role="tabpanel">
+          <?php if (empty($lecciones)): ?>
+            <div class="empty-state">
+              <i class="fas fa-tasks"></i>
+              <h4>Todavía no hay trabajo de clase</h4>
+              <p class="mb-0">Cuando el docente publique materiales, tareas o preguntas, aparecerán acá.</p>
+            </div>
+          <?php endif; ?>
+
+          <div class="classwork-list">
+            <?php foreach ($lecciones as $leccion): ?>
+              <?php
+              $tipoLeccion = strtoupper((string) ($leccion['tipoLeccion'] ?? 'MATERIAL'));
+              $recursos = ControladorLecciones::crtBuscarRecursosPorLeccion((int) $leccion['idLeccion']);
+              $posts = $tipoLeccion === 'PREGUNTA' ? ControladorLecciones::crtBuscarPostsPorLeccion((int) $leccion['idLeccion']) : [];
+              $entrega = $tipoLeccion === 'TAREA'
+                ? ControladorLecciones::crtBuscarEntregaPorLeccionEstudiante((int) $leccion['idLeccion'], $idUsuarioActual)
+                : null;
+              $notaEntrega = $tipoLeccion === 'TAREA'
+                ? $buscarCalificacion($calificacionesSeccion, (int) $leccion['idLeccion'], $idUsuarioActual)
+                : null;
+              $collapseId = 'leccion-estudiante-' . (int) $leccion['idLeccion'];
+              ?>
+              <div class="classwork-item">
+                <button class="classwork-summary" type="button" data-toggle="collapse" data-target="#<?php echo $collapseId; ?>" aria-expanded="false">
+                  <span class="classroom-item-icon">
+                    <i class="<?php echo $tipoLeccion === 'TAREA' ? 'fas fa-clipboard-list' : ($tipoLeccion === 'PREGUNTA' ? 'fas fa-comments' : 'fas fa-book-open'); ?>"></i>
+                  </span>
+                  <span class="classwork-summary__main">
+                    <strong><?php echo $e($leccion['nombreLeccion'] ?? 'Clase'); ?></strong>
+                    <small><?php echo $e($tipoLeccion); ?> · <?php echo (int) ($leccion['totalRecursos'] ?? 0); ?> recursos</small>
+                  </span>
+                  <span class="classwork-status">
+                    <?php if ($tipoLeccion === 'TAREA' && $entrega): ?>
+                      Entregado
+                    <?php elseif ($tipoLeccion === 'TAREA'): ?>
+                      Pendiente
+                    <?php else: ?>
+                      Sin fecha
+                    <?php endif; ?>
+                  </span>
+                </button>
+                <div id="<?php echo $collapseId; ?>" class="collapse">
+                  <div class="classwork-detail">
+                    <p><?php echo nl2br($e($leccion['contenidoLeccion'] ?? '')); ?></p>
+
+                    <?php if (!empty($recursos)): ?>
+                      <div class="resource-grid mb-3">
+                        <?php foreach ($recursos as $recurso): ?>
+                          <a class="resource-pill" href="<?php echo $e($recurso['urlRecurso'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-paperclip"></i>
+                            <span>
+                              <strong><?php echo $e($recurso['tituloRecurso'] ?? 'Recurso'); ?></strong>
+                              <small><?php echo $e($recurso['tipoRecurso'] ?? ''); ?></small>
+                            </span>
+                          </a>
+                        <?php endforeach; ?>
+                      </div>
+                    <?php endif; ?>
+
+                    <?php if ($tipoLeccion === 'TAREA'): ?>
+                      <?php if ($entrega): ?>
+                        <div class="alert alert-success border-0">
+                          <div class="d-flex justify-content-between align-items-start flex-wrap">
+                            <div>
+                              <strong>Entregaste esta tarea.</strong>
+                              <div class="small mt-1">
+                                <a href="<?php echo $e($entrega['urlArchivo'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">Ver archivo</a>
+                                <?php if (!empty($entrega['comentarioEntrega'])): ?>
+                                  · <?php echo $e($entrega['comentarioEntrega']); ?>
+                                <?php endif; ?>
+                              </div>
+                            </div>
+                            <?php if ($notaEntrega): ?>
+                              <span class="badge badge-primary">Nota: <?php echo (int) ($notaEntrega['calificacion'] ?? 0); ?></span>
+                            <?php endif; ?>
+                          </div>
+                          <?php if (!empty($notaEntrega['devolucion'] ?? '')): ?>
+                            <hr class="my-2">
+                            <div class="small">
+                              <strong>Devolución:</strong> <?php echo $e($notaEntrega['devolucion']); ?>
+                            </div>
+                          <?php endif; ?>
+                        </div>
+                      <?php endif; ?>
+                      <?php if (!$notaEntrega): ?>
+                        <form method="post" enctype="multipart/form-data" class="row">
+                          <input type="hidden" name="accion" value="entregar_tarea">
+                          <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                          <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
+                          <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
+                          <div class="form-group col-md-5">
+                            <label class="small text-muted">Archivo</label>
+                            <div class="classroom-file">
+                              <input type="file" class="classroom-file__input" id="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega">
+                              <label class="classroom-file__button" for="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>">
+                                <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                              </label>
+                              <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                            </div>
+                          </div>
+                          <div class="form-group col-md-7">
+                            <label class="small text-muted">Comentario</label>
+                            <input type="text" name="comentarioEntrega" class="form-control form-control-sm" placeholder="Opcional" value="<?php echo $e((string) ($entrega['comentarioEntrega'] ?? '')); ?>">
+                          </div>
+                          <div class="form-group col-12 mb-0 text-right">
+                            <button type="submit" class="btn btn-primary btn-sm"><?php echo $entrega ? 'Actualizar entrega' : 'Enviar entrega'; ?></button>
+                          </div>
+                        </form>
+                      <?php else: ?>
+                        <div class="alert alert-light border mt-3 mb-0">
+                          Esta entrega ya fue calificada, por eso queda bloqueada para cambios.
+                        </div>
+                      <?php endif; ?>
+                      <?php if ($entrega && empty($notaEntrega)): ?>
+                        <form method="post" class="text-right mt-2">
+                          <input type="hidden" name="accion" value="cancelar_entrega">
+                          <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                          <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
+                          <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
+                          <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Cancelar la entrega?');">Cancelar entrega</button>
+                        </form>
+                      <?php endif; ?>
+                    <?php endif; ?>
+
+                    <?php if ($tipoLeccion === 'PREGUNTA'): ?>
+                      <div class="forum-thread mb-3">
+                        <?php foreach ($posts as $post): ?>
+                          <div class="forum-post">
+                            <strong><?php echo $e(($post['apellidoUsuario'] ?? '') . ' ' . ($post['nombreUsuario'] ?? '')); ?></strong>
+                            <small><?php echo $e($post['fechaPosteo'] ?? ''); ?></small>
+                            <p><?php echo nl2br($e($post['contenidoPosteo'] ?? '')); ?></p>
+                          </div>
+                        <?php endforeach; ?>
+                        <?php if (empty($posts)): ?>
+                          <div class="text-muted small">Todavía no hay comentarios.</div>
+                        <?php endif; ?>
+                      </div>
+                      <form method="post">
+                        <input type="hidden" name="accion" value="crear_post">
+                        <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                        <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
+                        <div class="form-group">
+                          <label class="small text-muted">Tu respuesta</label>
+                          <textarea name="contenidoPosteo" rows="3" class="form-control form-control-sm" required></textarea>
+                        </div>
+                        <div class="text-right">
+                          <button type="submit" class="btn btn-primary btn-sm">Publicar</button>
+                        </div>
+                      </form>
+                    <?php endif; ?>
                   </div>
                 </div>
               </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
 
-              <div class="people-panel mt-3">
-                <h3>Calificaciones</h3>
-                <p class="text-muted mb-2">Podés ver el detalle completo de tus notas y devoluciones en una vista aparte.</p>
-                <a href="index.php?r=calificaciones-seccion&idSeccion=<?php echo (int) $idSeccion; ?>" class="btn btn-outline-primary btn-sm">Ver calificaciones</a>
+        <div class="tab-pane fade" id="personas" role="tabpanel">
+          <div class="people-panel">
+            <h3>Docente</h3>
+            <div class="people-row">
+              <div class="classroom-avatar"><?php echo strtoupper(substr((string) ($seccion['nombreUsuario'] ?? 'D'), 0, 1)); ?></div>
+              <div>
+                <strong><?php echo $e(trim(($seccion['nombreUsuario'] ?? '') . ' ' . ($seccion['apellidoUsuario'] ?? ''))); ?></strong>
+                <small>Responsable de la materia</small>
               </div>
             </div>
           </div>
-        <?php endif; ?>
-      </div>
-    </section>
 
-    <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== ''): ?>
-      <script>
-        setTimeout(function () {
-          window.location.href = 'index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>';
-        }, 600);
-      </script>
-    <?php endif; ?>
-    <?php
-    return;
+          <div class="people-panel mt-3">
+            <h3>Calificaciones</h3>
+            <p class="text-muted mb-2">Podés ver el detalle completo de tus notas y devoluciones en una vista aparte.</p>
+            <a href="index.php?r=calificaciones-seccion&idSeccion=<?php echo (int) $idSeccion; ?>" class="btn btn-outline-primary btn-sm">Ver calificaciones</a>
+          </div>
+        </div>
+    </div>
+  <?php endif; ?>
+  </div>
+  </section>
+
+  <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== ''): ?>
+    <script>
+      setTimeout(function() {
+        window.location.href = 'index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>';
+      }, 600);
+    </script>
+  <?php endif; ?>
+<?php
+  return;
 }
 ?>
 
@@ -359,6 +359,10 @@ if (ControladorPermisos::esEstudiante()) {
         <span class="entity-kicker mb-3">Secciones</span>
         <h1 class="entity-title mb-2"><?php echo htmlspecialchars($seccion['tituloSeccion'], ENT_QUOTES, 'UTF-8'); ?></h1>
         <p class="entity-lead mb-0"><?php echo htmlspecialchars($seccion['nombreCurso'], ENT_QUOTES, 'UTF-8'); ?> · Aula, recursos, tareas y discusión en una sola vista.</p>
+        <div class="text-muted small">
+         <p>  Docente: <?php echo htmlspecialchars(trim(($seccion['nombreUsuario'] ?? '') . ' ' . ($seccion['apellidoUsuario'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></p>
+         
+        </div>
       </div>
     </div>
 
@@ -368,7 +372,7 @@ if (ControladorPermisos::esEstudiante()) {
 
     <div class="row">
       <div class="col-12 col-lg-8">
-        <div class="card card-outline card-primary shadow-sm">
+        <!-- <div class="card card-outline card-primary shadow-sm">
           <div class="card-header d-flex align-items-center justify-content-between">
             <div>
               <h3 class="card-title mb-1">Aula de <?php echo htmlspecialchars($seccion['tituloSeccion'], ENT_QUOTES, 'UTF-8'); ?></h3>
@@ -384,7 +388,7 @@ if (ControladorPermisos::esEstudiante()) {
               <?php echo nl2br(htmlspecialchars((string) $seccion['contenidoSeccion'], ENT_QUOTES, 'UTF-8')); ?>
             </p>
           </div>
-        </div>
+        </div> -->
 
         <div class="row">
           <div class="col-md-3 col-6">
@@ -423,14 +427,15 @@ if (ControladorPermisos::esEstudiante()) {
 
         <?php if ($puedeGestionar): ?>
           <div class="card card-outline card-primary shadow-sm lesson-builder-card mb-3">
-            <div class="card-header section-header-soft lesson-builder-header d-flex align-items-center justify-content-between">
+            <div class="card-header section-header-soft lesson-builder-header">
               <h3 class="card-title mb-0">Crear lección</h3>
-              <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#crearLeccionPanel" aria-expanded="true" aria-controls="crearLeccionPanel">
-                <i class="fas fa-chevron-up"></i>
-              </button>
+              <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
             </div>
-            <div id="crearLeccionPanel" class="collapse show">
-              <div class="card-body">
+            <div class="card-body">
                 <form method="post">
                   <input type="hidden" name="accion" value="crear_leccion">
                   <input type="hidden" name="id_modulo" value="<?php echo (int) $idSeccion; ?>">
@@ -453,7 +458,7 @@ if (ControladorPermisos::esEstudiante()) {
                   <div class="border rounded p-3 mb-3 bg-light">
                     <div class="text-uppercase text-muted small mb-3">Recurso inicial opcional</div>
                     <div class="form-group">
-                      <label class="small text-muted">TÃ­tulo del recurso</label>
+                      <label class="small text-muted">Tí­tulo del recurso</label>
                       <input type="text" name="tituloRecursoInicial" class="form-control form-control-sm" placeholder="Ej. Apunte de la clase">
                     </div>
                     <div class="form-group">
@@ -484,476 +489,475 @@ if (ControladorPermisos::esEstudiante()) {
                   </button>
                 </form>
               </div>
-            </div>
           </div>
         <?php endif; ?>
 
         <div class="card card-outline card-info shadow-sm mb-0">
-          <div class="card-header section-header-soft d-flex align-items-center justify-content-between">
+          <div class="card-header section-header-soft">
             <h3 class="card-title mb-0">Lecciones del curso</h3>
-            <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#leccionesCursoPanel" aria-expanded="true" aria-controls="leccionesCursoPanel">
-              <i class="fas fa-chevron-up"></i>
-            </button>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                <i class="fas fa-minus"></i>
+              </button>
+            </div>
           </div>
-          <div id="leccionesCursoPanel" class="collapse show">
-            <div class="card-body">
-            <?php if (empty($lecciones)): ?>
-              <div class="alert alert-light border mb-0">
-                Todavia no hay lecciones cargadas para esta seccion.
-              </div>
-            <?php endif; ?>
+          <div class="card-body">
+              <?php if (empty($lecciones)): ?>
+                <div class="alert alert-light border mb-0">
+                  Todavia no hay lecciones cargadas para esta seccion.
+                </div>
+              <?php endif; ?>
 
-            <?php foreach ($lecciones as $leccion): ?>
-              <?php
+              <?php foreach ($lecciones as $leccion): ?>
+                <?php
                 $tipoLeccion = strtoupper((string) ($leccion['tipoLeccion'] ?? 'MATERIAL'));
                 $recursos = ControladorLecciones::crtBuscarRecursosPorLeccion((int) $leccion['idLeccion']);
                 $posts = $tipoLeccion === 'PREGUNTA' ? ControladorLecciones::crtBuscarPostsPorLeccion((int) $leccion['idLeccion']) : [];
                 $entrega = $tipoLeccion === 'TAREA' && ControladorPermisos::esEstudiante()
-                    ? ControladorLecciones::crtBuscarEntregaPorLeccionEstudiante((int) $leccion['idLeccion'], $idUsuarioActual)
-                    : null;
-              ?>
-              <?php $collapseIdDocente = 'leccion-docente-' . (int) $leccion['idLeccion']; ?>
-              <div class="card card-light shadow-none border mb-3">
-                <div class="card-header bg-white border-bottom-0 pb-0">
-                  <div class="d-flex align-items-center justify-content-between flex-wrap">
-                    <h4 class="card-title mb-0">
-                      <?php echo htmlspecialchars($leccion['nombreLeccion'], ENT_QUOTES, 'UTF-8'); ?>
-                    </h4>
-                    <div class="d-flex align-items-center">
-                      <span class="badge badge-primary mr-2"><?php echo htmlspecialchars($tipoLeccion, ENT_QUOTES, 'UTF-8'); ?></span>
-                      <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#<?php echo $collapseIdDocente; ?>" aria-expanded="true">
-                        <i class="fas fa-chevron-down"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <small class="text-muted">
-                    <?php echo (int) $leccion['totalRecursos']; ?> recursos ·
-                    <?php echo (int) $leccion['totalEntregas']; ?> entregas ·
-                    <?php echo (int) $leccion['totalPosts']; ?> mensajes
-                  </small>
-                </div>
-                <div id="<?php echo $collapseIdDocente; ?>" class="collapse show">
-                  <div class="card-body pt-3">
-                  <p class="text-muted mb-3">
-                    <?php echo nl2br(htmlspecialchars((string) $leccion['contenidoLeccion'], ENT_QUOTES, 'UTF-8')); ?>
-                  </p>
-
-                  <?php if ($puedeGestionar): ?>
-                    <div class="border rounded p-3 bg-light mb-3">
-                      <h6 class="text-uppercase text-muted small mb-3">Editar leccion</h6>
-                      <form method="post" class="row">
-                        <input type="hidden" name="accion" value="actualizar_leccion">
-                        <input type="hidden" name="idLeccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                        <div class="form-group col-md-4">
-                          <label class="small text-muted">Nombre</label>
-                          <input type="text" name="nombreLeccion" class="form-control form-control-sm" value="<?php echo htmlspecialchars($leccion['nombreLeccion'], ENT_QUOTES, 'UTF-8'); ?>" required>
-                        </div>
-                        <div class="form-group col-md-4">
-                          <label class="small text-muted">Tipo</label>
-                          <select name="tipoLeccion" class="form-control form-control-sm" required>
-                            <option value="MATERIAL" <?php echo $tipoLeccion === 'MATERIAL' ? 'selected' : ''; ?>>Material</option>
-                            <option value="TAREA" <?php echo $tipoLeccion === 'TAREA' ? 'selected' : ''; ?>>Tarea</option>
-                            <option value="PREGUNTA" <?php echo $tipoLeccion === 'PREGUNTA' ? 'selected' : ''; ?>>Pregunta</option>
-                          </select>
-                        </div>
-                        <div class="form-group col-md-4">
-                          <label class="small text-muted">Contenido</label>
-                          <input type="text" name="contenidoLeccion" class="form-control form-control-sm" value="<?php echo htmlspecialchars((string) $leccion['contenidoLeccion'], ENT_QUOTES, 'UTF-8'); ?>">
-                        </div>
-                        <div class="form-group col-12 text-right mb-0">
-                          <button type="submit" class="btn btn-success btn-sm">
-                            <i class="fas fa-save mr-1"></i>Guardar cambios
-                          </button>
-                        </div>
-                      </form>
-                      <form method="post" class="mt-2 text-right">
-                        <input type="hidden" name="accion" value="eliminar_leccion">
-                        <input type="hidden" name="idLeccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Eliminar esta leccion y todo su contenido?');">
-                          <i class="fas fa-trash mr-1"></i>Eliminar
+                  ? ControladorLecciones::crtBuscarEntregaPorLeccionEstudiante((int) $leccion['idLeccion'], $idUsuarioActual)
+                  : null;
+                ?>
+                <?php $collapseIdDocente = 'leccion-docente-' . (int) $leccion['idLeccion']; ?>
+                <div class="card card-light shadow-none border mb-3">
+                  <div class="card-header bg-white border-bottom-0 pb-0">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap">
+                      <h4 class="card-title mb-0">
+                        <?php echo htmlspecialchars($leccion['nombreLeccion'], ENT_QUOTES, 'UTF-8'); ?>
+                      </h4>
+                      <div class="d-flex align-items-center">
+                        <span class="badge badge-primary mr-2"><?php echo htmlspecialchars($tipoLeccion, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#<?php echo $collapseIdDocente; ?>" aria-expanded="true">
+                          <i class="fas fa-chevron-down"></i>
                         </button>
-                      </form>
+                      </div>
                     </div>
-                  <?php endif; ?>
-
-                  <div class="mb-3">
-                    <h6 class="text-uppercase text-muted small">Recursos asociados</h6>
-                    <?php if (empty($recursos)): ?>
-                      <div class="alert alert-light border mb-0">
-                        No hay recursos asociados todavia.
-                      </div>
-                    <?php else: ?>
-                      <div class="list-group">
-                        <?php foreach ($recursos as $recurso): ?>
-                          <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                              <div class="mb-2">
-                                <span class="badge badge-secondary mr-2"><?php echo htmlspecialchars($recurso['tipoRecurso'], ENT_QUOTES, 'UTF-8'); ?></span>
-                                <strong><?php echo htmlspecialchars($recurso['tituloRecurso'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                              </div>
-                              <a class="btn btn-sm btn-outline-primary mb-2" href="<?php echo htmlspecialchars($recurso['urlRecurso'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
-                                Abrir
-                              </a>
-                            </div>
-
-                            <?php if ($puedeGestionar): ?>
-                              <form method="post" enctype="multipart/form-data" class="row mt-2">
-                                <input type="hidden" name="accion" value="actualizar_recurso">
-                                <input type="hidden" name="idRecursoLeccion" value="<?php echo (int) $recurso['idRecursoLeccion']; ?>">
-                                <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                                <div class="form-group col-md-3">
-                                  <label class="small text-muted">Tipo</label>
-                                  <select name="tipoRecurso" class="form-control form-control-sm">
-                                    <option value="ARCHIVO" <?php echo strtoupper((string) $recurso['tipoRecurso']) === 'ARCHIVO' ? 'selected' : ''; ?>>Archivo</option>
-                                    <option value="ENLACE" <?php echo strtoupper((string) $recurso['tipoRecurso']) === 'ENLACE' ? 'selected' : ''; ?>>Enlace</option>
-                                  </select>
-                                </div>
-                                <div class="form-group col-md-4">
-                                  <label class="small text-muted">Titulo</label>
-                                  <input type="text" name="tituloRecurso" class="form-control form-control-sm" value="<?php echo htmlspecialchars($recurso['tituloRecurso'], ENT_QUOTES, 'UTF-8'); ?>" required>
-                                </div>
-                                <div class="form-group col-md-5">
-                                  <label class="small text-muted">Archivo o URL</label>
-                                  <div class="classroom-file">
-                                    <input type="file" class="classroom-file__input" id="archivoRecursoEdit<?php echo (int) $recurso['idRecursoLeccion']; ?>" name="archivoRecurso">
-                                    <label class="classroom-file__button" for="archivoRecursoEdit<?php echo (int) $recurso['idRecursoLeccion']; ?>">
-                                      <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
-                                    </label>
-                                    <span class="classroom-file__name">Ningún archivo seleccionado</span>
-                                  </div>
-                                  <input type="text" name="urlRecurso" class="form-control form-control-sm" value="<?php echo htmlspecialchars($recurso['urlRecurso'], ENT_QUOTES, 'UTF-8'); ?>">
-                                </div>
-                                <div class="form-group col-12 text-right mb-0">
-                                  <button type="submit" class="btn btn-success btn-sm">
-                                    <i class="fas fa-save mr-1"></i>Actualizar recurso
-                                  </button>
-                                </div>
-                              </form>
-                              <form method="post" class="mt-2 text-right">
-                                <input type="hidden" name="accion" value="eliminar_recurso">
-                                <input type="hidden" name="idRecursoLeccion" value="<?php echo (int) $recurso['idRecursoLeccion']; ?>">
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Eliminar este recurso?');">
-                                  <i class="fas fa-trash mr-1"></i>Eliminar
-                                </button>
-                              </form>
-                            <?php endif; ?>
-                          </div>
-                        <?php endforeach; ?>
-                      </div>
-                    <?php endif; ?>
+                    <small class="text-muted">
+                      <?php echo (int) $leccion['totalRecursos']; ?> recursos ·
+                      <?php echo (int) $leccion['totalEntregas']; ?> entregas ·
+                      <?php echo (int) $leccion['totalPosts']; ?> mensajes
+                    </small>
                   </div>
-
-                  <?php if ($puedeGestionar): ?>
-                    <div class="border rounded p-3 bg-light mb-3">
-                      <h6 class="text-uppercase text-muted small mb-3">Agregar recurso</h6>
-                      <form method="post" enctype="multipart/form-data" class="row">
-                        <input type="hidden" name="accion" value="crear_recurso">
-                        <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                        <div class="form-group col-md-4">
-                          <label class="small text-muted">Tipo</label>
-                          <select name="tipoRecurso" class="form-control form-control-sm" required>
-                            <option value="ARCHIVO">Archivo adjunto</option>
-                            <option value="ENLACE">Enlace externo</option>
-                          </select>
-                        </div>
-                        <div class="form-group col-md-4">
-                          <label class="small text-muted">Titulo</label>
-                          <input type="text" name="tituloRecurso" class="form-control form-control-sm" placeholder="Ej. Guia de practica" required>
-                        </div>
-                        <div class="form-group col-md-4">
-                          <label class="small text-muted">Archivo o URL</label>
-                          <div class="classroom-file">
-                            <input type="file" class="classroom-file__input" id="archivoRecursoNuevo<?php echo (int) $leccion['idLeccion']; ?>" name="archivoRecurso">
-                            <label class="classroom-file__button" for="archivoRecursoNuevo<?php echo (int) $leccion['idLeccion']; ?>">
-                              <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
-                            </label>
-                            <span class="classroom-file__name">Ningún archivo seleccionado</span>
-                          </div>
-                          <input type="text" name="urlRecurso" class="form-control form-control-sm" placeholder="https://...">
-                        </div>
-                        <div class="form-group col-12 mb-0 text-right">
-                          <button type="submit" class="btn btn-info btn-sm">
-                            <i class="fas fa-paperclip mr-1"></i>Agregar recurso
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  <?php endif; ?>
-
-                  <?php if ($tipoLeccion === 'TAREA'): ?>
-                    <div class="border rounded p-3 bg-light mb-3">
-                      <h6 class="text-uppercase text-muted small mb-3">Tarea</h6>
-
-                      <?php if (ControladorPermisos::esEstudiante()): ?>
-                        <div class="alert alert-info">
-                          Subi tu entrega y, si queres, agrega un comentario corto. Si reenviás la tarea, se actualiza la entrega anterior.
-                        </div>
-                        <form method="post" enctype="multipart/form-data" class="row">
-                          <input type="hidden" name="accion" value="entregar_tarea">
-                          <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                          <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
-                          <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                          <div class="form-group col-md-5">
-                            <label class="small text-muted">Archivo</label>
-                            <div class="classroom-file">
-                              <input type="file" class="classroom-file__input" id="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega" required>
-                              <label class="classroom-file__button" for="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>">
-                                <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
-                              </label>
-                              <span class="classroom-file__name">Ningún archivo seleccionado</span>
-                            </div>
-                          </div>
-                          <div class="form-group col-md-7">
-                            <label class="small text-muted">Comentario</label>
-                            <input type="text" name="comentarioEntrega" class="form-control form-control-sm" placeholder="Opcional">
-                          </div>
-                          <div class="form-group col-12 mb-0 text-right">
-                            <button type="submit" class="btn btn-primary btn-sm">
-                              <i class="fas fa-upload mr-1"></i>Enviar entrega
-                            </button>
-                          </div>
-                        </form>
-
-                        <?php if ($entrega): ?>
-                          <div class="alert alert-light border mt-3 mb-0">
-                            Ya entregaste esta tarea el <?php echo htmlspecialchars((string) $entrega['fechaEntrega'], ENT_QUOTES, 'UTF-8'); ?>.
-                            <a href="<?php echo htmlspecialchars($entrega['urlArchivo'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Ver archivo</a>
-                          </div>
-                        <?php endif; ?>
-                      <?php endif; ?>
+                  <div id="<?php echo $collapseIdDocente; ?>" class="collapse show">
+                    <div class="card-body pt-3">
+                      <p class="text-muted mb-3">
+                        <?php echo nl2br(htmlspecialchars((string) $leccion['contenidoLeccion'], ENT_QUOTES, 'UTF-8')); ?>
+                      </p>
 
                       <?php if ($puedeGestionar): ?>
-                        <?php $entregas = ControladorLecciones::crtBuscarEntregasPorLeccion((int) $leccion['idLeccion']); ?>
-                        <div class="table-responsive mt-3">
-                          <table class="table table-sm table-bordered mb-0">
-                            <thead>
-                              <tr>
-                                <th>Estudiante</th>
-                                <th>Entrega</th>
-                                <th>Nota</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <?php foreach ($entregas as $entregaDoc): ?>
-                                <?php $notaActual = $buscarCalificacion($calificacionesSeccion, (int) $leccion['idLeccion'], (int) $entregaDoc['id_estudiante']); ?>
-                                <tr>
-                                  <td><?php echo htmlspecialchars($entregaDoc['apellidoUsuario'] . ' ' . $entregaDoc['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                  <td>
-                                    <a href="<?php echo htmlspecialchars($entregaDoc['urlArchivo'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Abrir archivo</a>
-                                  </td>
-                                  <td>
-                                    <form method="post" class="form-inline grade-form">
-                                      <input type="hidden" name="accion" value="guardar_calificacion">
-                                      <input type="hidden" name="id_estudiante" value="<?php echo (int) $entregaDoc['id_estudiante']; ?>">
-                                      <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
-                                      <input type="hidden" name="id_modulo" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                                      <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                                      <input type="number" name="calificacion" class="form-control form-control-sm mr-2 grade-input" min="0" max="100" value="<?php echo (int) ($notaActual['calificacion'] ?? 0); ?>" readonly>
-                                      <button type="button" class="btn btn-outline-secondary btn-sm mr-2 grade-toggle">Editar nota</button>
-                                      <input type="text" name="devolucion" class="form-control form-control-sm mr-2" placeholder="Devolución" value="<?php echo htmlspecialchars((string) ($notaActual['devolucion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                      <button type="submit" class="btn btn-success btn-sm">Guardar</button>
-                                    </form>
-                                  </td>
-                                </tr>
-                              <?php endforeach; ?>
-                              <?php if (empty($entregas)): ?>
-                                <tr>
-                                  <td colspan="3" class="text-center text-muted">Todavia no hay entregas registradas.</td>
-                                </tr>
-                              <?php endif; ?>
-                            </tbody>
-                          </table>
-                        </div>
-                      <?php endif; ?>
-                    </div>
-                  <?php endif; ?>
-
-                  <?php if ($tipoLeccion === 'PREGUNTA'): ?>
-                    <div class="border rounded p-3 bg-light mb-3">
-                      <h6 class="text-uppercase text-muted small mb-3">Foro de la pregunta</h6>
-                      <?php if (!empty($posts)): ?>
-                        <div class="mb-3">
-                          <?php foreach ($posts as $post): ?>
-                            <div class="border rounded p-3 mb-2 bg-white">
-                              <strong><?php echo htmlspecialchars($post['apellidoUsuario'] . ' ' . $post['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                              <small class="text-muted d-block"><?php echo htmlspecialchars((string) $post['fechaPosteo'], ENT_QUOTES, 'UTF-8'); ?></small>
-                              <p class="mb-0 mt-2"><?php echo nl2br(htmlspecialchars($post['contenidoPosteo'], ENT_QUOTES, 'UTF-8')); ?></p>
+                        <div class="border rounded p-3 bg-light mb-3">
+                          <h6 class="text-uppercase text-muted small mb-3">Editar leccion</h6>
+                          <form method="post" class="row">
+                            <input type="hidden" name="accion" value="actualizar_leccion">
+                            <input type="hidden" name="idLeccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                            <div class="form-group col-md-4">
+                              <label class="small text-muted">Nombre</label>
+                              <input type="text" name="nombreLeccion" class="form-control form-control-sm" value="<?php echo htmlspecialchars($leccion['nombreLeccion'], ENT_QUOTES, 'UTF-8'); ?>" required>
                             </div>
-                          <?php endforeach; ?>
+                            <div class="form-group col-md-4">
+                              <label class="small text-muted">Tipo</label>
+                              <select name="tipoLeccion" class="form-control form-control-sm" required>
+                                <option value="MATERIAL" <?php echo $tipoLeccion === 'MATERIAL' ? 'selected' : ''; ?>>Material</option>
+                                <option value="TAREA" <?php echo $tipoLeccion === 'TAREA' ? 'selected' : ''; ?>>Tarea</option>
+                                <option value="PREGUNTA" <?php echo $tipoLeccion === 'PREGUNTA' ? 'selected' : ''; ?>>Pregunta</option>
+                              </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                              <label class="small text-muted">Contenido</label>
+                              <input type="text" name="contenidoLeccion" class="form-control form-control-sm" value="<?php echo htmlspecialchars((string) $leccion['contenidoLeccion'], ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div class="form-group col-12 text-right mb-0">
+                              <button type="submit" class="btn btn-success btn-sm">
+                                <i class="fas fa-save mr-1"></i>Guardar cambios
+                              </button>
+                            </div>
+                          </form>
+                          <form method="post" class="mt-2 text-right">
+                            <input type="hidden" name="accion" value="eliminar_leccion">
+                            <input type="hidden" name="idLeccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Eliminar esta leccion y todo su contenido?');">
+                              <i class="fas fa-trash mr-1"></i>Eliminar
+                            </button>
+                          </form>
                         </div>
-                      <?php else: ?>
-                        <div class="alert alert-light border">Todavia no hay mensajes en esta pregunta.</div>
                       <?php endif; ?>
 
-                      <form method="post">
-                        <input type="hidden" name="accion" value="crear_post">
-                        <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                        <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                        <div class="form-group">
-                          <label class="small text-muted">Tu aporte</label>
-                          <textarea name="contenidoPosteo" rows="3" class="form-control form-control-sm" placeholder="Escribi tu comentario o respuesta..." required></textarea>
+                      <div class="mb-3">
+                        <h6 class="text-uppercase text-muted small">Recursos asociados</h6>
+                        <?php if (empty($recursos)): ?>
+                          <div class="alert alert-light border mb-0">
+                            No hay recursos asociados todavia.
+                          </div>
+                        <?php else: ?>
+                          <div class="list-group">
+                            <?php foreach ($recursos as $recurso): ?>
+                              <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                  <div class="mb-2">
+                                    <span class="badge badge-secondary mr-2"><?php echo htmlspecialchars($recurso['tipoRecurso'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <strong><?php echo htmlspecialchars($recurso['tituloRecurso'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                                  </div>
+                                  <a class="btn btn-sm btn-outline-primary mb-2" href="<?php echo htmlspecialchars($recurso['urlRecurso'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
+                                    Abrir
+                                  </a>
+                                </div>
+
+                                <?php if ($puedeGestionar): ?>
+                                  <form method="post" enctype="multipart/form-data" class="row mt-2">
+                                    <input type="hidden" name="accion" value="actualizar_recurso">
+                                    <input type="hidden" name="idRecursoLeccion" value="<?php echo (int) $recurso['idRecursoLeccion']; ?>">
+                                    <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                                    <div class="form-group col-md-3">
+                                      <label class="small text-muted">Tipo</label>
+                                      <select name="tipoRecurso" class="form-control form-control-sm">
+                                        <option value="ARCHIVO" <?php echo strtoupper((string) $recurso['tipoRecurso']) === 'ARCHIVO' ? 'selected' : ''; ?>>Archivo</option>
+                                        <option value="ENLACE" <?php echo strtoupper((string) $recurso['tipoRecurso']) === 'ENLACE' ? 'selected' : ''; ?>>Enlace</option>
+                                      </select>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                      <label class="small text-muted">Titulo</label>
+                                      <input type="text" name="tituloRecurso" class="form-control form-control-sm" value="<?php echo htmlspecialchars($recurso['tituloRecurso'], ENT_QUOTES, 'UTF-8'); ?>" required>
+                                    </div>
+                                    <div class="form-group col-md-5">
+                                      <label class="small text-muted">Archivo o URL</label>
+                                      <div class="classroom-file">
+                                        <input type="file" class="classroom-file__input" id="archivoRecursoEdit<?php echo (int) $recurso['idRecursoLeccion']; ?>" name="archivoRecurso">
+                                        <label class="classroom-file__button" for="archivoRecursoEdit<?php echo (int) $recurso['idRecursoLeccion']; ?>">
+                                          <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                                        </label>
+                                        <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                                      </div>
+                                      <input type="text" name="urlRecurso" class="form-control form-control-sm" value="<?php echo htmlspecialchars($recurso['urlRecurso'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    </div>
+                                    <div class="form-group col-12 text-right mb-0">
+                                      <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-save mr-1"></i>Actualizar recurso
+                                      </button>
+                                    </div>
+                                  </form>
+                                  <form method="post" class="mt-2 text-right">
+                                    <input type="hidden" name="accion" value="eliminar_recurso">
+                                    <input type="hidden" name="idRecursoLeccion" value="<?php echo (int) $recurso['idRecursoLeccion']; ?>">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Eliminar este recurso?');">
+                                      <i class="fas fa-trash mr-1"></i>Eliminar
+                                    </button>
+                                  </form>
+                                <?php endif; ?>
+                              </div>
+                            <?php endforeach; ?>
+                          </div>
+                        <?php endif; ?>
+                      </div>
+
+                      <?php if ($puedeGestionar): ?>
+                        <div class="border rounded p-3 bg-light mb-3">
+                          <h6 class="text-uppercase text-muted small mb-3">Agregar recurso</h6>
+                          <form method="post" enctype="multipart/form-data" class="row">
+                            <input type="hidden" name="accion" value="crear_recurso">
+                            <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                            <div class="form-group col-md-4">
+                              <label class="small text-muted">Tipo</label>
+                              <select name="tipoRecurso" class="form-control form-control-sm" required>
+                                <option value="ARCHIVO">Archivo adjunto</option>
+                                <option value="ENLACE">Enlace externo</option>
+                              </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                              <label class="small text-muted">Titulo</label>
+                              <input type="text" name="tituloRecurso" class="form-control form-control-sm" placeholder="Ej. Guia de practica" required>
+                            </div>
+                            <div class="form-group col-md-4">
+                              <label class="small text-muted">Archivo o URL</label>
+                              <div class="classroom-file">
+                                <input type="file" class="classroom-file__input" id="archivoRecursoNuevo<?php echo (int) $leccion['idLeccion']; ?>" name="archivoRecurso">
+                                <label class="classroom-file__button" for="archivoRecursoNuevo<?php echo (int) $leccion['idLeccion']; ?>">
+                                  <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                                </label>
+                                <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                              </div>
+                              <input type="text" name="urlRecurso" class="form-control form-control-sm" placeholder="https://...">
+                            </div>
+                            <div class="form-group col-12 mb-0 text-right">
+                              <button type="submit" class="btn btn-info btn-sm">
+                                <i class="fas fa-paperclip mr-1"></i>Agregar recurso
+                              </button>
+                            </div>
+                          </form>
                         </div>
-                        <div class="text-right">
-                          <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="fas fa-comment-dots mr-1"></i>Publicar
-                          </button>
+                      <?php endif; ?>
+
+                      <?php if ($tipoLeccion === 'TAREA'): ?>
+                        <div class="border rounded p-3 bg-light mb-3">
+                          <h6 class="text-uppercase text-muted small mb-3">Tarea</h6>
+
+                          <?php if (ControladorPermisos::esEstudiante()): ?>
+                            <div class="alert alert-info">
+                              Subi tu entrega y, si queres, agrega un comentario corto. Si reenviás la tarea, se actualiza la entrega anterior.
+                            </div>
+                            <form method="post" enctype="multipart/form-data" class="row">
+                              <input type="hidden" name="accion" value="entregar_tarea">
+                              <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                              <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
+                              <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
+                              <div class="form-group col-md-5">
+                                <label class="small text-muted">Archivo</label>
+                                <div class="classroom-file">
+                                  <input type="file" class="classroom-file__input" id="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega" required>
+                                  <label class="classroom-file__button" for="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>">
+                                    <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                                  </label>
+                                  <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                                </div>
+                              </div>
+                              <div class="form-group col-md-7">
+                                <label class="small text-muted">Comentario</label>
+                                <input type="text" name="comentarioEntrega" class="form-control form-control-sm" placeholder="Opcional">
+                              </div>
+                              <div class="form-group col-12 mb-0 text-right">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                  <i class="fas fa-upload mr-1"></i>Enviar entrega
+                                </button>
+                              </div>
+                            </form>
+
+                            <?php if ($entrega): ?>
+                              <div class="alert alert-light border mt-3 mb-0">
+                                Ya entregaste esta tarea el <?php echo htmlspecialchars((string) $entrega['fechaEntrega'], ENT_QUOTES, 'UTF-8'); ?>.
+                                <a href="<?php echo htmlspecialchars($entrega['urlArchivo'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Ver archivo</a>
+                              </div>
+                            <?php endif; ?>
+                          <?php endif; ?>
+
+                          <?php if ($puedeGestionar): ?>
+                            <?php $entregas = ControladorLecciones::crtBuscarEntregasPorLeccion((int) $leccion['idLeccion']); ?>
+                            <div class="table-responsive mt-3">
+                              <table class="table table-sm table-bordered mb-0">
+                                <thead>
+                                  <tr>
+                                    <th>Estudiante</th>
+                                    <th>Entrega</th>
+                                    <th>Nota</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <?php foreach ($entregas as $entregaDoc): ?>
+                                    <?php $notaActual = $buscarCalificacion($calificacionesSeccion, (int) $leccion['idLeccion'], (int) $entregaDoc['id_estudiante']); ?>
+                                    <tr>
+                                      <td><?php echo htmlspecialchars($entregaDoc['apellidoUsuario'] . ' ' . $entregaDoc['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                      <td>
+                                        <a href="<?php echo htmlspecialchars($entregaDoc['urlArchivo'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Abrir archivo</a>
+                                      </td>
+                                      <td>
+                                        <form method="post" class="form-inline grade-form">
+                                          <input type="hidden" name="accion" value="guardar_calificacion">
+                                          <input type="hidden" name="id_estudiante" value="<?php echo (int) $entregaDoc['id_estudiante']; ?>">
+                                          <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
+                                          <input type="hidden" name="id_modulo" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                                          <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
+                                          <input type="number" name="calificacion" class="form-control form-control-sm mr-2 grade-input" min="0" max="100" value="<?php echo (int) ($notaActual['calificacion'] ?? 0); ?>" readonly>
+                                          <button type="button" class="btn btn-outline-secondary btn-sm mr-2 grade-toggle">Editar nota</button>
+                                          <input type="text" name="devolucion" class="form-control form-control-sm mr-2" placeholder="Devolución" value="<?php echo htmlspecialchars((string) ($notaActual['devolucion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                          <button type="submit" class="btn btn-success btn-sm">Guardar</button>
+                                        </form>
+                                      </td>
+                                    </tr>
+                                  <?php endforeach; ?>
+                                  <?php if (empty($entregas)): ?>
+                                    <tr>
+                                      <td colspan="3" class="text-center text-muted">Todavia no hay entregas registradas.</td>
+                                    </tr>
+                                  <?php endif; ?>
+                                </tbody>
+                              </table>
+                            </div>
+                          <?php endif; ?>
                         </div>
-                      </form>
+                      <?php endif; ?>
+
+                      <?php if ($tipoLeccion === 'PREGUNTA'): ?>
+                        <div class="border rounded p-3 bg-light mb-3">
+                          <h6 class="text-uppercase text-muted small mb-3">Foro de la pregunta</h6>
+                          <?php if (!empty($posts)): ?>
+                            <div class="mb-3">
+                              <?php foreach ($posts as $post): ?>
+                                <div class="border rounded p-3 mb-2 bg-white">
+                                  <strong><?php echo htmlspecialchars($post['apellidoUsuario'] . ' ' . $post['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                                  <small class="text-muted d-block"><?php echo htmlspecialchars((string) $post['fechaPosteo'], ENT_QUOTES, 'UTF-8'); ?></small>
+                                  <p class="mb-0 mt-2"><?php echo nl2br(htmlspecialchars($post['contenidoPosteo'], ENT_QUOTES, 'UTF-8')); ?></p>
+                                </div>
+                              <?php endforeach; ?>
+                            </div>
+                          <?php else: ?>
+                            <div class="alert alert-light border">Todavia no hay mensajes en esta pregunta.</div>
+                          <?php endif; ?>
+
+                          <form method="post">
+                            <input type="hidden" name="accion" value="crear_post">
+                            <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                            <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
+                            <div class="form-group">
+                              <label class="small text-muted">Tu aporte</label>
+                              <textarea name="contenidoPosteo" rows="3" class="form-control form-control-sm" placeholder="Escribi tu comentario o respuesta..." required></textarea>
+                            </div>
+                            <div class="text-right">
+                              <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-comment-dots mr-1"></i>Publicar
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      <?php endif; ?>
                     </div>
-                  <?php endif; ?>
+                  </div>
+                <?php endforeach; ?>
+                </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="card card-outline card-success shadow-sm lesson-side-card">
+            <div class="card-header section-header-soft">
+              <h3 class="card-title">Detalle de la sección</h3>
+            </div>
+            <div class="card-body">
+              <dl class="row mb-0">
+                <dt class="col-5 text-muted">Curso</dt>
+                <dd class="col-7"><?php echo htmlspecialchars($seccion['nombreCurso'], ENT_QUOTES, 'UTF-8'); ?></dd>
+                <dt class="col-5 text-muted">Estado</dt>
+                <dd class="col-7"><?php echo htmlspecialchars((string) $seccion['estado'], ENT_QUOTES, 'UTF-8'); ?></dd>
+                <dt class="col-5 text-muted">Docente</dt>
+                <dd class="col-7"><?php echo htmlspecialchars(trim(($seccion['nombreUsuario'] ?? '') . ' ' . ($seccion['apellidoUsuario'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></dd>
+                <dt class="col-5 text-muted">Recursos</dt>
+                <dd class="col-7"><?php echo (int) ($resumen['totalRecursos'] ?? 0); ?></dd>
+                <dt class="col-5 text-muted">Promedio</dt>
+                <dd class="col-7"><?php echo htmlspecialchars((string) ($resumen['promedioNotas'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
+              </dl>
+            </div>
+          </div>
+
+          <?php if (ControladorPermisos::esEstudiante()): ?>
+            <div class="card card-outline card-warning shadow-sm lesson-side-card">
+              <div class="card-header section-header-soft">
+                <h3 class="card-title">Mi seguimiento</h3>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-6 text-muted">Entregadas</dt>
+                  <dd class="col-6"><?php echo (int) ($seguimientoPersonal['entregadas'] ?? 0); ?></dd>
+                  <dt class="col-6 text-muted">Pendientes</dt>
+                  <dd class="col-6"><?php echo (int) ($seguimientoPersonal['pendientes'] ?? 0); ?></dd>
+                  <dt class="col-6 text-muted">Promedio</dt>
+                  <dd class="col-6"><?php echo htmlspecialchars((string) ($seguimientoPersonal['promedioNotas'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
+                  <dt class="col-6 text-muted">Foro</dt>
+                  <dd class="col-6"><?php echo (int) ($seguimientoPersonal['totalPosts'] ?? 0); ?></dd>
+                </dl>
+              </div>
+            </div>
+
+            <div class="card card-outline card-info shadow-sm lesson-side-card">
+              <div class="card-header section-header-soft">
+                <h3 class="card-title">Mis calificaciones</h3>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered mb-0">
+                    <thead>
+                      <tr>
+                        <th>Leccion</th>
+                        <th>Tipo</th>
+                        <th>Nota</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php foreach ($misCalificaciones as $calificacion): ?>
+                        <tr>
+                          <td><?php echo htmlspecialchars((string) ($calificacion['nombreLeccion'] ?? 'Actividad'), ENT_QUOTES, 'UTF-8'); ?></td>
+                          <td><?php echo htmlspecialchars((string) ($calificacion['tipoLeccion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                          <td><?php echo (int) $calificacion['calificacion']; ?></td>
+                        </tr>
+                      <?php endforeach; ?>
+                      <?php if (empty($misCalificaciones)): ?>
+                        <tr>
+                          <td colspan="3" class="text-center text-muted">Todavia no tenes notas cargadas.</td>
+                        </tr>
+                      <?php endif; ?>
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            <?php endforeach; ?>
             </div>
-          </div>
-        </div>
-      </div>
+          <?php endif; ?>
 
-      <div class="col-12 col-lg-4">
-        <div class="card card-outline card-success shadow-sm">
-          <div class="card-header section-header-soft">
-            <h3 class="card-title">Detalle de la seccion</h3>
-          </div>
-          <div class="card-body">
-            <dl class="row mb-0">
-              <dt class="col-5 text-muted">Curso</dt>
-              <dd class="col-7"><?php echo htmlspecialchars($seccion['nombreCurso'], ENT_QUOTES, 'UTF-8'); ?></dd>
-              <dt class="col-5 text-muted">Estado</dt>
-              <dd class="col-7"><?php echo htmlspecialchars((string) $seccion['estado'], ENT_QUOTES, 'UTF-8'); ?></dd>
-              <dt class="col-5 text-muted">Docente</dt>
-              <dd class="col-7"><?php echo htmlspecialchars(trim(($seccion['nombreUsuario'] ?? '') . ' ' . ($seccion['apellidoUsuario'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></dd>
-              <dt class="col-5 text-muted">Recursos</dt>
-              <dd class="col-7"><?php echo (int) ($resumen['totalRecursos'] ?? 0); ?></dd>
-              <dt class="col-5 text-muted">Promedio</dt>
-              <dd class="col-7"><?php echo htmlspecialchars((string) ($resumen['promedioNotas'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
-            </dl>
-          </div>
-        </div>
-
-        <?php if (ControladorPermisos::esEstudiante()): ?>
-          <div class="card card-outline card-warning shadow-sm">
-            <div class="card-header section-header-soft">
-              <h3 class="card-title">Mi seguimiento</h3>
-            </div>
-            <div class="card-body">
-              <dl class="row mb-0">
-                <dt class="col-6 text-muted">Entregadas</dt>
-                <dd class="col-6"><?php echo (int) ($seguimientoPersonal['entregadas'] ?? 0); ?></dd>
-                <dt class="col-6 text-muted">Pendientes</dt>
-                <dd class="col-6"><?php echo (int) ($seguimientoPersonal['pendientes'] ?? 0); ?></dd>
-                <dt class="col-6 text-muted">Promedio</dt>
-                <dd class="col-6"><?php echo htmlspecialchars((string) ($seguimientoPersonal['promedioNotas'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
-                <dt class="col-6 text-muted">Foro</dt>
-                <dd class="col-6"><?php echo (int) ($seguimientoPersonal['totalPosts'] ?? 0); ?></dd>
-              </dl>
-            </div>
-          </div>
-
-          <div class="card card-outline card-info shadow-sm">
-            <div class="card-header section-header-soft">
-              <h3 class="card-title">Mis calificaciones</h3>
-            </div>
-            <div class="card-body">
-              <div class="table-responsive">
-                <table class="table table-sm table-bordered mb-0">
-                  <thead>
-                    <tr>
-                      <th>Leccion</th>
-                      <th>Tipo</th>
-                      <th>Nota</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php foreach ($misCalificaciones as $calificacion): ?>
-                      <tr>
-                        <td><?php echo htmlspecialchars((string) ($calificacion['nombreLeccion'] ?? 'Actividad'), ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><?php echo htmlspecialchars((string) ($calificacion['tipoLeccion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><?php echo (int) $calificacion['calificacion']; ?></td>
-                      </tr>
-                    <?php endforeach; ?>
-                    <?php if (empty($misCalificaciones)): ?>
-                      <tr>
-                        <td colspan="3" class="text-center text-muted">Todavia no tenes notas cargadas.</td>
-                      </tr>
-                    <?php endif; ?>
-                  </tbody>
-                </table>
+          <?php if ($puedeGestionar): ?>
+            <div class="card card-outline card-info shadow-sm lesson-side-card">
+              <div class="card-header section-header-soft">
+                <h3 class="card-title">Seguimiento docente</h3>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-6 text-muted">Recursos</dt>
+                  <dd class="col-6"><?php echo (int) ($resumen['totalRecursos'] ?? 0); ?></dd>
+                  <dt class="col-6 text-muted">Entregas</dt>
+                  <dd class="col-6"><?php echo (int) ($resumen['totalEntregas'] ?? 0); ?></dd>
+                  <dt class="col-6 text-muted">Pendientes</dt>
+                  <dd class="col-6"><?php echo (int) ($resumen['pendientesCalificar'] ?? 0); ?></dd>
+                  <dt class="col-6 text-muted">Promedio</dt>
+                  <dd class="col-6"><?php echo htmlspecialchars((string) ($resumen['promedioNotas'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
+                </dl>
               </div>
             </div>
-          </div>
-        <?php endif; ?>
 
-        <?php if ($puedeGestionar): ?>
-          <div class="card card-outline card-info shadow-sm">
-            <div class="card-header section-header-soft">
-              <h3 class="card-title">Seguimiento docente</h3>
-            </div>
-            <div class="card-body">
-              <dl class="row mb-0">
-                <dt class="col-6 text-muted">Recursos</dt>
-                <dd class="col-6"><?php echo (int) ($resumen['totalRecursos'] ?? 0); ?></dd>
-                <dt class="col-6 text-muted">Entregas</dt>
-                <dd class="col-6"><?php echo (int) ($resumen['totalEntregas'] ?? 0); ?></dd>
-                <dt class="col-6 text-muted">Pendientes</dt>
-                <dd class="col-6"><?php echo (int) ($resumen['pendientesCalificar'] ?? 0); ?></dd>
-                <dt class="col-6 text-muted">Promedio</dt>
-                <dd class="col-6"><?php echo htmlspecialchars((string) ($resumen['promedioNotas'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
-              </dl>
-            </div>
-          </div>
-
-          <div class="card card-outline card-light shadow-sm">
-            <div class="card-header">
-              <h3 class="card-title">Estudiantes del curso</h3>
-            </div>
-            <div class="card-body">
-              <div class="table-responsive">
-                <table class="table table-sm table-bordered mb-0">
-                  <thead>
-                    <tr>
-                      <th>Estudiante</th>
-                      <th>Email</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php foreach ($estudiantesCurso as $estudiante): ?>
+            <div class="card card-outline card-info shadow-sm lesson-side-card">
+              <div class="card-header section-header-soft">
+                <h3 class="card-title">Estudiantes del curso</h3>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered mb-0">
+                    <thead>
                       <tr>
-                        <td><?php echo htmlspecialchars($estudiante['apellidoUsuario'] . ' ' . $estudiante['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><?php echo htmlspecialchars($estudiante['email'], ENT_QUOTES, 'UTF-8'); ?></td>
+                        <th>Estudiante</th>
+                        <th>Email</th>
                       </tr>
-                    <?php endforeach; ?>
-                    <?php if (empty($estudiantesCurso)): ?>
-                      <tr>
-                        <td colspan="2" class="text-center text-muted">Todavia no hay estudiantes asignados.</td>
-                      </tr>
-                    <?php endif; ?>
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      <?php foreach ($estudiantesCurso as $estudiante): ?>
+                        <tr>
+                          <td><?php echo htmlspecialchars($estudiante['apellidoUsuario'] . ' ' . $estudiante['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
+                          <td><?php echo htmlspecialchars($estudiante['email'], ENT_QUOTES, 'UTF-8'); ?></td>
+                        </tr>
+                      <?php endforeach; ?>
+                      <?php if (empty($estudiantesCurso)): ?>
+                        <tr>
+                          <td colspan="2" class="text-center text-muted">Todavia no hay estudiantes asignados.</td>
+                        </tr>
+                      <?php endif; ?>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        <?php endif; ?>
+          <?php endif; ?>
+        </div>
       </div>
     </div>
-  </div>
 </section>
 
 <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== ''): ?>
   <script>
-    setTimeout(function () {
+    setTimeout(function() {
       window.location.href = 'index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>';
     }, 600);
   </script>
 <?php endif; ?>
 
 <script>
-  document.querySelectorAll('.grade-form').forEach(function (form) {
+  document.querySelectorAll('.grade-form').forEach(function(form) {
     var toggle = form.querySelector('.grade-toggle');
     var input = form.querySelector('.grade-input');
     if (!toggle || !input) {
       return;
     }
-    toggle.addEventListener('click', function () {
+    toggle.addEventListener('click', function() {
       input.removeAttribute('readonly');
       input.focus();
       input.select();

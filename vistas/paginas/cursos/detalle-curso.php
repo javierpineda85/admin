@@ -197,7 +197,7 @@ if (ControladorPermisos::esEstudiante()) {
                 </div>
 
                 <div class="col-12 col-lg-6">
-                    <div class="card card-info">
+                    <div class="card ">
                         <div class="card-header">
                             <h3 class="card-title">Secciones del curso</h3>
                             <div class="card-tools">
@@ -252,7 +252,7 @@ if (ControladorPermisos::esEstudiante()) {
             <div class="row">
                 <?php if ($esAdmin): ?>
                     <div class="col-12 col-lg-6">
-                        <div class="card card-info">
+                        <div class="card ">
                             <div class="card-header">
                                 <h3 class="card-title">Inscribir estudiantes</h3>
                                 <div class="card-tools">
@@ -295,7 +295,7 @@ if (ControladorPermisos::esEstudiante()) {
                 <?php endif; ?>
 
                 <div class="col-12 <?php echo $esAdmin ? 'col-lg-6' : 'col-lg-12'; ?>">
-                    <div class="card card-info">
+                    <div class="card ">
                         <div class="card-header">
                             <h3 class="card-title">Estudiantes inscriptos al curso</h3>
                             <div class="card-tools">

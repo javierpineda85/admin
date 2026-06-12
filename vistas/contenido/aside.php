@@ -213,7 +213,7 @@
           <li class="nav-item">
             <a href="index.php?r=logout" class="nav-link text-danger">
               <i class="nav-icon fas fa-sign-out-alt"></i>
-              <p>Cerrar sesi�n</p>
+              <p>Cerrar sesión</p>
             </a>
           </li>
         </ul>
