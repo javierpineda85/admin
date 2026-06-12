@@ -1,19 +1,38 @@
 :root {
-  --classroom-bg: #0f172a;
-  --classroom-bg-soft: #111827;
+  --primary: #59249b;
+  --secondary: #ff914d;
+  --surface: #ffffff;
+  --background: #f6f7fb;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --success: #28a745;
+  --danger: #dc3545;
+  --warning: #ff914d;
+  --info: #59249b;
+  --soft-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 12px;
+  --sidebar-bg: #111827;
+  --sidebar-text: #e5e7eb;
+  --sidebar-muted: rgba(229, 231, 235, 0.72);
+
+  --classroom-bg: var(--sidebar-bg);
+  --classroom-bg-soft: #1f2937;
   --classroom-surface: rgba(255, 255, 255, 0.08);
   --classroom-surface-strong: rgba(255, 255, 255, 0.14);
   --classroom-border: rgba(255, 255, 255, 0.12);
-  --classroom-text: #e5eefb;
-  --classroom-muted: #96a6c5;
-  --classroom-primary: #4f8cff;
-  --classroom-secondary: #22c55e;
-  --classroom-accent: #f59e0b;
-  --classroom-danger: #ef4444;
-  --classroom-shadow: 0 20px 60px rgba(15, 23, 42, 0.28);
-  --classroom-radius-lg: 24px;
-  --classroom-radius-md: 18px;
-  --classroom-radius-sm: 14px;
+  --classroom-text: var(--sidebar-text);
+  --classroom-muted: var(--sidebar-muted);
+  --classroom-primary: var(--primary);
+  --classroom-secondary: var(--secondary);
+  --classroom-accent: var(--secondary);
+  --classroom-danger: var(--danger);
+  --classroom-shadow: var(--soft-shadow);
+  --classroom-radius-lg: var(--radius-lg);
+  --classroom-radius-md: var(--radius-md);
+  --classroom-radius-sm: var(--radius-sm);
 }
 
 body.classroom-app {
@@ -905,6 +924,26 @@ body.login-page.classroom-auth .login-card-body {
   background: rgba(255, 255, 255, 0.96);
 }
 
+body.login-page.classroom-auth {
+  font-family: 'Montserrat', sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(89, 36, 155, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(255, 145, 77, 0.14), transparent 24%),
+    linear-gradient(180deg, #f6f7fb 0%, #eef1f8 100%);
+}
+
+body.login-page.classroom-auth .login-logo img {
+  width: min(100%, 260px);
+  height: auto;
+}
+
+body.login-page.classroom-auth .card {
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--secondary);
+  box-shadow: var(--soft-shadow);
+}
+
 body.login-page.classroom-auth .login-card-title {
   font-size: 1.9rem;
   font-weight: 800;
@@ -926,25 +965,35 @@ body.login-page.classroom-auth .auth-pills {
 body.login-page.classroom-auth .auth-pill {
   border-radius: 999px;
   padding: 0.32rem 0.75rem;
-  background: rgba(79, 140, 255, 0.1);
-  color: #1d4ed8;
+  background: rgba(89, 36, 155, 0.1);
+  color: var(--primary);
   font-size: 0.78rem;
   font-weight: 700;
 }
 
 body.login-page.classroom-auth .auth-cta {
-  background: linear-gradient(135deg, #1d4ed8 0%, #4f8cff 100%);
+  background: linear-gradient(135deg, #59249b 0%, #6f33c5 100%);
   border: 0;
   border-radius: 14px;
-  box-shadow: 0 14px 30px rgba(29, 78, 216, 0.25);
+  box-shadow: 0 14px 30px rgba(89, 36, 155, 0.24);
+}
+
+body.login-page.classroom-auth .auth-cta:hover,
+body.login-page.classroom-auth .auth-cta:focus {
+  background: linear-gradient(135deg, #6f33c5 0%, #7c3aed 100%);
 }
 
 body.login-page.classroom-auth .form-control {
   border-radius: 14px;
+  border-color: var(--border);
+  min-height: 46px;
 }
 
 body.login-page.classroom-auth .input-group-text {
   border-radius: 0 14px 14px 0;
+  border-color: var(--border);
+  color: var(--primary);
+  background: #fff;
 }
 
 .section-header-soft {
@@ -1040,5 +1089,643 @@ body.login-page.classroom-auth .input-group-text {
 
   body.classroom-app .metric-card {
     padding: 1rem;
+  }
+}
+
+body.classroom-app {
+  background: var(--background);
+  color: var(--text);
+  font-family: 'Montserrat', sans-serif;
+}
+
+body.classroom-app .content-wrapper {
+  background: var(--background);
+}
+
+body.classroom-app .main-header.navbar {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+body.classroom-app .main-header .nav-link,
+body.classroom-app .main-header .navbar-text {
+  color: var(--text);
+}
+
+body.classroom-app .main-header .nav-link:hover {
+  color: var(--primary);
+}
+
+body.classroom-app .navbar-badge {
+  background: var(--secondary);
+  color: #fff;
+}
+
+body.classroom-app .main-sidebar {
+  background: var(--sidebar-bg);
+}
+
+body.classroom-app .brand-link {
+  position: relative;
+  background: linear-gradient(135deg, #1e1b4b 0%, #59249b 60%, #6d28d9 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.classroom-app .brand-link::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--secondary);
+}
+
+body.classroom-app .brand-text,
+body.classroom-app .nav-sidebar .nav-link,
+body.classroom-app .nav-sidebar .nav-link p,
+body.classroom-app .nav-sidebar .nav-link i {
+  color: var(--sidebar-text);
+}
+
+body.classroom-app .nav-sidebar .nav-link i {
+  color: var(--secondary);
+}
+
+body.classroom-app .nav-sidebar .nav-link {
+  margin: 0.15rem 0.5rem;
+  border-radius: 14px;
+  border-left: 4px solid transparent;
+}
+
+body.classroom-app .nav-sidebar .nav-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.classroom-app .nav-sidebar .nav-link.active {
+  background: rgba(89, 36, 155, 0.25);
+  border-left-color: var(--secondary);
+  color: #fff;
+}
+
+body.classroom-app .nav-sidebar .nav-link.active i {
+  color: var(--secondary);
+}
+
+body.classroom-app .main-sidebar .form-control-sidebar,
+body.classroom-app .main-sidebar .input-group-text,
+body.classroom-app .main-sidebar .btn-sidebar {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--sidebar-text);
+}
+
+body.classroom-app .main-sidebar .form-control-sidebar::placeholder {
+  color: rgba(229, 231, 235, 0.5);
+}
+
+body.classroom-app .user-panel .info a,
+body.classroom-app .user-panel .info small {
+  color: var(--sidebar-text);
+}
+
+body.classroom-app .card,
+body.classroom-app .info-box,
+body.classroom-app .small-box,
+body.classroom-app .modal-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--soft-shadow) !important;
+}
+
+body.classroom-app .card,
+body.classroom-app .info-box {
+  overflow: hidden;
+  border-top: 4px solid var(--primary);
+}
+
+body.classroom-app .card-header {
+  padding: 1.25rem 1.25rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+body.classroom-app .card-header.bg-primary,
+body.classroom-app .card-header.bg-info,
+body.classroom-app .card-header.bg-success,
+body.classroom-app .card-header.bg-warning,
+body.classroom-app .card-header.bg-secondary,
+body.classroom-app .card-header.bg-dark {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+body.classroom-app .card-title,
+body.classroom-app .section-title,
+body.classroom-app .entity-title,
+body.classroom-app .profile-title,
+body.classroom-app .student-course-hero h1 {
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+body.classroom-app .card-body,
+body.classroom-app .card-footer {
+  padding: 1.25rem;
+}
+
+body.classroom-app .card.card-outline.card-primary,
+body.classroom-app .card.card-outline.card-info {
+  border-top-color: var(--primary);
+}
+
+body.classroom-app .card.card-outline.card-success,
+body.classroom-app .card.card-outline.card-warning,
+body.classroom-app .card.card-outline.card-secondary {
+  border-top-color: var(--secondary);
+}
+
+body.classroom-app .card.card-outline.card-light,
+body.classroom-app .card.card-outline.card-dark {
+  border-top-color: var(--border);
+}
+
+body.classroom-app .small-box {
+  position: relative;
+  padding: 0.5rem 0;
+  min-height: 118px;
+  background: var(--surface) !important;
+  border-top: 4px solid var(--primary);
+}
+
+body.classroom-app .small-box.bg-info,
+body.classroom-app .small-box.bg-primary,
+body.classroom-app .small-box.bg-success,
+body.classroom-app .small-box.bg-warning,
+body.classroom-app .small-box.bg-danger,
+body.classroom-app .small-box.bg-dark {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+body.classroom-app .small-box .inner h3,
+body.classroom-app .small-box .inner p {
+  color: var(--text);
+}
+
+body.classroom-app .small-box .icon {
+  color: rgba(89, 36, 155, 0.18);
+}
+
+body.classroom-app .hero-shell,
+body.classroom-app .entity-hero,
+body.classroom-app .profile-hero,
+body.classroom-app .student-course-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 4px solid var(--secondary);
+  box-shadow: var(--soft-shadow);
+  background: linear-gradient(135deg, #1e1b4b 0%, #59249b 60%, #6d28d9 100%) !important;
+  color: #fff;
+}
+
+body.classroom-app .hero-shell::after,
+body.classroom-app .entity-hero::after,
+body.classroom-app .profile-hero::after,
+body.classroom-app .student-course-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.16), transparent 22%),
+    radial-gradient(circle at 82% 12%, rgba(255, 145, 77, 0.22), transparent 18%);
+  pointer-events: none;
+}
+
+body.classroom-app .hero-content,
+body.classroom-app .entity-hero__content,
+body.classroom-app .profile-hero__content,
+body.classroom-app .student-course-hero__content {
+  position: relative;
+  z-index: 1;
+  padding: 1.5rem 1.75rem;
+}
+
+body.classroom-app .hero-lead,
+body.classroom-app .entity-lead,
+body.classroom-app .profile-subtitle,
+body.classroom-app .student-course-hero p {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+body.classroom-app .entity-kicker,
+body.classroom-app .profile-kicker,
+body.classroom-app .auth-pill,
+body.classroom-app .badge {
+  font-weight: 600;
+}
+
+body.classroom-app .entity-kicker,
+body.classroom-app .profile-kicker,
+body.classroom-app .auth-pill {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+body.classroom-app .badge-primary,
+body.classroom-app .badge-info,
+body.classroom-app .badge.bg-primary,
+body.classroom-app .badge.bg-info {
+  background: var(--primary);
+  color: #fff;
+}
+
+body.classroom-app .badge-secondary,
+body.classroom-app .badge-warning,
+body.classroom-app .badge.bg-secondary,
+body.classroom-app .badge.bg-warning {
+  background: var(--secondary);
+  color: #fff;
+}
+
+body.classroom-app .badge-success {
+  background: var(--success);
+  color: #fff;
+}
+
+body.classroom-app .badge.bg-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+body.classroom-app .badge-light {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+body.classroom-app .btn,
+body.login-page.classroom-auth .btn {
+  border-radius: 14px;
+  font-weight: 600;
+  box-shadow: none !important;
+}
+
+body.classroom-app .btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+body.classroom-app .btn-primary:hover,
+body.classroom-app .btn-primary:focus {
+  background: #6f33c5;
+  border-color: #6f33c5;
+  color: #fff;
+}
+
+body.classroom-app .btn-secondary,
+body.classroom-app .btn-success,
+body.classroom-app .btn-warning {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  color: #fff;
+}
+
+body.classroom-app .btn-secondary:hover,
+body.classroom-app .btn-success:hover,
+body.classroom-app .btn-warning:hover,
+body.classroom-app .btn-secondary:focus,
+body.classroom-app .btn-success:focus,
+body.classroom-app .btn-warning:focus {
+  background: #ff7a1f;
+  border-color: #ff7a1f;
+  color: #fff;
+}
+
+body.classroom-app .btn-info {
+  background: rgba(89, 36, 155, 0.1);
+  border-color: rgba(89, 36, 155, 0.18);
+  color: var(--primary);
+}
+
+body.classroom-app .btn-info:hover,
+body.classroom-app .btn-info:focus {
+  background: rgba(89, 36, 155, 0.16);
+  border-color: rgba(89, 36, 155, 0.24);
+  color: var(--primary);
+}
+
+body.classroom-app .btn-light,
+body.classroom-app .btn-default,
+body.classroom-app .btn-outline-light {
+  background: #fff;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+body.classroom-app .btn-outline-primary {
+  color: var(--primary);
+  border-color: rgba(89, 36, 155, 0.22);
+}
+
+body.classroom-app .btn-outline-primary:hover,
+body.classroom-app .btn-outline-primary:focus {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+body.classroom-app .btn-outline-secondary {
+  color: var(--secondary);
+  border-color: rgba(255, 145, 77, 0.28);
+}
+
+body.classroom-app .btn-outline-secondary:hover,
+body.classroom-app .btn-outline-secondary:focus {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  color: #fff;
+}
+
+body.classroom-app .btn-tool {
+  color: var(--text-muted);
+}
+
+body.classroom-app .form-control,
+body.classroom-app .custom-select,
+body.classroom-app .input-group-text,
+body.classroom-app textarea,
+body.classroom-app select {
+  border-color: var(--border);
+  border-radius: 14px;
+  color: var(--text);
+}
+
+body.classroom-app .form-control,
+body.classroom-app .custom-select,
+body.classroom-app textarea,
+body.classroom-app select {
+  min-height: 46px;
+  background: #fff;
+}
+
+body.classroom-app .form-control:focus,
+body.classroom-app .custom-select:focus,
+body.classroom-app textarea:focus,
+body.classroom-app select:focus {
+  border-color: rgba(89, 36, 155, 0.38);
+  box-shadow: 0 0 0 0.18rem rgba(89, 36, 155, 0.1);
+}
+
+body.classroom-app label,
+body.classroom-app .text-muted {
+  color: var(--text-muted) !important;
+}
+
+body.classroom-app .table {
+  color: var(--text);
+  background: #fff;
+}
+
+body.classroom-app .table thead th {
+  background: #fff;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+body.classroom-app .table tbody tr:hover {
+  background: rgba(89, 36, 155, 0.04);
+}
+
+body.classroom-app .table td,
+body.classroom-app .table th {
+  border-color: var(--border);
+}
+
+body.classroom-app .table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(17, 24, 39, 0.02);
+}
+
+body.classroom-app .nav-tabs {
+  border-bottom: 1px solid var(--border);
+}
+
+body.classroom-app .nav-tabs .nav-link {
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+body.classroom-app .nav-tabs .nav-link:hover {
+  border-color: var(--border);
+  color: var(--primary);
+}
+
+body.classroom-app .nav-tabs .nav-link.active {
+  color: var(--primary);
+  background: #fff;
+  border-color: var(--border) var(--border) #fff;
+}
+
+body.classroom-app .dataTables_wrapper .dataTables_filter input,
+body.classroom-app .dataTables_wrapper .dataTables_length select {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--text);
+}
+
+body.classroom-app .dataTables_wrapper .dataTables_info,
+body.classroom-app .dataTables_wrapper .dataTables_paginate {
+  color: var(--text-muted);
+}
+
+body.classroom-app .dataTables_wrapper .dt-buttons .btn {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  border-radius: 12px;
+  margin-right: 0.35rem;
+}
+
+body.classroom-app .dataTables_wrapper .dt-buttons .btn:hover,
+body.classroom-app .dataTables_wrapper .dt-buttons .btn:focus {
+  background: #6f33c5;
+  border-color: #6f33c5;
+  color: #fff;
+}
+
+body.classroom-app .dataTables_wrapper .page-link {
+  border-color: var(--border);
+  color: var(--primary);
+}
+
+body.classroom-app .dataTables_wrapper .page-item.active .page-link {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+body.classroom-app .modal-content {
+  border-top: 4px solid var(--secondary);
+}
+
+body.classroom-app .modal-header,
+body.classroom-app .modal-footer {
+  border-color: var(--border);
+}
+
+body.classroom-app .dropdown-menu {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: var(--soft-shadow);
+}
+
+body.classroom-app .alert {
+  border-radius: 16px;
+  border-color: var(--border);
+}
+
+body.classroom-app .alert-info {
+  background: rgba(89, 36, 155, 0.08);
+  color: var(--text);
+  border-color: rgba(89, 36, 155, 0.16);
+}
+
+body.classroom-app .alert-warning {
+  background: rgba(255, 145, 77, 0.12);
+  color: var(--text);
+  border-color: rgba(255, 145, 77, 0.2);
+}
+
+body.classroom-app .timeline-icon.bg-primary,
+body.classroom-app .timeline-icon.bg-info {
+  background: var(--primary) !important;
+}
+
+body.classroom-app .timeline-icon.bg-success {
+  background: var(--secondary) !important;
+}
+
+body.classroom-app .timeline-icon.bg-warning {
+  background: var(--secondary) !important;
+}
+
+body.classroom-app .timeline-icon.bg-danger {
+  background: var(--danger) !important;
+}
+
+body.classroom-app .section-header-soft {
+  background: #fff;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+body.classroom-app .lesson-builder-header {
+  background: linear-gradient(90deg, rgba(89, 36, 155, 0.08), rgba(255, 145, 77, 0.1)) !important;
+  border-bottom: 1px solid rgba(89, 36, 155, 0.14) !important;
+}
+
+body.classroom-app .lesson-builder-card .card-body {
+  padding: 1.5rem;
+}
+
+body.classroom-app .quick-action {
+  border: 1px solid var(--border);
+  box-shadow: var(--soft-shadow);
+}
+
+body.classroom-app .quick-action .qa-icon {
+  background: linear-gradient(135deg, #59249b, #6f33c5) !important;
+}
+
+body.classroom-app .quick-action:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+}
+
+body.classroom-app .student-class-card {
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--soft-shadow);
+}
+
+body.classroom-app .student-class-card__cover {
+  background: linear-gradient(135deg, #1e1b4b 0%, #59249b 55%, #6d28d9 100%);
+}
+
+body.classroom-app .student-class-card .student-class-card__footer {
+  border-top: 1px solid var(--border);
+}
+
+body.classroom-app .profile-file-name,
+body.classroom-app .classroom-file__name {
+  border-color: var(--border);
+  background: #fff;
+  color: var(--text-muted);
+}
+
+body.classroom-app .profile-upload__button,
+body.classroom-app .classroom-file__button {
+  background: #fff;
+  border-color: rgba(89, 36, 155, 0.16);
+  color: var(--text);
+}
+
+body.classroom-app .profile-upload__button:hover,
+body.classroom-app .classroom-file__button:hover {
+  border-color: rgba(89, 36, 155, 0.3);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+}
+
+body.classroom-app .entity-chip {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.classroom-app .entity-chip i,
+body.classroom-app .profile-chip i {
+  color: var(--secondary);
+}
+
+body.classroom-app .toastify {
+  border-radius: 14px;
+  box-shadow: var(--soft-shadow);
+}
+
+body.classroom-app .main-footer {
+  background: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+body.classroom-app .card-header .badge,
+body.classroom-app .small-box .badge {
+  border-radius: 999px;
+}
+
+@media (max-width: 767.98px) {
+  body.classroom-app .hero-shell,
+  body.classroom-app .entity-hero,
+  body.classroom-app .profile-hero,
+  body.classroom-app .student-course-hero {
+    border-radius: 22px;
+  }
+
+  body.classroom-app .hero-content,
+  body.classroom-app .entity-hero__content,
+  body.classroom-app .profile-hero__content,
+  body.classroom-app .student-course-hero__content {
+    padding: 1.25rem;
+  }
+
+  body.classroom-app .card-body,
+  body.classroom-app .card-footer,
+  body.classroom-app .card-header {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }

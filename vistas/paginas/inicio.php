@@ -156,12 +156,12 @@ if (ControladorPermisos::esAdministrador()) {
     <?php foreach (($resumen['tarjetas'] ?? []) as $tarjeta): ?>
       <?php
         $estilosIcono = [
-          'bg-info' => 'background: linear-gradient(135deg, #0ea5e9, #38bdf8);',
-          'bg-primary' => 'background: linear-gradient(135deg, #1d4ed8, #4f8cff);',
-          'bg-success' => 'background: linear-gradient(135deg, #16a34a, #22c55e);',
-          'bg-warning' => 'background: linear-gradient(135deg, #d97706, #f59e0b);',
-          'bg-danger' => 'background: linear-gradient(135deg, #db2777, #f43f5e);',
-          'bg-dark' => 'background: linear-gradient(135deg, #0f172a, #334155);',
+          'bg-info' => 'background: linear-gradient(135deg, #7c3aed, #a855f7);',
+          'bg-primary' => 'background: linear-gradient(135deg, #59249b, #6f33c5);',
+          'bg-success' => 'background: linear-gradient(135deg, #ff914d, #ff7a1f);',
+          'bg-warning' => 'background: linear-gradient(135deg, #ff914d, #f97316);',
+          'bg-danger' => 'background: linear-gradient(135deg, #dc2626, #ef4444);',
+          'bg-dark' => 'background: linear-gradient(135deg, #1e1b4b, #334155);',
         ];
         $claseTarjeta = (string) ($tarjeta['class'] ?? 'bg-primary');
         $estiloIcono = $estilosIcono[$claseTarjeta] ?? $estilosIcono['bg-primary'];
@@ -250,14 +250,14 @@ if (ControladorPermisos::esAdministrador()) {
 
           <div class="mt-4">
             <a href="index.php?r=bandeja-entrada" class="quick-action text-dark mb-3">
-              <span class="qa-icon" style="background: linear-gradient(135deg, #db2777, #f43f5e);"><i class="fas fa-inbox"></i></span>
+              <span class="qa-icon" style="background: linear-gradient(135deg, #59249b, #6f33c5);"><i class="fas fa-inbox"></i></span>
               <div>
                 <strong>Ir a mensajes</strong>
                 <div class="text-muted small">Revisa tus conversaciones activas</div>
               </div>
             </a>
             <a href="index.php?r=perfil-usuario" class="quick-action text-dark">
-              <span class="qa-icon" style="background: linear-gradient(135deg, #1d4ed8, #4f8cff);"><i class="fas fa-user-circle"></i></span>
+              <span class="qa-icon" style="background: linear-gradient(135deg, #ff914d, #ff7a1f);"><i class="fas fa-user-circle"></i></span>
               <div>
                 <strong>Editar perfil</strong>
                 <div class="text-muted small">Mantene tus datos actualizados</div>

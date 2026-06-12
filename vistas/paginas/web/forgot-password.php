@@ -14,7 +14,7 @@ unset($_SESSION['forgot_error'], $_SESSION['forgot_success'], $_SESSION['forgot_
   <link rel="stylesheet" href="./plugins/fontawesome-free/css/all.min.css">
   <link rel="stylesheet" href="./plugins/icheck-bootstrap/icheck-bootstrap.min.css">
   <link rel="stylesheet" href="./css/adminlte.min.css">
-  <link rel="stylesheet" href="./css/classroom-theme.css">
+  <link rel="stylesheet" href="./css/classroom-theme.css?v=20260611-premium-redesign">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
 <body class="hold-transition login-page classroom-auth">

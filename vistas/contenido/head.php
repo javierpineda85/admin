@@ -8,14 +8,16 @@
   <meta name="description" content="Sistema de administración de estudiantes y cursos de e-learning realizado en PHP ">
   <title>e-learning </title>
 
-  <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <!-- Google Font: Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=fallback">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="./css/all.min.css">
   <script src="https://kit.fontawesome.com/7907a05fb3.js"></script>
   <!-- Theme style -->
   <link rel="stylesheet" href="./css/adminlte.min.css">
-  <link rel="stylesheet" href="./css/classroom-theme.css?v=20260602-student-polish">
+  <link rel="stylesheet" href="./css/classroom-theme.css?v=20260611-premium-redesign">
 
   <!-- Bootstrap4 Duallistbox -->
   <link rel="stylesheet" href="./plugins/bootstrap4-duallistbox/bootstrap-duallistbox.min.css">
