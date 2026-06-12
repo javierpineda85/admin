@@ -367,7 +367,7 @@ if (ControladorPermisos::esEstudiante()) {
     </div>
 
     <div class="row">
-      <div class="col-12 col-lg-7">
+      <div class="col-12 col-lg-8">
         <div class="card card-outline card-primary shadow-sm">
           <div class="card-header d-flex align-items-center justify-content-between">
             <div>
@@ -421,11 +421,82 @@ if (ControladorPermisos::esEstudiante()) {
           </div>
         </div>
 
-        <div class="card card-outline card-info shadow-sm">
-          <div class="card-header">
-            <h3 class="card-title">Lecciones del aula</h3>
+        <?php if ($puedeGestionar): ?>
+          <div class="card card-outline card-primary shadow-sm lesson-builder-card mb-3">
+            <div class="card-header section-header-soft lesson-builder-header d-flex align-items-center justify-content-between">
+              <h3 class="card-title mb-0">Crear lección</h3>
+              <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#crearLeccionPanel" aria-expanded="true" aria-controls="crearLeccionPanel">
+                <i class="fas fa-chevron-up"></i>
+              </button>
+            </div>
+            <div id="crearLeccionPanel" class="collapse show">
+              <div class="card-body">
+                <form method="post">
+                  <input type="hidden" name="accion" value="crear_leccion">
+                  <input type="hidden" name="id_modulo" value="<?php echo (int) $idSeccion; ?>">
+                  <div class="form-group">
+                    <label class="small text-muted">Nombre</label>
+                    <input type="text" name="nombreLeccion" class="form-control form-control-sm" placeholder="Ej. Introduccion al tema" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="small text-muted">Tipo</label>
+                    <select name="tipoLeccion" class="form-control form-control-sm" required>
+                      <option value="MATERIAL">Material</option>
+                      <option value="TAREA">Tarea</option>
+                      <option value="PREGUNTA">Pregunta</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="small text-muted">Contenido</label>
+                    <textarea name="contenidoLeccion" rows="5" class="form-control form-control-sm" placeholder="Resumen, instrucciones o consigna..."></textarea>
+                  </div>
+                  <div class="border rounded p-3 mb-3 bg-light">
+                    <div class="text-uppercase text-muted small mb-3">Recurso inicial opcional</div>
+                    <div class="form-group">
+                      <label class="small text-muted">TÃ­tulo del recurso</label>
+                      <input type="text" name="tituloRecursoInicial" class="form-control form-control-sm" placeholder="Ej. Apunte de la clase">
+                    </div>
+                    <div class="form-group">
+                      <label class="small text-muted">Tipo</label>
+                      <select name="tipoRecursoInicial" class="form-control form-control-sm">
+                        <option value="">Sin recurso</option>
+                        <option value="ARCHIVO">Archivo adjunto</option>
+                        <option value="ENLACE">Enlace externo</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="small text-muted">Archivo adjunto</label>
+                      <div class="classroom-file">
+                        <input type="file" class="classroom-file__input" id="archivoRecursoInicialSeccion<?php echo (int) $idSeccion; ?>" name="archivoRecursoInicial">
+                        <label class="classroom-file__button" for="archivoRecursoInicialSeccion<?php echo (int) $idSeccion; ?>">
+                          <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                        </label>
+                        <span class="classroom-file__name">Ningún archivo seleccionado</span>
+                      </div>
+                    </div>
+                    <div class="form-group mb-0">
+                      <label class="small text-muted">URL del recurso</label>
+                      <input type="text" name="urlRecursoInicial" class="form-control form-control-sm" placeholder="https://...">
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-block btn-sm">
+                    <i class="fas fa-plus mr-1"></i>Crear lección
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
-          <div class="card-body">
+        <?php endif; ?>
+
+        <div class="card card-outline card-info shadow-sm mb-0">
+          <div class="card-header section-header-soft d-flex align-items-center justify-content-between">
+            <h3 class="card-title mb-0">Lecciones del curso</h3>
+            <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#leccionesCursoPanel" aria-expanded="true" aria-controls="leccionesCursoPanel">
+              <i class="fas fa-chevron-up"></i>
+            </button>
+          </div>
+          <div id="leccionesCursoPanel" class="collapse show">
+            <div class="card-body">
             <?php if (empty($lecciones)): ?>
               <div class="alert alert-light border mb-0">
                 Todavia no hay lecciones cargadas para esta seccion.
@@ -733,11 +804,12 @@ if (ControladorPermisos::esEstudiante()) {
                 </div>
               </div>
             <?php endforeach; ?>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="col-12 col-lg-5">
+      <div class="col-12 col-lg-4">
         <div class="card card-outline card-success shadow-sm">
           <div class="card-header section-header-soft">
             <h3 class="card-title">Detalle de la seccion</h3>
@@ -757,68 +829,6 @@ if (ControladorPermisos::esEstudiante()) {
             </dl>
           </div>
         </div>
-
-        <?php if ($puedeGestionar): ?>
-          <div class="card card-outline card-primary shadow-sm lesson-builder-card">
-            <div class="card-header section-header-soft lesson-builder-header">
-              <h3 class="card-title">Crear leccion</h3>
-            </div>
-            <div class="card-body">
-              <form method="post">
-                <input type="hidden" name="accion" value="crear_leccion">
-                <input type="hidden" name="id_modulo" value="<?php echo (int) $idSeccion; ?>">
-                <div class="form-group">
-                  <label class="small text-muted">Nombre</label>
-                  <input type="text" name="nombreLeccion" class="form-control form-control-sm" placeholder="Ej. Introduccion al tema" required>
-                </div>
-                <div class="form-group">
-                  <label class="small text-muted">Tipo</label>
-                  <select name="tipoLeccion" class="form-control form-control-sm" required>
-                    <option value="MATERIAL">Material</option>
-                    <option value="TAREA">Tarea</option>
-                    <option value="PREGUNTA">Pregunta</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="small text-muted">Contenido</label>
-                  <textarea name="contenidoLeccion" rows="5" class="form-control form-control-sm" placeholder="Resumen, instrucciones o consigna..."></textarea>
-                </div>
-                <div class="border rounded p-3 mb-3 bg-light">
-                  <div class="text-uppercase text-muted small mb-3">Recurso inicial opcional</div>
-                  <div class="form-group">
-                    <label class="small text-muted">Título del recurso</label>
-                    <input type="text" name="tituloRecursoInicial" class="form-control form-control-sm" placeholder="Ej. Apunte de la clase">
-                  </div>
-                  <div class="form-group">
-                    <label class="small text-muted">Tipo</label>
-                    <select name="tipoRecursoInicial" class="form-control form-control-sm">
-                      <option value="">Sin recurso</option>
-                      <option value="ARCHIVO">Archivo adjunto</option>
-                      <option value="ENLACE">Enlace externo</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="small text-muted">Archivo adjunto</label>
-                    <div class="classroom-file">
-                      <input type="file" class="classroom-file__input" id="archivoRecursoInicialSeccion<?php echo (int) $idSeccion; ?>" name="archivoRecursoInicial">
-                      <label class="classroom-file__button" for="archivoRecursoInicialSeccion<?php echo (int) $idSeccion; ?>">
-                        <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
-                      </label>
-                      <span class="classroom-file__name">Ningún archivo seleccionado</span>
-                    </div>
-                  </div>
-                  <div class="form-group mb-0">
-                    <label class="small text-muted">URL del recurso</label>
-                    <input type="text" name="urlRecursoInicial" class="form-control form-control-sm" placeholder="https://...">
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary btn-block btn-sm">
-                  <i class="fas fa-plus mr-1"></i>Crear leccion
-                </button>
-              </form>
-            </div>
-          </div>
-        <?php endif; ?>
 
         <?php if (ControladorPermisos::esEstudiante()): ?>
           <div class="card card-outline card-warning shadow-sm">
