@@ -21,22 +21,48 @@ class ModeloPerfiles
     /*EDITA UN PERFIL */
     static public function mdlEditarPerfil($datos)
     {
+        $conexion = Conexion::conectar();
+        $idUsuario = (int) ($datos["idUsuario"] ?? 0);
 
-        $registro = Conexion::conectar()->prepare("UPDATE perfiles SET fnacPerfil = :fnacPerfil, domicilioPerfil = :domicilioPerfil, contenidoPerfil = :contenidoPerfil WHERE id_usuario= :id_usuario");
+        $existe = $conexion->prepare("SELECT idPerfil FROM perfiles WHERE id_usuario = :id_usuario LIMIT 1");
+        $existe->bindValue(":id_usuario", $idUsuario, PDO::PARAM_INT);
+        $existe->execute();
 
-        $registro->bindParam(":id_usuario", $datos["idUsuario"], PDO::PARAM_INT);
-        $registro->bindParam(":fnacPerfil", $datos["fnac"], PDO::PARAM_STR);
-        $registro->bindParam(":domicilioPerfil", $datos["domicilioPerfil"], PDO::PARAM_STR);
-        $registro->bindParam(":contenidoPerfil", $datos["contenidoPerfil"], PDO::PARAM_STR);
-
-        if ($registro->execute()) {
-            return "ok";
-        } else {
-            print_r(Conexion::conectar()->errorInfo());
+        if (!$existe->fetch(PDO::FETCH_ASSOC)) {
+            return self::mdlGuardarPerfil([
+                "idUsuario" => $idUsuario,
+                "dniPerfil" => $datos["dniPerfil"] ?? null,
+                "telefonoPerfil" => $datos["telefonoPerfil"] ?? null,
+                "fnacPerfil" => $datos["fnacPerfil"] ?? ($datos["fnac"] ?? null),
+                "domicilioPerfil" => $datos["domicilioPerfil"] ?? null,
+                "provinciaPerfil" => $datos["provinciaPerfil"] ?? null,
+                "contenidoPerfil" => $datos["contenidoPerfil"] ?? '',
+            ]);
         }
 
-        $registro->closeCursor();
-        $registro = null;
+        $registro = $conexion->prepare("
+            UPDATE perfiles
+            SET dniPerfil = :dniPerfil,
+                telefonoPerfil = :telefonoPerfil,
+                fnacPerfil = :fnacPerfil,
+                domicilioPerfil = :domicilioPerfil,
+                provinciaPerfil = :provinciaPerfil,
+                contenidoPerfil = :contenidoPerfil
+            WHERE id_usuario = :id_usuario
+        ");
+
+        $dniPerfil = trim((string) ($datos["dniPerfil"] ?? ''));
+        $fnacPerfil = trim((string) ($datos["fnacPerfil"] ?? ($datos["fnac"] ?? '')));
+
+        $registro->bindValue(":id_usuario", $idUsuario, PDO::PARAM_INT);
+        $registro->bindValue(":dniPerfil", $dniPerfil !== '' ? (int) $dniPerfil : null, $dniPerfil !== '' ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $registro->bindValue(":telefonoPerfil", trim((string) ($datos["telefonoPerfil"] ?? '')), PDO::PARAM_STR);
+        $registro->bindValue(":fnacPerfil", $fnacPerfil !== '' ? $fnacPerfil : null, $fnacPerfil !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $registro->bindValue(":domicilioPerfil", trim((string) ($datos["domicilioPerfil"] ?? '')), PDO::PARAM_STR);
+        $registro->bindValue(":provinciaPerfil", trim((string) ($datos["provinciaPerfil"] ?? '')), PDO::PARAM_STR);
+        $registro->bindValue(":contenidoPerfil", (string) ($datos["contenidoPerfil"] ?? ''), PDO::PARAM_STR);
+
+        return $registro->execute() ? "ok" : "error";
     }
 
     /*INSERTA UN PERFIL */

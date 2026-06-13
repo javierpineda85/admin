@@ -6,7 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="author" content="Javier Pineda">
   <meta name="description" content="Sistema de administración de estudiantes y cursos de e-learning realizado en PHP ">
-  <title>e-learning </title>
+  <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="theme-color" content="#ffffff">
+  <title>Campus</title>
 
   <!-- Google Font: Montserrat -->
   <link rel="preconnect" href="https://fonts.googleapis.com">

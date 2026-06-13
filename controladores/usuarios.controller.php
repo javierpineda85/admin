@@ -39,6 +39,11 @@ class ControladorUsuarios
         return ModeloUsuarios::mdlSeleccionarUsuarios($item, $valor);
     }
 
+    public static function crtUsuariosDocentesAsignables()
+    {
+        return ModeloUsuarios::mdlUsuariosDocentesAsignables();
+    }
+
     public static function crtDestinatariosPermitidos()
     {
         $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
@@ -246,6 +251,22 @@ class ControladorUsuarios
 
         $respuesta = ModeloUsuarios::mdlModificarUsuario($tabla, $datos);
         if ($respuesta === 'ok') {
+            $datosPerfil = [
+                "idUsuario" => $datos['idUsuario'],
+                "dniPerfil" => $_POST['dniPerfil'] ?? null,
+                "telefonoPerfil" => $_POST['telefonoPerfil'] ?? null,
+                "fnacPerfil" => $_POST['fnacPerfil'] ?? null,
+                "domicilioPerfil" => $_POST['domicilioPerfil'] ?? null,
+                "provinciaPerfil" => $_POST['provinciaPerfil'] ?? null,
+                "contenidoPerfil" => $_POST['contenidoPerfil'] ?? '',
+            ];
+
+            $respuestaPerfil = ModeloPerfiles::mdlEditarPerfil($datosPerfil);
+            if ($respuestaPerfil !== 'ok') {
+                $_SESSION['error_message'] = 'No se pudo modificar el perfil del usuario';
+                return false;
+            }
+
             ModeloUsuarios::mdlRegistrarHistorial([
                 'id_usuario' => $datos['idUsuario'],
                 'accion' => 'MODIFICACION',

@@ -29,6 +29,254 @@ class ModeloUsuarios
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    private static function sanitizarPrefijoWordPress()
+    {
+        $prefijo = preg_replace('/[^A-Za-z0-9_]/', '', (string) WP_TABLE_PREFIX);
+        return $prefijo !== '' ? $prefijo : 'wp_';
+    }
+
+    private static function truncarTexto($texto, $limite)
+    {
+        $texto = trim((string) $texto);
+        if ($texto === '') {
+            return '';
+        }
+
+        if (function_exists('mb_substr')) {
+            return mb_substr($texto, 0, $limite);
+        }
+
+        return substr($texto, 0, $limite);
+    }
+
+    private static function separarNombreApellido($displayName, $fallbackLogin)
+    {
+        $displayName = trim((string) $displayName);
+        if ($displayName === '') {
+            $displayName = trim((string) $fallbackLogin);
+        }
+
+        $partes = preg_split('/\s+/', $displayName) ?: [];
+        $nombre = $partes[0] ?? 'Usuario';
+        unset($partes[0]);
+        $apellido = trim(implode(' ', $partes));
+
+        if ($apellido === '') {
+            $apellido = 'Campus';
+        }
+
+        return [$nombre, $apellido];
+    }
+
+    private static function resolverRolWordPress($usuarioWp)
+    {
+        $email = strtolower(trim((string) ($usuarioWp['user_email'] ?? '')));
+        $superAdmins = array_map('strtolower', WP_SUPER_ADMIN_EMAILS);
+        if ($email !== '' && in_array($email, $superAdmins, true)) {
+            return 'ADMINISTRADOR';
+        }
+
+        $capabilities = strtolower((string) ($usuarioWp['capabilities'] ?? ''));
+        $esAdmin = str_contains($capabilities, 'administrator');
+        $esInstructor = !empty($usuarioWp['is_tutor_instructor'])
+            && strtolower((string) ($usuarioWp['tutor_instructor_status'] ?? '')) === 'approved';
+        $esEstudiante = !empty($usuarioWp['is_tutor_student'])
+            || str_contains($capabilities, 'customer')
+            || str_contains($capabilities, 'subscriber');
+
+        if ($esAdmin) {
+            return 'ADMINISTRADOR';
+        }
+
+        if ($esInstructor) {
+            return 'DOCENTE';
+        }
+
+        if ($esEstudiante) {
+            return 'ESTUDIANTE';
+        }
+
+        return null;
+    }
+
+    public static function mdlAsegurarColumnasIntegracionWordPress()
+    {
+        static $columnasVerificadas = false;
+        if ($columnasVerificadas) {
+            return;
+        }
+
+        $conexion = Conexion::conectar();
+        if (!$conexion) {
+            return;
+        }
+
+        $stmtWp = $conexion->query("SHOW COLUMNS FROM usuarios LIKE 'wpUserId'");
+        if (!$stmtWp->fetch(PDO::FETCH_ASSOC)) {
+            $conexion->exec("ALTER TABLE usuarios ADD COLUMN wpUserId BIGINT NULL DEFAULT NULL AFTER usuarioBaja");
+        }
+
+        $stmtOrigen = $conexion->query("SHOW COLUMNS FROM usuarios LIKE 'origenAuth'");
+        if (!$stmtOrigen->fetch(PDO::FETCH_ASSOC)) {
+            $conexion->exec("ALTER TABLE usuarios ADD COLUMN origenAuth VARCHAR(20) NOT NULL DEFAULT 'LOCAL' AFTER wpUserId");
+        }
+
+        $stmtIndice = $conexion->query("SHOW INDEX FROM usuarios WHERE Key_name = 'idx_wp_user'");
+        if (!$stmtIndice->fetch(PDO::FETCH_ASSOC)) {
+            $conexion->exec("ALTER TABLE usuarios ADD INDEX idx_wp_user (wpUserId)");
+        }
+
+        $columnasVerificadas = true;
+    }
+
+    public static function mdlObtenerUsuarioWordPressPorEmail($email)
+    {
+        $conexionWp = Conexion::conectarWordPress();
+        if (!$conexionWp) {
+            return null;
+        }
+
+        $prefijo = self::sanitizarPrefijoWordPress();
+        $tablaUsuarios = $prefijo . 'users';
+        $tablaMeta = $prefijo . 'usermeta';
+        $metaCapabilities = $prefijo . 'capabilities';
+
+        $stmt = $conexionWp->prepare("
+            SELECT u.ID,
+                   u.user_login,
+                   u.user_pass,
+                   u.user_email,
+                   u.display_name,
+                   MAX(CASE WHEN um.meta_key = 'first_name' THEN um.meta_value END) AS first_name,
+                   MAX(CASE WHEN um.meta_key = 'last_name' THEN um.meta_value END) AS last_name,
+                   MAX(CASE WHEN um.meta_key = :metaCapabilities THEN um.meta_value END) AS capabilities,
+                   MAX(CASE WHEN um.meta_key = '_is_tutor_instructor' THEN um.meta_value END) AS is_tutor_instructor,
+                   MAX(CASE WHEN um.meta_key = '_tutor_instructor_status' THEN um.meta_value END) AS tutor_instructor_status,
+                   MAX(CASE WHEN um.meta_key = '_is_tutor_student' THEN um.meta_value END) AS is_tutor_student
+            FROM {$tablaUsuarios} u
+            LEFT JOIN {$tablaMeta} um ON um.user_id = u.ID
+            WHERE u.user_email = :email OR u.user_login = :email
+            GROUP BY u.ID, u.user_login, u.user_pass, u.user_email, u.display_name
+            LIMIT 1
+        ");
+        $stmt->bindValue(':metaCapabilities', $metaCapabilities, PDO::PARAM_STR);
+        $stmt->bindValue(':email', (string) $email, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    private static function asegurarPerfilBasico($idUsuario)
+    {
+        $stmt = Conexion::conectar()->prepare("SELECT idPerfil FROM perfiles WHERE id_usuario = :idUsuario LIMIT 1");
+        $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
+        $stmt->execute();
+
+        if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+            return;
+        }
+
+        $insert = Conexion::conectar()->prepare("
+            INSERT INTO perfiles (id_usuario, dniPerfil, telefonoPerfil, fnacPerfil, domicilioPerfil, provinciaPerfil, contenidoPerfil)
+            VALUES (:idUsuario, NULL, NULL, NULL, NULL, NULL, '')
+        ");
+        $insert->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
+        $insert->execute();
+    }
+
+    public static function mdlSincronizarUsuarioWordPress($usuarioWp)
+    {
+        if (empty($usuarioWp) || empty($usuarioWp['ID'])) {
+            return null;
+        }
+
+        self::mdlAsegurarColumnasIntegracionWordPress();
+
+        $rol = self::resolverRolWordPress($usuarioWp);
+        if ($rol === null) {
+            return null;
+        }
+
+        $conexion = Conexion::conectar();
+        $wpUserId = (int) $usuarioWp['ID'];
+
+        $nombre = trim((string) ($usuarioWp['first_name'] ?? ''));
+        $apellido = trim((string) ($usuarioWp['last_name'] ?? ''));
+        if ($nombre === '' || $apellido === '') {
+            [$nombreFallback, $apellidoFallback] = self::separarNombreApellido(
+                $usuarioWp['display_name'] ?? '',
+                $usuarioWp['user_login'] ?? ''
+            );
+            if ($nombre === '') {
+                $nombre = $nombreFallback;
+            }
+            if ($apellido === '') {
+                $apellido = $apellidoFallback;
+            }
+        }
+
+        $nombre = self::truncarTexto($nombre, 20);
+        $apellido = self::truncarTexto($apellido, 20);
+        $email = self::truncarTexto((string) ($usuarioWp['user_email'] ?? ''), 50);
+
+        $stmt = $conexion->prepare("
+            SELECT *
+            FROM usuarios
+            WHERE wpUserId = :wpUserId OR email = :email
+            ORDER BY wpUserId = :wpUserIdOrder DESC, idUsuario ASC
+            LIMIT 1
+        ");
+        $stmt->bindValue(':wpUserId', $wpUserId, PDO::PARAM_INT);
+        $stmt->bindValue(':wpUserIdOrder', $wpUserId, PDO::PARAM_INT);
+        $stmt->bindValue(':email', $email, PDO::PARAM_STR);
+        $stmt->execute();
+        $usuarioLocal = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($usuarioLocal) {
+            $update = $conexion->prepare("
+                UPDATE usuarios
+                SET nombreUsuario = :nombre,
+                    apellidoUsuario = :apellido,
+                    email = :email,
+                    rol = :rol,
+                    activo = 1,
+                    wpUserId = :wpUserId,
+                    origenAuth = 'WORDPRESS'
+                WHERE idUsuario = :idUsuario
+            ");
+            $update->bindValue(':nombre', $nombre, PDO::PARAM_STR);
+            $update->bindValue(':apellido', $apellido, PDO::PARAM_STR);
+            $update->bindValue(':email', $email, PDO::PARAM_STR);
+            $update->bindValue(':rol', $rol, PDO::PARAM_STR);
+            $update->bindValue(':wpUserId', $wpUserId, PDO::PARAM_INT);
+            $update->bindValue(':idUsuario', (int) $usuarioLocal['idUsuario'], PDO::PARAM_INT);
+            $update->execute();
+
+            self::asegurarPerfilBasico((int) $usuarioLocal['idUsuario']);
+            return self::mdlObtenerUsuarioPorId((int) $usuarioLocal['idUsuario']);
+        }
+
+        $passwordPlaceholder = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+        $insert = $conexion->prepare("
+            INSERT INTO usuarios
+                (nombreUsuario, apellidoUsuario, email, pass, resetPass, imgUsuario, activo, rol, fechaAlta, wpUserId, origenAuth)
+            VALUES
+                (:nombre, :apellido, :email, :pass, 0, '', 1, :rol, NOW(), :wpUserId, 'WORDPRESS')
+        ");
+        $insert->bindValue(':nombre', $nombre, PDO::PARAM_STR);
+        $insert->bindValue(':apellido', $apellido, PDO::PARAM_STR);
+        $insert->bindValue(':email', $email, PDO::PARAM_STR);
+        $insert->bindValue(':pass', $passwordPlaceholder, PDO::PARAM_STR);
+        $insert->bindValue(':rol', $rol, PDO::PARAM_STR);
+        $insert->bindValue(':wpUserId', $wpUserId, PDO::PARAM_INT);
+        $insert->execute();
+
+        $idNuevoUsuario = (int) $conexion->lastInsertId();
+        self::asegurarPerfilBasico($idNuevoUsuario);
+
+        return self::mdlObtenerUsuarioPorId($idNuevoUsuario);
+    }
+
     public static function mdlObtenerUsuarioPorId($idUsuario)
     {
         $stmt = Conexion::conectar()->prepare("SELECT * FROM usuarios WHERE idUsuario = :idUsuario LIMIT 1");
@@ -140,6 +388,25 @@ class ModeloUsuarios
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public static function mdlUsuariosDocentesAsignables()
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT u.*,
+                   DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
+                   DATE_FORMAT(u.ultimaConexion, '%d/%m/%Y %H:%i') AS ultimaConexionFmt,
+                   DATE_FORMAT(u.fechaBaja, '%d/%m/%Y %H:%i') AS fechaBajaFmt,
+                   CONCAT(u2.nombreUsuario, ' ', u2.apellidoUsuario) AS usuarioBajaNombre
+            FROM usuarios u
+            LEFT JOIN usuarios u2 ON u2.idUsuario = u.usuarioBaja
+            WHERE u.activo = 1
+              AND u.rol IN ('DOCENTE', 'ADMINISTRADOR')
+            ORDER BY FIELD(u.rol, 'DOCENTE', 'ADMINISTRADOR'), u.apellidoUsuario ASC, u.nombreUsuario ASC
+        ");
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public static function mdlUsuariosConectadosRecientes($minutos = 60)
     {
         $minutos = max(1, (int) $minutos);
@@ -231,7 +498,7 @@ class ModeloUsuarios
             INNER JOIN usuarios u ON u.idUsuario IN (s.docente, s.tutor)
             WHERE a.id_estudiante = :idUsuarioActual
               AND u.activo = 1
-              AND u.rol = 'DOCENTE'
+              AND u.rol IN ('DOCENTE', 'ADMINISTRADOR')
               AND u.idUsuario <> :idUsuarioActual
 
             ORDER BY rol ASC, apellidoUsuario ASC, nombreUsuario ASC

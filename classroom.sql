@@ -308,7 +308,10 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `fechaBaja` datetime DEFAULT NULL,
   `motivoBaja` varchar(255) DEFAULT NULL,
   `usuarioBaja` int DEFAULT NULL,
-  PRIMARY KEY (`idUsuario`)
+  `wpUserId` bigint DEFAULT NULL,
+  `origenAuth` varchar(20) NOT NULL DEFAULT 'LOCAL',
+  PRIMARY KEY (`idUsuario`),
+  KEY `idx_wp_user` (`wpUserId`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------

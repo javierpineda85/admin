@@ -15,7 +15,7 @@ $materia = $materia[0] ?? [
 ];
 $db = new Conexion;
 $cursos = $db->consultas("SELECT * FROM cursos ORDER BY nombreCurso ASC");
-$usuarios = ControladorUsuarios::crtSeleccionarUsuario('rol', 'DOCENTE');
+$usuarios = ControladorUsuarios::crtUsuariosDocentesAsignables();
 $registro = ControladorMaterias::crtModificarMateria();
 $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_message']));
 ?>

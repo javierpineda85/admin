@@ -48,9 +48,12 @@ class ControladorPerfiles
 
         $datos = array(
             "idUsuario" => $idUsuario,
-            "fnac" => $_POST["fnacPerfil"],
-            "domicilioPerfil" => $_POST["domicilioPerfil"],
-            "contenidoPerfil" => $_POST["contenidoPerfil"]
+            "dniPerfil" => $_POST["dniPerfil"] ?? null,
+            "telefonoPerfil" => $_POST["telefonoPerfil"] ?? null,
+            "fnacPerfil" => $_POST["fnacPerfil"] ?? null,
+            "domicilioPerfil" => $_POST["domicilioPerfil"] ?? null,
+            "provinciaPerfil" => $_POST["provinciaPerfil"] ?? null,
+            "contenidoPerfil" => $_POST["contenidoPerfil"] ?? ''
         );
 
         $conexion = Conexion::conectar();

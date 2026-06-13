@@ -168,12 +168,12 @@ class ControladorMensajes
             }
 
             if ($rolRemitente === 'ESTUDIANTE') {
-                if ($rolDestinatario === 'DOCENTE' && ModeloUsuarios::mdlDocenteTutorDeCursosEstudiante($idRemitente, $idDestinatario)) {
+                if (in_array($rolDestinatario, ['DOCENTE', 'ADMINISTRADOR'], true) && ModeloUsuarios::mdlDocenteTutorDeCursosEstudiante($idRemitente, $idDestinatario)) {
                     continue;
                 }
 
                 if ($rolDestinatario !== 'ESTUDIANTE') {
-                    $_SESSION['error_message'] = 'Los estudiantes solo pueden escribir a otros estudiantes.';
+                    $_SESSION['error_message'] = 'Los estudiantes solo pueden escribir a estudiantes de su curso o a sus docentes/tutores.';
                     return false;
                 }
 

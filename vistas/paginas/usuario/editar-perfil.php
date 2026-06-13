@@ -63,6 +63,24 @@ $e = static function ($valor) {
             </div>
             <div class="col-md-4">
               <div class="form-group">
+                <label>DNI</label>
+                <input type="text" class="form-control" name="dniPerfil" value="<?php echo $e($perfilDatos['dniPerfil'] ?? ''); ?>" maxlength="8">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Teléfono</label>
+                <input type="text" class="form-control" name="telefonoPerfil" value="<?php echo $e($perfilDatos['telefonoPerfil'] ?? ''); ?>">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Provincia</label>
+                <input type="text" class="form-control" name="provinciaPerfil" value="<?php echo $e($perfilDatos['provinciaPerfil'] ?? ''); ?>">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
                 <label>Fecha de nacimiento</label>
                 <input type="date" class="form-control" name="fnacPerfil" value="<?php echo $e($perfilDatos['fnacPerfil'] ?? ''); ?>">
               </div>

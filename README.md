@@ -5,6 +5,7 @@ Sistema web tipo classroom para administradores, docentes y estudiantes.
 ## Que incluye
 
 - Login y recuperacion de contrasena.
+- Modo de autenticacion `LOCAL`, `WORDPRESS` o `HYBRID`.
 - Panel por rol con accesos y metricas.
 - CRUD de usuarios, cursos y materias.
 - Lecciones tipo material, tarea y pregunta.
@@ -53,3 +54,5 @@ Sistema web tipo classroom para administradores, docentes y estudiantes.
 - [Base de datos](docs/base-datos.md)
 - [Flujos de uso](docs/flujos.md)
 - [Cambios Junio 2026](docs/cambios-2026-06.md)
+- [Integracion WordPress](docs/integracion-wordpress.md)
+- [Cierre de integracion WordPress](docs/integracion-wordpress-cierre.md)
