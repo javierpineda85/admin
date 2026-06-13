@@ -3,6 +3,30 @@ require_once('conexion.php');
 
 class ModeloLecciones
 {
+    private static $tablaLeccionesPreparada = false;
+
+    private static function prepararTablaLecciones()
+    {
+        if (self::$tablaLeccionesPreparada) {
+            return;
+        }
+
+        $pdo = Conexion::conectar();
+
+        try {
+            $stmt = $pdo->query("SHOW COLUMNS FROM lecciones LIKE 'estadoLeccion'");
+            if (!$stmt || !$stmt->fetch(PDO::FETCH_ASSOC)) {
+                $pdo->exec("ALTER TABLE lecciones ADD COLUMN estadoLeccion varchar(12) NOT NULL DEFAULT 'PUBLICADA' AFTER contenidoLeccion");
+            }
+
+            $pdo->exec('ALTER TABLE lecciones MODIFY contenidoLeccion longtext NOT NULL');
+        } catch (Exception $e) {
+            // Mantiene compatibilidad si la base ya fue actualizada o el usuario no tiene permisos de ALTER.
+        }
+
+        self::$tablaLeccionesPreparada = true;
+    }
+
     public static function mdlBuscarSeccionPorId($idSeccion)
     {
         $stmt = Conexion::conectar()->prepare(
@@ -36,6 +60,8 @@ class ModeloLecciones
 
     public static function mdlBuscarLeccionPorId($idLeccion)
     {
+        self::prepararTablaLecciones();
+
         $stmt = Conexion::conectar()->prepare(
             'SELECT * FROM lecciones WHERE idLeccion = :idLeccion LIMIT 1'
         );
@@ -44,10 +70,13 @@ class ModeloLecciones
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    public static function mdlBuscarLeccionesPorSeccion($idSeccion)
+    public static function mdlBuscarLeccionesPorSeccion($idSeccion, $incluirBorradores = true)
     {
+        self::prepararTablaLecciones();
+
+        $filtroEstado = $incluirBorradores ? '' : ' AND l.estadoLeccion = "PUBLICADA"';
         $stmt = Conexion::conectar()->prepare(
-            'SELECT l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.id_modulo,
+            'SELECT l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.id_modulo,
                     COUNT(DISTINCT r.idRecursoLeccion) AS totalRecursos,
                     COUNT(DISTINCT e.idEntregaLeccion) AS totalEntregas,
                     COUNT(DISTINCT p.idPosteo) AS totalPosts
@@ -56,7 +85,8 @@ class ModeloLecciones
              LEFT JOIN entregaslecciones e ON e.id_leccion = l.idLeccion
              LEFT JOIN posteos p ON p.id_leccion = l.idLeccion
              WHERE l.id_modulo = :idSeccion
-             GROUP BY l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.id_modulo
+             ' . $filtroEstado . '
+             GROUP BY l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.id_modulo
              ORDER BY l.idLeccion ASC'
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -64,16 +94,22 @@ class ModeloLecciones
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public static function mdlResumenSeccion($idSeccion)
+    public static function mdlResumenSeccion($idSeccion, $incluirBorradores = true)
     {
+        self::prepararTablaLecciones();
+
+        $filtroEstado = $incluirBorradores ? '' : ' AND estadoLeccion = "PUBLICADA"';
+        $filtroEstadoAlias = $incluirBorradores ? '' : ' AND l.estadoLeccion = "PUBLICADA"';
         $stmt = Conexion::conectar()->prepare(
             'SELECT
                 COUNT(*) AS totalLecciones,
                 SUM(CASE WHEN tipoLeccion = "MATERIAL" THEN 1 ELSE 0 END) AS totalMateriales,
                 SUM(CASE WHEN tipoLeccion = "TAREA" THEN 1 ELSE 0 END) AS totalTareas,
-                SUM(CASE WHEN tipoLeccion = "PREGUNTA" THEN 1 ELSE 0 END) AS totalPreguntas
+                SUM(CASE WHEN tipoLeccion = "PREGUNTA" THEN 1 ELSE 0 END) AS totalPreguntas,
+                SUM(CASE WHEN estadoLeccion = "BORRADOR" THEN 1 ELSE 0 END) AS totalBorradores,
+                SUM(CASE WHEN estadoLeccion = "PUBLICADA" THEN 1 ELSE 0 END) AS totalPublicadas
              FROM lecciones
-             WHERE id_modulo = :idSeccion'
+             WHERE id_modulo = :idSeccion' . $filtroEstado
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
         $stmt->execute();
@@ -83,7 +119,7 @@ class ModeloLecciones
             'SELECT COUNT(*) AS totalRecursos
              FROM recursoslecciones r
              INNER JOIN lecciones l ON l.idLeccion = r.id_leccion
-             WHERE l.id_modulo = :idSeccion'
+             WHERE l.id_modulo = :idSeccion' . $filtroEstadoAlias
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
         $stmt->execute();
@@ -126,6 +162,8 @@ class ModeloLecciones
 
     public static function mdlResumenEstudianteSeccion($idSeccion, $idEstudiante)
     {
+        self::prepararTablaLecciones();
+
         $stmt = Conexion::conectar()->prepare(
             'SELECT
                 COUNT(*) AS totalEntregas,
@@ -155,7 +193,7 @@ class ModeloLecciones
             'SELECT COUNT(*) AS totalPosts
              FROM posteos
              WHERE id_leccion IN (
-                SELECT idLeccion FROM lecciones WHERE id_modulo = :idSeccion
+                SELECT idLeccion FROM lecciones WHERE id_modulo = :idSeccion AND estadoLeccion = "PUBLICADA"
              )
                AND id_autor = :idEstudiante'
         );
@@ -269,30 +307,37 @@ class ModeloLecciones
 
     public static function mdlGuardarLeccion($tabla, $datos)
     {
+        self::prepararTablaLecciones();
+
         $stmt = Conexion::conectar()->prepare(
-            "INSERT INTO $tabla (nombreLeccion, tipoLeccion, contenidoLeccion, id_modulo)
-             VALUES (:nombreLeccion, :tipoLeccion, :contenidoLeccion, :id_modulo)"
+            "INSERT INTO $tabla (nombreLeccion, tipoLeccion, contenidoLeccion, estadoLeccion, id_modulo)
+             VALUES (:nombreLeccion, :tipoLeccion, :contenidoLeccion, :estadoLeccion, :id_modulo)"
         );
         $stmt->bindValue(':nombreLeccion', $datos['nombreLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':tipoLeccion', $datos['tipoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':contenidoLeccion', $datos['contenidoLeccion'], PDO::PARAM_STR);
+        $stmt->bindValue(':estadoLeccion', $datos['estadoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':id_modulo', (int) $datos['id_modulo'], PDO::PARAM_INT);
         return $stmt->execute() ? 'ok' : 'error';
     }
 
     public static function mdlActualizarLeccion($tabla, $datos)
     {
+        self::prepararTablaLecciones();
+
         $stmt = Conexion::conectar()->prepare(
             "UPDATE $tabla
              SET nombreLeccion = :nombreLeccion,
                  tipoLeccion = :tipoLeccion,
-                 contenidoLeccion = :contenidoLeccion
+                 contenidoLeccion = :contenidoLeccion,
+                 estadoLeccion = :estadoLeccion
              WHERE idLeccion = :idLeccion"
         );
         $stmt->bindValue(':idLeccion', (int) $datos['idLeccion'], PDO::PARAM_INT);
         $stmt->bindValue(':nombreLeccion', $datos['nombreLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':tipoLeccion', $datos['tipoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':contenidoLeccion', $datos['contenidoLeccion'], PDO::PARAM_STR);
+        $stmt->bindValue(':estadoLeccion', $datos['estadoLeccion'], PDO::PARAM_STR);
         return $stmt->execute() ? 'ok' : 'error';
     }
 

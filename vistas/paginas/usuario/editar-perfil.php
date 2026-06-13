@@ -16,7 +16,7 @@ $e = static function ($valor) {
   <script>
     setTimeout(function () {
       window.location.href = 'index.php?r=perfil-usuario';
-    }, 650);
+    }, 5200);
   </script>
 <?php endif; ?>
 

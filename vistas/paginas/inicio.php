@@ -139,14 +139,13 @@ if (ControladorPermisos::esAdministrador()) {
             </a>
           </div>
         </div>
-        <div class="text-right">
+        <div class="text-right mt-4">
           <div class="auth-pills justify-content-end">
             <span class="auth-pill">Rol: <?php echo htmlspecialchars($rolActual !== '' ? $rolActual : 'usuario', ENT_QUOTES, 'UTF-8'); ?></span>
-            <span class="auth-pill">UX optimizada</span>
           </div>
-          <div class="mt-3">
+          <!--<div class="mt-3">
             <span class="badge badge-light border px-3 py-2">Seguimiento real</span>
-          </div>
+          </div>-->
         </div>
       </div>
     </div>
@@ -166,7 +165,7 @@ if (ControladorPermisos::esAdministrador()) {
         $claseTarjeta = (string) ($tarjeta['class'] ?? 'bg-primary');
         $estiloIcono = $estilosIcono[$claseTarjeta] ?? $estilosIcono['bg-primary'];
       ?>
-      <div class="col-md-6 col-xl-3 mb-3">
+      <div class="col-md-6 col-xl-2 mb-3">
         <div class="metric-card">
           <div class="metric-icon" style="<?php echo htmlspecialchars($estiloIcono, ENT_QUOTES, 'UTF-8'); ?>">
             <i class="<?php echo htmlspecialchars((string) ($tarjeta['icon'] ?? 'fas fa-chart-bar'), ENT_QUOTES, 'UTF-8'); ?>"></i>

@@ -28,7 +28,7 @@ if ($idDestinatarioPreseleccionado > 0) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null && isset($_SESSION['success_message'])) {
     $redirigir = 'index.php?r=bandeja-entrada&c=mensajes';
-    echo "<script>setTimeout(function(){ window.location.href = " . json_encode($redirigir) . "; }, 650);</script>";
+    echo "<script>setTimeout(function(){ window.location.href = " . json_encode($redirigir) . "; }, 5200);</script>";
 }
 ?>
 

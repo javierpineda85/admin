@@ -10,7 +10,7 @@ $redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_
   <script>
     setTimeout(function () {
       window.location.href = 'index.php?r=listado-materias&c=materias';
-    }, 650);
+    }, 5200);
   </script>
 <?php endif; ?>
 

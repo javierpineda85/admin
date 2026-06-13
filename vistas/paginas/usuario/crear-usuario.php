@@ -10,7 +10,7 @@ $perfilFormulario = [];
   <script>
     setTimeout(function () {
       window.location.href = 'index.php?r=listado-usuarios&c=usuario';
-    }, 650);
+    }, 5200);
   </script>
 <?php endif; ?>
 

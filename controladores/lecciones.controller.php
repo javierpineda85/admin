@@ -27,9 +27,20 @@ class ControladorLecciones
         return ModeloLecciones::mdlSeccionAsignadaDocente((int) $idSeccion, (int) $idDocente);
     }
 
+    private static function incluirBorradores()
+    {
+        return ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente();
+    }
+
+    private static function normalizarEstadoLeccion($estado, $fallback = 'PUBLICADA')
+    {
+        $estado = strtoupper(trim((string) $estado));
+        return in_array($estado, ['BORRADOR', 'PUBLICADA'], true) ? $estado : $fallback;
+    }
+
     public static function crtBuscarLeccionesPorSeccion($idSeccion)
     {
-        return ModeloLecciones::mdlBuscarLeccionesPorSeccion($idSeccion);
+        return ModeloLecciones::mdlBuscarLeccionesPorSeccion($idSeccion, self::incluirBorradores());
     }
 
     public static function crtBuscarRecursosPorLeccion($idLeccion)
@@ -54,7 +65,7 @@ class ControladorLecciones
 
     public static function crtResumenSeccion($idSeccion)
     {
-        return ModeloLecciones::mdlResumenSeccion($idSeccion);
+        return ModeloLecciones::mdlResumenSeccion($idSeccion, self::incluirBorradores());
     }
 
     public static function crtResumenEstudianteSeccion($idSeccion, $idEstudiante)
@@ -123,6 +134,7 @@ class ControladorLecciones
         $nombreLeccion = trim((string) $_POST['nombreLeccion']);
         $contenidoLeccion = trim((string) ($_POST['contenidoLeccion'] ?? ''));
         $tipoLeccion = strtoupper(trim((string) $_POST['tipoLeccion']));
+        $estadoLeccion = self::normalizarEstadoLeccion($_POST['estadoLeccion'] ?? 'PUBLICADA');
         $idModulo = (int) $_POST['id_modulo'];
 
         if ($nombreLeccion === '' || $idModulo <= 0) {
@@ -144,6 +156,7 @@ class ControladorLecciones
             'nombreLeccion' => $nombreLeccion,
             'tipoLeccion' => $tipoLeccion,
             'contenidoLeccion' => $contenidoLeccion,
+            'estadoLeccion' => $estadoLeccion,
             'id_modulo' => $idModulo,
         ]);
 
@@ -155,7 +168,9 @@ class ControladorLecciones
                 $_SESSION['error_message'] = 'No se pudo guardar el recurso inicial.';
                 return 'error';
             }
-            $_SESSION['success_message'] = 'Leccion creada correctamente.';
+            $_SESSION['success_message'] = $estadoLeccion === 'BORRADOR'
+                ? 'Leccion guardada como borrador.'
+                : 'Leccion publicada correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudo crear la leccion.';
         }
@@ -179,6 +194,8 @@ class ControladorLecciones
         $contenidoLeccion = trim((string) ($_POST['contenidoLeccion'] ?? ''));
         $tipoLeccion = strtoupper(trim((string) $_POST['tipoLeccion']));
         $leccion = self::crtBuscarLeccionPorId($idLeccion);
+        $estadoActual = strtoupper((string) ($leccion['estadoLeccion'] ?? 'PUBLICADA'));
+        $estadoLeccion = self::normalizarEstadoLeccion($_POST['estadoLeccion'] ?? $estadoActual, $estadoActual ?: 'PUBLICADA');
 
         if ($idLeccion <= 0 || $nombreLeccion === '' || !$leccion) {
             $_SESSION['error_message'] = 'No se pudo actualizar la leccion.';
@@ -200,10 +217,13 @@ class ControladorLecciones
             'nombreLeccion' => $nombreLeccion,
             'tipoLeccion' => $tipoLeccion,
             'contenidoLeccion' => $contenidoLeccion,
+            'estadoLeccion' => $estadoLeccion,
         ]);
 
         if ($respuesta === 'ok') {
-            $_SESSION['success_message'] = 'Leccion actualizada correctamente.';
+            $_SESSION['success_message'] = $estadoLeccion === 'BORRADOR'
+                ? 'Leccion guardada como borrador.'
+                : 'Leccion publicada correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudo actualizar la leccion.';
         }
@@ -259,7 +279,7 @@ class ControladorLecciones
 
     public static function crtGuardarRecursoLeccion()
     {
-        if (!isset($_POST['id_leccion'], $_POST['tipoRecurso'], $_POST['tituloRecurso'])) {
+        if (!isset($_POST['id_leccion'])) {
             return null;
         }
 
@@ -269,13 +289,10 @@ class ControladorLecciones
         }
 
         $idLeccion = (int) $_POST['id_leccion'];
-        $tipoRecurso = strtoupper(trim((string) $_POST['tipoRecurso']));
-        $tituloRecurso = trim((string) $_POST['tituloRecurso']);
-        $creadoPor = (int) ($_SESSION['usuario']['id'] ?? 0);
         $leccion = self::crtBuscarLeccionPorId($idLeccion);
 
-        if ($idLeccion <= 0 || $tituloRecurso === '' || !$leccion) {
-            $_SESSION['error_message'] = 'Completa el titulo del recurso.';
+        if ($idLeccion <= 0 || !$leccion) {
+            $_SESSION['error_message'] = 'No se pudo encontrar la leccion.';
             return 'error';
         }
 
@@ -284,58 +301,29 @@ class ControladorLecciones
             return 'denied';
         }
 
-        if (!in_array($tipoRecurso, ['ARCHIVO', 'ENLACE'], true)) {
-            $_SESSION['error_message'] = 'El tipo de recurso no es valido.';
+        $respuesta = self::procesarRecursosFormulario($idLeccion, [
+            'titulo' => 'tituloRecurso',
+            'archivo' => 'archivoRecurso',
+            'url' => 'urlRecurso',
+            'urls' => 'urlsRecurso',
+        ]);
+
+        if ($respuesta === false) {
+            $_SESSION['error_message'] = 'No se pudo guardar uno o mas recursos.';
             return 'error';
         }
 
-        $urlRecurso = '';
-
-        if ($tipoRecurso === 'ARCHIVO') {
-            if (empty($_FILES['archivoRecurso']['name']) || ($_FILES['archivoRecurso']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-                $_SESSION['error_message'] = 'Subi un archivo valido para adjuntar.';
-                return 'error';
-            }
-
-            $urlRecurso = self::subirArchivo($_FILES['archivoRecurso']);
-
-            if ($urlRecurso === '') {
-                $_SESSION['error_message'] = 'No se pudo guardar el archivo adjunto.';
-                return 'error';
-            }
+        $totalRecursos = count($respuesta);
+        if ($totalRecursos > 0) {
+            $_SESSION['success_message'] = $totalRecursos === 1
+                ? 'Recurso agregado correctamente.'
+                : $totalRecursos . ' recursos agregados correctamente.';
         } else {
-            $urlRecurso = trim((string) ($_POST['urlRecurso'] ?? ''));
-
-            if ($urlRecurso === '') {
-                $_SESSION['error_message'] = 'Pega el enlace del recurso.';
-                return 'error';
-            }
-
-            if (!filter_var($urlRecurso, FILTER_VALIDATE_URL)) {
-                $urlRecurso = 'https://' . ltrim($urlRecurso, '/');
-
-                if (!filter_var($urlRecurso, FILTER_VALIDATE_URL)) {
-                    $_SESSION['error_message'] = 'El enlace no tiene un formato valido.';
-                    return 'error';
-                }
-            }
+            $_SESSION['error_message'] = 'Agrega al menos un archivo o enlace.';
+            return 'error';
         }
 
-        $respuesta = ModeloLecciones::mdlGuardarRecursoLeccion('recursoslecciones', [
-            'id_leccion' => $idLeccion,
-            'tipoRecurso' => $tipoRecurso,
-            'tituloRecurso' => $tituloRecurso,
-            'urlRecurso' => $urlRecurso,
-            'creadoPor' => $creadoPor,
-        ]);
-
-        if ($respuesta === 'ok') {
-            $_SESSION['success_message'] = 'Recurso agregado correctamente.';
-        } else {
-            $_SESSION['error_message'] = 'No se pudo guardar el recurso.';
-        }
-
-        return $respuesta;
+        return 'ok';
     }
 
     public static function crtActualizarRecursoLeccion()
@@ -597,7 +585,11 @@ class ControladorLecciones
 
         $nombreOriginal = (string) ($archivo['name'] ?? '');
         $extension = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
-        $extensionesPermitidas = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'zip'];
+        $extensionesPermitidas = [
+            'pdf', 'doc', 'docx', 'odt', 'xls', 'xlsx', 'ods', 'csv',
+            'ppt', 'pptx', 'odp', 'jpg', 'jpeg', 'png', 'gif', 'webp',
+            'txt', 'zip', 'rar', '7z', 'mp3', 'mp4'
+        ];
 
         if ($extension === '' || !in_array($extension, $extensionesPermitidas, true)) {
             return '';
@@ -613,49 +605,140 @@ class ControladorLecciones
         return 'uploads/lecciones/' . $nombreSeguro;
     }
 
-    private static function procesarRecursoInicial($idLeccion)
+    private static function normalizarArchivos($nombreCampo)
     {
-        $titulo = trim((string) ($_POST['tituloRecursoInicial'] ?? ''));
-        $tipo = strtoupper(trim((string) ($_POST['tipoRecursoInicial'] ?? '')));
-        $tieneArchivo = !empty($_FILES['archivoRecursoInicial']['name']);
-        $tieneUrl = trim((string) ($_POST['urlRecursoInicial'] ?? '')) !== '';
-
-        if ($titulo === '' && !$tieneArchivo && !$tieneUrl) {
+        if (empty($_FILES[$nombreCampo]['name'])) {
             return [];
         }
 
-        if ($titulo === '' || !in_array($tipo, ['ARCHIVO', 'ENLACE'], true)) {
-            return false;
+        $archivo = $_FILES[$nombreCampo];
+        if (!is_array($archivo['name'])) {
+            return [$archivo];
         }
 
-        if ($tipo === 'ARCHIVO') {
-            if (!$tieneArchivo || ($_FILES['archivoRecursoInicial']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-                return false;
+        $archivos = [];
+        foreach ($archivo['name'] as $indice => $nombre) {
+            if ((string) $nombre === '') {
+                continue;
             }
 
-            $urlRecurso = self::subirArchivo($_FILES['archivoRecursoInicial']);
-            if ($urlRecurso === '') {
-                return false;
-            }
-        } else {
-            $urlRecurso = trim((string) ($_POST['urlRecursoInicial'] ?? ''));
-            if ($urlRecurso === '') {
-                return false;
-            }
-            if (!filter_var($urlRecurso, FILTER_VALIDATE_URL)) {
-                $urlRecurso = 'https://' . ltrim($urlRecurso, '/');
-            }
-            if (!filter_var($urlRecurso, FILTER_VALIDATE_URL)) {
-                return false;
-            }
+            $archivos[] = [
+                'name' => $nombre,
+                'type' => $archivo['type'][$indice] ?? '',
+                'tmp_name' => $archivo['tmp_name'][$indice] ?? '',
+                'error' => $archivo['error'][$indice] ?? UPLOAD_ERR_NO_FILE,
+                'size' => $archivo['size'][$indice] ?? 0,
+            ];
         }
 
+        return $archivos;
+    }
+
+    private static function normalizarUrls($campoSimple, $campoMultiple = '')
+    {
+        $valores = [];
+
+        if ($campoMultiple !== '' && isset($_POST[$campoMultiple])) {
+            $entradaMultiple = $_POST[$campoMultiple];
+            $valores = is_array($entradaMultiple) ? $entradaMultiple : preg_split('/\r\n|\r|\n/', (string) $entradaMultiple);
+        }
+
+        if (isset($_POST[$campoSimple])) {
+            $entradaSimple = $_POST[$campoSimple];
+            $valores = array_merge($valores, is_array($entradaSimple) ? $entradaSimple : preg_split('/\r\n|\r|\n/', (string) $entradaSimple));
+        }
+
+        return array_values(array_filter(array_map(static function ($url) {
+            return trim((string) $url);
+        }, $valores), static function ($url) {
+            return $url !== '';
+        }));
+    }
+
+    private static function normalizarUrlRecurso($url)
+    {
+        $url = trim((string) $url);
+
+        if ($url === '') {
+            return '';
+        }
+
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            $url = 'https://' . ltrim($url, '/');
+        }
+
+        return filter_var($url, FILTER_VALIDATE_URL) ? $url : '';
+    }
+
+    private static function tituloDesdeUrl($url)
+    {
+        return parse_url($url, PHP_URL_HOST) ?: 'Enlace de la leccion';
+    }
+
+    private static function guardarRecursoLeccion($idLeccion, $tipo, $titulo, $url)
+    {
         return ModeloLecciones::mdlGuardarRecursoLeccion('recursoslecciones', [
             'id_leccion' => (int) $idLeccion,
             'tipoRecurso' => $tipo,
             'tituloRecurso' => $titulo,
-            'urlRecurso' => $urlRecurso,
+            'urlRecurso' => $url,
             'creadoPor' => (int) ($_SESSION['usuario']['id'] ?? 0),
+        ]);
+    }
+
+    private static function procesarRecursosFormulario($idLeccion, array $campos)
+    {
+        $tituloBase = trim((string) ($_POST[$campos['titulo']] ?? ''));
+        $recursosGuardados = [];
+
+        foreach (self::normalizarArchivos($campos['archivo']) as $archivo) {
+            if (($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                return false;
+            }
+
+            $urlRecurso = self::subirArchivo($archivo);
+            if ($urlRecurso === '') {
+                return false;
+            }
+
+            $titulo = $tituloBase !== ''
+                ? $tituloBase
+                : pathinfo((string) ($archivo['name'] ?? 'Recurso adjunto'), PATHINFO_FILENAME);
+
+            $respuesta = self::guardarRecursoLeccion($idLeccion, 'ARCHIVO', $titulo, $urlRecurso);
+            if ($respuesta !== 'ok') {
+                self::eliminarArchivoLocal($urlRecurso);
+                return false;
+            }
+
+            $recursosGuardados[] = $urlRecurso;
+        }
+
+        foreach (self::normalizarUrls($campos['url'], $campos['urls'] ?? '') as $url) {
+            $urlRecurso = self::normalizarUrlRecurso($url);
+            if ($urlRecurso === '') {
+                return false;
+            }
+
+            $titulo = $tituloBase !== '' ? $tituloBase : self::tituloDesdeUrl($urlRecurso);
+            $respuesta = self::guardarRecursoLeccion($idLeccion, 'ENLACE', $titulo, $urlRecurso);
+            if ($respuesta !== 'ok') {
+                return false;
+            }
+
+            $recursosGuardados[] = $urlRecurso;
+        }
+
+        return $recursosGuardados;
+    }
+
+    private static function procesarRecursoInicial($idLeccion)
+    {
+        return self::procesarRecursosFormulario($idLeccion, [
+            'titulo' => 'tituloRecursoInicial',
+            'archivo' => 'archivoRecursoInicial',
+            'url' => 'urlRecursoInicial',
+            'urls' => 'urlsRecursoInicial',
         ]);
     }
 

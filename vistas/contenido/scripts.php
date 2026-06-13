@@ -73,7 +73,7 @@ if (!empty($flashToasts)) {
       toasts.forEach(function (toast) {
         Toastify({
           text: toast.message,
-          duration: 3500,
+          duration: 4500,
           close: true,
           gravity: "top",
           position: "right",
@@ -182,6 +182,24 @@ if (!empty($flashToasts)) {
           dialogsInBody: true,
           dialogsFade: true,
           placeholder: 'Escribí el mensaje y dale formato si hace falta...',
+          toolbar: [
+            ['style', ['style']],
+            ['font', ['bold', 'italic', 'underline', 'clear']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['insert', ['link', 'picture', 'table']],
+            ['view', ['fullscreen', 'codeview', 'help']]
+          ]
+        });
+      }
+
+      if ($('.summernote-leccion').length) {
+        $('.summernote-leccion').summernote({
+          height: 220,
+          lang: 'es-ES',
+          dialogsInBody: true,
+          dialogsFade: true,
+          placeholder: 'Escribí el contenido de la lección y dale formato si hace falta...',
           toolbar: [
             ['style', ['style']],
             ['font', ['bold', 'italic', 'underline', 'clear']],

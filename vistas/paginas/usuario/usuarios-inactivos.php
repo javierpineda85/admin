@@ -1,7 +1,7 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['idReactivar'])) {
   ControladorUsuarios::crtReactivarUsuario((int) $_POST['idReactivar']);
-  echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=usuarios-inactivos&c=usuario'; }, 650);</script>";
+  echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=usuarios-inactivos&c=usuario'; }, 5200);</script>";
 }
 
 $usuarios = ControladorUsuarios::crtSeleccionarUsuario('activo', 0);

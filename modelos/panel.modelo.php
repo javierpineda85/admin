@@ -74,7 +74,7 @@ class ModeloPanel
                 [
                     'label' => 'Conectados 60m',
                     'value' => $usuariosConectados,
-                    'note' => 'Última conexión reciente',
+                    'note' => 'Última conexión',
                     'icon' => 'fas fa-signal',
                     'class' => 'bg-dark',
                 ],

@@ -123,7 +123,8 @@ CREATE TABLE IF NOT EXISTS `lecciones` (
   `idLeccion` int NOT NULL AUTO_INCREMENT,
   `nombreLeccion` char(30) NOT NULL,
   `tipoLeccion` varchar(12) NOT NULL DEFAULT 'MATERIAL',
-  `contenidoLeccion` tinytext NOT NULL,
+  `contenidoLeccion` longtext NOT NULL,
+  `estadoLeccion` varchar(12) NOT NULL DEFAULT 'PUBLICADA',
   `id_modulo` int NOT NULL,
   PRIMARY KEY (`idLeccion`),
   KEY `id_modulo` (`id_modulo`)

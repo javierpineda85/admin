@@ -5,7 +5,7 @@ $accion = ControladorMensajes::crtProcesarAccion();
 $mensaje = ControladorMensajes::crtVerMensaje($idMensaje);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null) {
-  echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=detalle-mensaje&idMensaje=" . (int) $idMensaje . "'; }, 650);</script>";
+  echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=detalle-mensaje&idMensaje=" . (int) $idMensaje . "'; }, 5200);</script>";
 }
 
 if (empty($mensaje)) {

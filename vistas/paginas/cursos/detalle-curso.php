@@ -285,7 +285,7 @@ if (ControladorPermisos::esEstudiante()) {
                                     <input type="submit" value="AGREGAR" class="btn btn-primary">
                                     <?php
                                     if (isset($_SESSION['success_message'])) {
-                                        echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=detalle-curso&idCurso=" . $idCurso . "'; }, 600);</script>";
+                                        echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=detalle-curso&idCurso=" . $idCurso . "'; }, 5200);</script>";
                                     }
                                     ?>
                                 </form>
