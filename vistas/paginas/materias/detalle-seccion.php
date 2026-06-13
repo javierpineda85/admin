@@ -13,8 +13,19 @@ $esAdmin = ControladorPermisos::esAdministrador();
 $esDocente = ControladorPermisos::esDocente();
 $puedeGestionar = $esAdmin || $esDocente;
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$lecciones = array_values(array_reverse($lecciones));
+$paginaLecciones = max(1, (int) ($_GET['paginaLecciones'] ?? 1));
+$leccionesPorPaginaGestion = 8;
+$totalLeccionesGestion = count($lecciones);
+$totalPaginasLecciones = max(1, (int) ceil($totalLeccionesGestion / $leccionesPorPaginaGestion));
+if ($paginaLecciones > $totalPaginasLecciones) {
+  $paginaLecciones = $totalPaginasLecciones;
+}
+$leccionesGestion = $puedeGestionar
+  ? array_slice($lecciones, ($paginaLecciones - 1) * $leccionesPorPaginaGestion, $leccionesPorPaginaGestion)
+  : $lecciones;
 $resumen = $idSeccion > 0 ? ControladorLecciones::crtResumenSeccion($idSeccion) : [];
-$estudiantesCurso = $puedeGestionar && $seccion ? ControladorLecciones::crtBuscarEstudiantesCurso((int) $seccion['id_curso']) : [];
+$estudiantesCurso = $seccion ? ControladorLecciones::crtBuscarEstudiantesCurso((int) $seccion['id_curso']) : [];
 $calificacionesSeccion = $idSeccion > 0 ? ControladorCalificaciones::crtCalificacionesPorSeccion($idSeccion) : [];
 $seguimientoPersonal = ControladorPermisos::esEstudiante() && $idSeccion > 0 && $idUsuarioActual > 0
   ? ControladorLecciones::crtResumenEstudianteSeccion($idSeccion, $idUsuarioActual)
@@ -55,6 +66,20 @@ $renderContenidoLeccion = static function ($valor): string {
   $html = preg_replace('/\s+(href|src)\s*=\s*(["\'])\s*javascript:.*?\2/is', '', $html);
 
   return $html;
+};
+
+$claseBadgeTipoLeccion = static function ($tipo): string {
+  $tipo = strtoupper(trim((string) $tipo));
+
+  if ($tipo === 'TAREA') {
+    return 'lesson-type-badge lesson-type-badge--task';
+  }
+
+  if ($tipo === 'PREGUNTA') {
+    return 'lesson-type-badge lesson-type-badge--question';
+  }
+
+  return 'lesson-type-badge lesson-type-badge--material';
 };
 
 if (ControladorPermisos::esDocente() && !$puedeAccederDocente) {
@@ -136,6 +161,9 @@ if (ControladorPermisos::esEstudiante()) {
           <li class="nav-item">
             <a class="nav-link" data-toggle="tab" href="#personas" role="tab">Personas</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#calificaciones" role="tab">Calificaciones</a>
+          </li>
         </ul>
 
         <div class="tab-content">
@@ -161,7 +189,7 @@ if (ControladorPermisos::esEstudiante()) {
                   </div>
                 </div>
 
-                <?php foreach (array_slice($lecciones, -5) as $leccionStream): ?>
+                <?php foreach (array_slice($lecciones, 0, 5) as $leccionStream): ?>
                   <a class="classroom-stream-item" href="#trabajo-clase" data-toggle="tab">
                     <span class="classroom-item-icon"><i class="fas fa-file-alt"></i></span>
                     <div>
@@ -173,8 +201,6 @@ if (ControladorPermisos::esEstudiante()) {
               </div>
             </div>
           </div>
-        </div>
-
         <div class="tab-pane fade" id="trabajo-clase" role="tabpanel">
           <?php if (empty($lecciones)): ?>
             <div class="empty-state">
@@ -205,7 +231,7 @@ if (ControladorPermisos::esEstudiante()) {
                   </span>
                   <span class="classwork-summary__main">
                     <strong><?php echo $e($leccion['nombreLeccion'] ?? 'Clase'); ?></strong>
-                    <small><?php echo $e($tipoLeccion); ?> · <?php echo (int) ($leccion['totalRecursos'] ?? 0); ?> recursos</small>
+                    <small><span class="<?php echo $claseBadgeTipoLeccion($tipoLeccion); ?>"><?php echo $e($tipoLeccion); ?></span> · <?php echo (int) ($leccion['totalRecursos'] ?? 0); ?> recursos</small>
                   </span>
                   <span class="classwork-status">
                     <?php if ($tipoLeccion === 'TAREA' && $entrega): ?>
@@ -334,22 +360,16 @@ if (ControladorPermisos::esEstudiante()) {
         </div>
 
         <div class="tab-pane fade" id="personas" role="tabpanel">
-          <div class="people-panel">
-            <h3>Docente</h3>
-            <div class="people-row">
-              <div class="classroom-avatar"><?php echo strtoupper(substr((string) ($seccion['nombreUsuario'] ?? 'D'), 0, 1)); ?></div>
-              <div>
-                <strong><?php echo $e(trim(($seccion['nombreUsuario'] ?? '') . ' ' . ($seccion['apellidoUsuario'] ?? ''))); ?></strong>
-                <small>Responsable de la materia</small>
-              </div>
-            </div>
-          </div>
+          <?php include __DIR__ . '/detalle-seccion/_personas.php'; ?>
 
-          <div class="people-panel mt-3">
+          <div class="people-panel mt-3 d-none">
             <h3>Calificaciones</h3>
             <p class="text-muted mb-2">Podés ver el detalle completo de tus notas y devoluciones en una vista aparte.</p>
             <a href="index.php?r=calificaciones-seccion&idSeccion=<?php echo (int) $idSeccion; ?>" class="btn btn-outline-primary btn-sm">Ver calificaciones</a>
           </div>
+        </div>
+        <div class="tab-pane fade" id="calificaciones" role="tabpanel">
+          <?php include __DIR__ . '/detalle-seccion/_calificaciones-tab.php'; ?>
         </div>
     </div>
   <?php endif; ?>
@@ -558,7 +578,7 @@ if (ControladorPermisos::esEstudiante()) {
               </div>
             <?php endif; ?>
 
-            <?php foreach ($lecciones as $leccion): ?>
+            <?php foreach ($leccionesGestion as $leccion): ?>
               <?php
               $tipoLeccion = strtoupper((string) ($leccion['tipoLeccion'] ?? 'MATERIAL'));
               $estadoLeccion = strtoupper((string) ($leccion['estadoLeccion'] ?? 'PUBLICADA'));
@@ -576,7 +596,7 @@ if (ControladorPermisos::esEstudiante()) {
                       <?php echo htmlspecialchars($leccion['nombreLeccion'], ENT_QUOTES, 'UTF-8'); ?>
                     </h4>
                     <div class="d-flex align-items-center">
-                      <span class="badge badge-primary mr-2"><?php echo htmlspecialchars($tipoLeccion, ENT_QUOTES, 'UTF-8'); ?></span>
+                      <span class="<?php echo $claseBadgeTipoLeccion($tipoLeccion); ?> mr-2"><?php echo htmlspecialchars($tipoLeccion, ENT_QUOTES, 'UTF-8'); ?></span>
                       <span class="badge badge-<?php echo $estadoLeccion === 'BORRADOR' ? 'warning' : 'success'; ?> mr-2">
                         <?php echo $estadoLeccion === 'BORRADOR' ? 'Borrador' : 'Publicada'; ?>
                       </span>
@@ -892,12 +912,39 @@ if (ControladorPermisos::esEstudiante()) {
                 </div>
               </div>
             <?php endforeach; ?>
+
+            <?php if ($puedeGestionar && $totalPaginasLecciones > 1): ?>
+              <div class="d-flex align-items-center justify-content-between flex-wrap pt-2">
+                <small class="text-muted mb-2 mb-md-0">
+                  Mostrando <?php echo count($leccionesGestion); ?> de <?php echo (int) $totalLeccionesGestion; ?> lecciones
+                </small>
+                <nav aria-label="Paginacion de lecciones">
+                  <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item <?php echo $paginaLecciones <= 1 ? 'disabled' : ''; ?>">
+                      <a class="page-link" href="index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>&paginaLecciones=<?php echo max(1, $paginaLecciones - 1); ?>">Anterior</a>
+                    </li>
+                    <?php for ($pagina = 1; $pagina <= $totalPaginasLecciones; $pagina++): ?>
+                      <li class="page-item <?php echo $pagina === $paginaLecciones ? 'active' : ''; ?>">
+                        <a class="page-link" href="index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>&paginaLecciones=<?php echo $pagina; ?>">
+                          <?php echo $pagina; ?>
+                        </a>
+                      </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?php echo $paginaLecciones >= $totalPaginasLecciones ? 'disabled' : ''; ?>">
+                      <a class="page-link" href="index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>&paginaLecciones=<?php echo min($totalPaginasLecciones, $paginaLecciones + 1); ?>">Siguiente</a>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            <?php endif; ?>
           </div>
         </div>
 
 
       </div>
       <div class="col-12 col-lg-4">
+        <?php include __DIR__ . '/detalle-seccion/_sidebar.php'; ?>
+        <?php if (false): ?>
         <div class="card card-outline card-success shadow-sm lesson-side-card">
           <div class="card-header section-header-soft">
             <h3 class="card-title">Detalle de la sección</h3>
@@ -1020,6 +1067,7 @@ if (ControladorPermisos::esEstudiante()) {
               </div>
             </div>
           </div>
+        <?php endif; ?>
         <?php endif; ?>
       </div>
     </div>

@@ -192,6 +192,22 @@ CREATE TABLE IF NOT EXISTS `mensajes_adjuntos` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `notificaciones_lecturas`
+--
+
+DROP TABLE IF EXISTS `notificaciones_lecturas`;
+CREATE TABLE IF NOT EXISTS `notificaciones_lecturas` (
+  `idNotificacionLectura` int NOT NULL AUTO_INCREMENT,
+  `id_usuario` int NOT NULL,
+  `claveNotificacion` varchar(120) NOT NULL,
+  `fechaLectura` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idNotificacionLectura`),
+  UNIQUE KEY `idx_usuario_clave` (`id_usuario`,`claveNotificacion`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `perfiles`
 --
 

@@ -19,7 +19,7 @@
 - CRUD de secciones / materias.
 - Asignacion de curso, docente y tutor.
 - Banner opcional o degradado por defecto.
-- Vista detalle con contenido, recursos, tareas y foro.
+- Vista detalle con tabs para tablon, trabajo de clase, personas y calificaciones.
 - Vista separada de calificaciones.
 
 ## Lecciones
@@ -28,7 +28,9 @@
   - `MATERIAL`: lectura.
   - `TAREA`: entrega de archivo.
   - `PREGUNTA`: foro o discusion.
-- Adjuntos y enlaces asociados.
+- Adjuntos y enlaces asociados, incluso multiples en una misma publicacion.
+- Ordenadas de la mas nueva a la mas antigua.
+- Borradores para preparar clases antes de publicarlas.
 - Edicion y eliminacion.
 - Resumen de actividad por seccion.
 
@@ -46,12 +48,14 @@
 - Adjuntos en varios archivos.
 - Mensajes por seccion para docentes y administradores.
 - Marcado como leido / no leido.
+- Los estudiantes pueden escribir a companeros del mismo curso y a sus docentes o tutores.
 
 ## Panel
 
 - Indicadores por rol.
 - Mensajes sin leer.
 - Actividad reciente.
+- Notificaciones del header con marcado persistente de leidas.
 - Seguimiento academico y docente.
 - Usuarios conectados recientemente.
 

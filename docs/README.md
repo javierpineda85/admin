@@ -9,6 +9,7 @@ Este directorio agrupa la documentacion tecnica y funcional del sistema.
 - [Modulos](modulos.md)
 - [Base de datos](base-datos.md)
 - [Flujos de uso](flujos.md)
+- [Cambios Junio 2026](cambios-2026-06.md)
 
 ## Objetivo
 

@@ -1009,6 +1009,37 @@ body.classroom-app .lesson-item-card .card-body {
   overflow: visible !important;
 }
 
+body.classroom-app .lesson-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.28rem 0.72rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+body.classroom-app .lesson-type-badge--material {
+  background: rgba(89, 36, 155, 0.14);
+  border-color: rgba(89, 36, 155, 0.22);
+  color: #59249b;
+}
+
+body.classroom-app .lesson-type-badge--task {
+  background: rgba(255, 145, 77, 0.14);
+  border-color: rgba(255, 145, 77, 0.24);
+  color: #c85b17;
+}
+
+body.classroom-app .lesson-type-badge--question {
+  background: rgba(36, 110, 201, 0.14);
+  border-color: rgba(36, 110, 201, 0.24);
+  color: #246ec9;
+}
+
 body.classroom-app .note-editor .note-modal .modal-header,
 body.classroom-app .note-editor .note-modal .modal-body,
 body.classroom-app .note-editor .note-modal .modal-footer {
@@ -1268,6 +1299,44 @@ body.classroom-app .main-header .nav-link:hover {
 body.classroom-app .navbar-badge {
   background: var(--secondary);
   color: #fff;
+}
+
+body.classroom-app .dropdown-notifications-menu {
+  width: min(92vw, 28rem);
+  min-width: 19rem;
+  max-width: 28rem;
+  padding-bottom: 0.25rem;
+}
+
+body.classroom-app .dropdown-notifications-menu .dropdown-item {
+  white-space: normal;
+}
+
+body.classroom-app .dropdown-notifications-menu .dropdown-item .text-sm {
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+body.classroom-app .dropdown-notifications-menu .dropdown-header {
+  font-size: 0.95rem;
+}
+
+body.classroom-app .pagination .page-link {
+  color: var(--primary);
+  border-color: var(--border);
+  border-radius: 10px;
+  margin: 0 0.12rem;
+}
+
+body.classroom-app .pagination .page-item.active .page-link {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+body.classroom-app .pagination .page-item.disabled .page-link {
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.08);
 }
 
 body.classroom-app .main-sidebar {

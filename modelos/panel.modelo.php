@@ -4,6 +4,8 @@ require_once('mensajes.modelo.php');
 
 class ModeloPanel
 {
+    private static $tablaLecturasPreparada = false;
+
     private static function normalizarRol($rol)
     {
         return strtoupper(trim((string) $rol));
@@ -428,6 +430,141 @@ class ModeloPanel
         );
     }
 
+    private static function prepararTablaLecturas()
+    {
+        if (self::$tablaLecturasPreparada) {
+            return;
+        }
+
+        try {
+            Conexion::conectar()->exec('
+                CREATE TABLE IF NOT EXISTS notificaciones_lecturas (
+                    idNotificacionLectura int NOT NULL AUTO_INCREMENT,
+                    id_usuario int NOT NULL,
+                    claveNotificacion varchar(120) NOT NULL,
+                    fechaLectura timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (idNotificacionLectura),
+                    UNIQUE KEY idx_usuario_clave (id_usuario, claveNotificacion)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+            ');
+        } catch (Exception $e) {
+            // Si la base no permite DDL, la campana sigue mostrando actividad sin bloquear la app.
+        }
+
+        self::$tablaLecturasPreparada = true;
+    }
+
+    private static function clavesLeidas($idUsuario)
+    {
+        self::prepararTablaLecturas();
+
+        try {
+            $stmt = Conexion::conectar()->prepare('
+                SELECT claveNotificacion
+                FROM notificaciones_lecturas
+                WHERE id_usuario = :idUsuario
+            ');
+            $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return array_fill_keys(array_map(static function ($fila) {
+                return (string) ($fila['claveNotificacion'] ?? '');
+            }, $stmt->fetchAll(PDO::FETCH_ASSOC)), true);
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    private static function actividadNormalizada(array $items, $idUsuario)
+    {
+        $actividad = [];
+        $leidas = self::clavesLeidas($idUsuario);
+
+        foreach ($items as $item) {
+            $notificacion = null;
+
+            if (isset($item['fechaEntrega'])) {
+                $notificacion = [
+                    'clave' => 'entrega:' . (int) ($item['idEntregaLeccion'] ?? 0),
+                    'titulo' => 'Entrega registrada',
+                    'detalle' => trim(($item['nombreUsuario'] ?? '') . ' ' . ($item['apellidoUsuario'] ?? '')) . ' envio ' . ($item['nombreLeccion'] ?? 'una actividad'),
+                    'fecha' => (string) $item['fechaEntrega'],
+                    'icon' => 'fas fa-file-upload',
+                    'class' => 'bg-warning',
+                    'orden' => strtotime((string) $item['fechaEntrega']) ?: 0,
+                ];
+            } elseif (isset($item['fechaPosteo'])) {
+                $notificacion = [
+                    'clave' => 'posteo:' . (int) ($item['idPosteo'] ?? 0),
+                    'titulo' => 'Nuevo aporte',
+                    'detalle' => trim(($item['nombreUsuario'] ?? '') . ' ' . ($item['apellidoUsuario'] ?? '')) . ': ' . ($item['contenidoPosteo'] ?? ''),
+                    'fecha' => (string) $item['fechaPosteo'],
+                    'icon' => 'fas fa-comments',
+                    'class' => 'bg-primary',
+                    'orden' => strtotime((string) $item['fechaPosteo']) ?: 0,
+                ];
+            } elseif (isset($item['idCalificacion'])) {
+                $notificacion = [
+                    'clave' => 'calificacion:' . (int) ($item['idCalificacion'] ?? 0),
+                    'titulo' => 'Calificacion actualizada',
+                    'detalle' => trim(($item['nombreUsuario'] ?? '') . ' ' . ($item['apellidoUsuario'] ?? '')) . ' obtuvo ' . (int) ($item['calificacion'] ?? 0) . ' puntos en ' . ($item['nombreLeccion'] ?? 'una actividad'),
+                    'fecha' => 'Reciente',
+                    'icon' => 'fas fa-star',
+                    'class' => 'bg-success',
+                    'orden' => (int) ($item['idCalificacion'] ?? 0),
+                ];
+            }
+
+            if (!$notificacion || $notificacion['clave'] === '') {
+                continue;
+            }
+
+            $notificacion['leida'] = isset($leidas[$notificacion['clave']]);
+            $actividad[] = $notificacion;
+        }
+
+        usort($actividad, static function ($a, $b) {
+            return ($b['orden'] ?? 0) <=> ($a['orden'] ?? 0);
+        });
+
+        return $actividad;
+    }
+
+    public static function mdlMarcarNotificacionLeida($idUsuario, $clave)
+    {
+        self::prepararTablaLecturas();
+        $clave = trim((string) $clave);
+
+        if ((int) $idUsuario <= 0 || $clave === '') {
+            return 'error';
+        }
+
+        try {
+            $stmt = Conexion::conectar()->prepare('
+                INSERT IGNORE INTO notificaciones_lecturas (id_usuario, claveNotificacion)
+                VALUES (:idUsuario, :clave)
+            ');
+            $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
+            $stmt->bindValue(':clave', $clave, PDO::PARAM_STR);
+            return $stmt->execute() ? 'ok' : 'error';
+        } catch (Exception $e) {
+            return 'error';
+        }
+    }
+
+    public static function mdlMarcarNotificacionesLeidas($idUsuario, array $claves)
+    {
+        $respuesta = 'ok';
+
+        foreach ($claves as $clave) {
+            if (self::mdlMarcarNotificacionLeida($idUsuario, $clave) !== 'ok') {
+                $respuesta = 'error';
+            }
+        }
+
+        return $respuesta;
+    }
+
     public static function mdlResumenDashboard($idUsuario, $rol)
     {
         $idUsuario = (int) $idUsuario;
@@ -571,11 +708,14 @@ class ModeloPanel
         }
 
         $mensajesRecientes = self::actividadMensajes($idUsuario, 5);
-        $actividadReciente = array_slice(array_merge(
-            self::actividadEntregas($idUsuario, $rol, 3),
-            self::actividadPosteos($idUsuario, $rol, 3),
-            self::actividadCalificaciones($idUsuario, $rol, 3)
-        ), 0, 5);
+        $actividadReciente = array_slice(self::actividadNormalizada(array_merge(
+            self::actividadEntregas($idUsuario, $rol, 10),
+            self::actividadPosteos($idUsuario, $rol, 10),
+            self::actividadCalificaciones($idUsuario, $rol, 10)
+        ), $idUsuario), 0, 10);
+        $notificaciones = count(array_filter($actividadReciente, static function ($notificacion) {
+            return empty($notificacion['leida']);
+        }));
 
         return [
             'mensajes' => $mensajes,

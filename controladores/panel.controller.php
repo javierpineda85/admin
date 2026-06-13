@@ -23,4 +23,14 @@ class ControladorPanel
             ControladorPermisos::rolActual()
         );
     }
+
+    public static function crtMarcarNotificacionLeida($clave)
+    {
+        return ModeloPanel::mdlMarcarNotificacionLeida(self::idUsuarioActual(), $clave);
+    }
+
+    public static function crtMarcarNotificacionesLeidas(array $claves)
+    {
+        return ModeloPanel::mdlMarcarNotificacionesLeidas(self::idUsuarioActual(), $claves);
+    }
 }

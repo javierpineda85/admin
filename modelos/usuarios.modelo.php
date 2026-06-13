@@ -222,12 +222,41 @@ class ModeloUsuarios
               AND u.activo = 1
               AND u.rol = 'ESTUDIANTE'
               AND u.idUsuario <> :idUsuarioActual
-            ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC
+
+            UNION
+
+            SELECT DISTINCT u.idUsuario, u.nombreUsuario, u.apellidoUsuario, u.email, u.rol
+            FROM asignacioncursos a
+            INNER JOIN secciones s ON s.id_curso = a.id_seccion
+            INNER JOIN usuarios u ON u.idUsuario IN (s.docente, s.tutor)
+            WHERE a.id_estudiante = :idUsuarioActual
+              AND u.activo = 1
+              AND u.rol = 'DOCENTE'
+              AND u.idUsuario <> :idUsuarioActual
+
+            ORDER BY rol ASC, apellidoUsuario ASC, nombreUsuario ASC
         ");
         $stmt->bindParam(":idUsuarioActual", $idUsuarioActual, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function mdlDocenteTutorDeCursosEstudiante($idEstudiante, $idDocente)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT COUNT(*) AS total
+            FROM asignacioncursos a
+            INNER JOIN secciones s ON s.id_curso = a.id_seccion
+            WHERE a.id_estudiante = :idEstudiante
+              AND (s.docente = :idDocente OR s.tutor = :idDocente)
+        ");
+        $stmt->bindParam(":idEstudiante", $idEstudiante, PDO::PARAM_INT);
+        $stmt->bindParam(":idDocente", $idDocente, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+        return !empty($resultado) && (int) $resultado['total'] > 0;
     }
 
     public static function mdlCompartenCurso($idUsuario1, $idUsuario2)

@@ -1,4 +1,14 @@
 <?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion_notificacion'])) {
+  $accionNotificacion = trim((string) $_POST['accion_notificacion']);
+
+  if ($accionNotificacion === 'marcar_notificacion_leida') {
+    ControladorPanel::crtMarcarNotificacionLeida($_POST['clave_notificacion'] ?? '');
+  } elseif ($accionNotificacion === 'marcar_notificaciones_leidas') {
+    ControladorPanel::crtMarcarNotificacionesLeidas($_POST['claves_notificaciones'] ?? []);
+  }
+}
+
 $cabecera = ControladorPanel::crtIndicadoresCabecera();
 $mensajesRecientes = $cabecera['mensajesRecientes'] ?? [];
 $notificacionesRecientes = $cabecera['actividadReciente'] ?? [];
@@ -39,7 +49,7 @@ $resumirTexto = static function ($texto, $longitud) {
         <i class="far fa-comments"></i>
         <span class="badge badge-danger navbar-badge"><?php echo (int) ($cabecera['mensajes'] ?? 0); ?></span>
       </a>
-      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right dropdown-notifications-menu">
         <span class="dropdown-item dropdown-header">
           <?php echo (int) ($cabecera['mensajes'] ?? 0); ?> mensajes sin leer
         </span>
@@ -84,18 +94,42 @@ $resumirTexto = static function ($texto, $longitud) {
         <div class="dropdown-divider"></div>
         <?php if (!empty($notificacionesRecientes)): ?>
           <?php foreach ($notificacionesRecientes as $notificacion): ?>
-            <a href="#" class="dropdown-item">
-              <i class="<?php echo htmlspecialchars((string) ($notificacion['icon'] ?? 'fas fa-bell'), ENT_QUOTES, 'UTF-8'); ?> mr-2"></i>
-              <?php echo htmlspecialchars($resumirTexto($notificacion['titulo'] ?? 'Actividad reciente', 32), ENT_QUOTES, 'UTF-8'); ?>
-              <span class="float-right text-muted text-sm">
-                <?php echo htmlspecialchars($resumirTexto($notificacion['fecha'] ?? '', 16), ENT_QUOTES, 'UTF-8'); ?>
-              </span>
-            </a>
+            <?php $notificacionLeida = !empty($notificacion['leida']); ?>
+            <div class="dropdown-item <?php echo $notificacionLeida ? 'text-muted' : ''; ?>">
+              <div class="d-flex align-items-start">
+                <i class="<?php echo htmlspecialchars((string) ($notificacion['icon'] ?? 'fas fa-bell'), ENT_QUOTES, 'UTF-8'); ?> mr-2 mt-1"></i>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between">
+                    <strong class="text-sm"><?php echo htmlspecialchars($resumirTexto($notificacion['titulo'] ?? 'Actividad reciente', 36), ENT_QUOTES, 'UTF-8'); ?></strong>
+                    <span class="text-muted text-sm"><?php echo htmlspecialchars($resumirTexto($notificacion['fecha'] ?? '', 16), ENT_QUOTES, 'UTF-8'); ?></span>
+                  </div>
+                  <div class="text-sm"><?php echo htmlspecialchars($resumirTexto($notificacion['detalle'] ?? '', 58), ENT_QUOTES, 'UTF-8'); ?></div>
+                  <?php if (!$notificacionLeida): ?>
+                    <form method="post" class="mt-1">
+                      <input type="hidden" name="accion_notificacion" value="marcar_notificacion_leida">
+                      <input type="hidden" name="clave_notificacion" value="<?php echo htmlspecialchars((string) ($notificacion['clave'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                      <button type="submit" class="btn btn-link btn-xs p-0">Marcar como leida</button>
+                    </form>
+                  <?php else: ?>
+                    <span class="badge badge-light border mt-1">Leida</span>
+                  <?php endif; ?>
+                </div>
+              </div>
+            </div>
             <div class="dropdown-divider"></div>
           <?php endforeach; ?>
         <?php else: ?>
           <div class="dropdown-item text-muted">No hay notificaciones nuevas.</div>
           <div class="dropdown-divider"></div>
+        <?php endif; ?>
+        <?php if (!empty($notificacionesRecientes)): ?>
+          <form method="post" class="dropdown-item dropdown-footer mb-0">
+            <input type="hidden" name="accion_notificacion" value="marcar_notificaciones_leidas">
+            <?php foreach ($notificacionesRecientes as $notificacion): ?>
+              <input type="hidden" name="claves_notificaciones[]" value="<?php echo htmlspecialchars((string) ($notificacion['clave'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+            <?php endforeach; ?>
+            <button type="submit" class="btn btn-link btn-sm p-0">Marcar todas como leidas</button>
+          </form>
         <?php endif; ?>
         <a href="index.php" class="dropdown-item dropdown-footer">Ir al panel</a>
       </div>

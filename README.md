@@ -4,13 +4,22 @@ Sistema web tipo classroom para administradores, docentes y estudiantes.
 
 ## Que incluye
 
-- Login y recuperacion de contraseña.
-- Panel por rol con accesos y métricas.
+- Login y recuperacion de contrasena.
+- Panel por rol con accesos y metricas.
 - CRUD de usuarios, cursos y materias.
 - Lecciones tipo material, tarea y pregunta.
-- Calificaciones con devolución.
+- Calificaciones con devolucion.
 - Mensajeria con adjuntos, papelera y reglas de destinatarios.
 - Perfil de usuario con foto, alta/baja y ultima conexion.
+
+## Estado actual
+
+- Rediseño visual global del panel y del classroom.
+- Materias con tabs para tablon, trabajo de clase, personas y calificaciones.
+- Lecciones con borradores, carga multiple de adjuntos y enlaces, y orden desde la mas nueva.
+- Mensajeria ampliada para estudiantes, docentes y tutores.
+- Header con notificaciones reales y marcado de lectura.
+- Footer actualizado con la firma visual actual del proyecto.
 
 ## Roles
 
@@ -43,3 +52,4 @@ Sistema web tipo classroom para administradores, docentes y estudiantes.
 - [Modulos](docs/modulos.md)
 - [Base de datos](docs/base-datos.md)
 - [Flujos de uso](docs/flujos.md)
+- [Cambios Junio 2026](docs/cambios-2026-06.md)
