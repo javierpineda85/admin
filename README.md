@@ -56,3 +56,5 @@ Sistema web tipo classroom para administradores, docentes y estudiantes.
 - [Cambios Junio 2026](docs/cambios-2026-06.md)
 - [Integracion WordPress](docs/integracion-wordpress.md)
 - [Cierre de integracion WordPress](docs/integracion-wordpress-cierre.md)
+- [Manual de usuario](docs/manual-usuario/manual-usuario.md)
+- [Versiones](docs/versiones.md)

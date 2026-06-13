@@ -8,6 +8,10 @@ unset($_SESSION['login_error']);
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="/img/favicon-16x16.png?v=2">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="theme-color" content="#ffffff">
   <title>Classroom | Iniciar sesión</title>
   <link rel="stylesheet" href="./plugins/fontawesome-free/css/all.min.css">
   <link rel="stylesheet" href="./plugins/icheck-bootstrap/icheck-bootstrap.min.css">

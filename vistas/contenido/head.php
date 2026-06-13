@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="author" content="Javier Pineda">
   <meta name="description" content="Sistema de administración de estudiantes y cursos de e-learning realizado en PHP ">
-  <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png?v=2">
+  <link rel="shortcut icon" type="image/png" href="/img/favicon-16x16.png?v=2">
   <meta name="msapplication-TileColor" content="#ffffff">
   <meta name="theme-color" content="#ffffff">
   <title>Campus</title>
