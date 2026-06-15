@@ -194,10 +194,21 @@ class ModeloCursos
     /* ASIGNAR CURSO */
     static public function mdlAsignarCurso($tabla, $datos)
     {
-        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla (id_estudiante,id_seccion) VALUES(:idUsuario, :idCurso)");
+        $registro = Conexion::conectar()->prepare("
+            INSERT INTO $tabla (id_estudiante,id_seccion)
+            SELECT :idUsuario, :idCurso
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM $tabla
+                WHERE id_estudiante = :idUsuarioExiste
+                  AND id_seccion = :idCursoExiste
+            )
+        ");
 
         $registro->bindParam(":idCurso", $datos["idCurso"], PDO::PARAM_INT);
         $registro->bindParam(":idUsuario", $datos["idUsuario"], PDO::PARAM_INT);
+        $registro->bindParam(":idCursoExiste", $datos["idCurso"], PDO::PARAM_INT);
+        $registro->bindParam(":idUsuarioExiste", $datos["idUsuario"], PDO::PARAM_INT);
 
      
         if ($registro->execute()) {
@@ -209,5 +220,18 @@ class ModeloCursos
         $registro->closeCursor();
         $registro = null;
         
+    }
+
+    static public function mdlQuitarEstudianteCurso($idCurso, $idUsuario)
+    {
+        $registro = Conexion::conectar()->prepare("
+            DELETE FROM asignacioncursos
+            WHERE id_seccion = :idCurso
+              AND id_estudiante = :idUsuario
+        ");
+        $registro->bindValue(":idCurso", (int) $idCurso, PDO::PARAM_INT);
+        $registro->bindValue(":idUsuario", (int) $idUsuario, PDO::PARAM_INT);
+
+        return $registro->execute() ? "ok" : "error";
     }
 }

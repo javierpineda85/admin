@@ -1,9 +1,13 @@
 <?php
 $idCurso = (int) ($_GET['idCurso'] ?? 0);
 $rolActual = ControladorPermisos::rolActual();
+$rolReal = ControladorPermisos::rolReal();
 $esAdmin = ControladorPermisos::esAdministrador();
 $esDocente = ControladorPermisos::esDocente();
+$vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$puedeQuitarEstudiantes = $esAdmin;
+$quitarEstudiante = ControladorCursos::crtQuitarEstudianteCurso();
 
 $db = new Conexion;
 $sql = "SELECT * FROM cursos WHERE idCurso = $idCurso";
@@ -38,16 +42,17 @@ if (!$curso) {
 if (ControladorPermisos::esEstudiante()) {
     $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
     $cursoEstudiante = ControladorCursos::crtBuscarCursoPorId($idCurso);
-    $estaInscripto = $idCurso > 0 && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, $idCurso);
+    $estaInscripto = $vistaEstudianteSimulada
+      || ($idCurso > 0 && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, $idCurso));
     $seccionesEstudiante = $estaInscripto ? ControladorCursos::crtSeccionesPorCurso($idCurso) : [];
     $e = static function ($valor) {
-        return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
+      return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
     };
     ?>
 
     <section class="content page-fade">
       <div class="container-fluid">
-        <?php if (!$cursoEstudiante || !$estaInscripto): ?>
+        <?php if (!$cursoEstudiante || (!$estaInscripto && !$vistaEstudianteSimulada)): ?>
           <div class="empty-state">
             <i class="fas fa-lock"></i>
             <h4>No tenés acceso a este curso</h4>
@@ -283,11 +288,6 @@ if (ControladorPermisos::esEstudiante()) {
                                     </table>
                                     <?php $registro = ControladorCursos::crtAsignarCurso(); ?>
                                     <input type="submit" value="AGREGAR" class="btn btn-primary">
-                                    <?php
-                                    if (isset($_SESSION['success_message'])) {
-                                        echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=detalle-curso&idCurso=" . $idCurso . "'; }, 5200);</script>";
-                                    }
-                                    ?>
                                 </form>
                             </div>
                         </div>
@@ -321,9 +321,21 @@ if (ControladorPermisos::esEstudiante()) {
                                             <td><?php echo htmlspecialchars((string) $valor['idUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?php echo htmlspecialchars($valor['email'], ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td class="text-center">
+                                                <div class="d-flex justify-content-center align-items-center" style="gap: .4rem;">
                                                 <a href="index.php?r=nuevo-mensaje&id_destinatario=<?php echo (int) $valor['idUsuario']; ?>" class="btn btn-primary btn-sm" title="Enviar mensaje">
                                                     <i class="fas fa-paper-plane"></i>
                                                 </a>
+                                                <?php if ($puedeQuitarEstudiantes): ?>
+                                                    <form method="post" class="d-inline" onsubmit="return confirm('¿Quitar este estudiante del curso?');">
+                                                        <input type="hidden" name="accion_curso" value="quitar_estudiante">
+                                                        <input type="hidden" name="idCurso" value="<?php echo (int) $idCurso; ?>">
+                                                        <input type="hidden" name="idUsuario" value="<?php echo (int) $valor['idUsuario']; ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm" title="Quitar del curso">
+                                                            <i class="fas fa-user-minus"></i>
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

@@ -1,5 +1,7 @@
 <?php
 $rolActual = ControladorPermisos::rolActual();
+$rolReal = ControladorPermisos::rolReal();
+$vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $nombreUsuario = trim((string) ($_SESSION['usuario']['nombre'] ?? 'Usuario'));
 $apellidoUsuario = trim((string) ($_SESSION['usuario']['apellido'] ?? ''));
@@ -19,6 +21,10 @@ if (ControladorPermisos::esDocente()) {
   $ctaPrincipal = 'index.php?r=listado-materias';
   $ctaPrincipalTexto = 'Abrir aulas';
   $ctaPrincipalIcono = 'fas fa-chalkboard-teacher';
+} elseif ($vistaEstudianteSimulada) {
+  $ctaPrincipal = 'index.php?r=listado-cursos';
+  $ctaPrincipalTexto = 'Elegir curso';
+  $ctaPrincipalIcono = 'fas fa-layer-group';
 } elseif (ControladorPermisos::esEstudiante()) {
   $ctaPrincipal = !empty($primerCurso) ? 'index.php?r=detalle-curso&idCurso=' . (int) $primerCurso[0]['idCurso'] : 'index.php?r=listado-cursos';
   $ctaPrincipalTexto = 'Continuar';
@@ -30,6 +36,8 @@ if (ControladorPermisos::esAdministrador()) {
   $mensajeRol = 'Administras usuarios, cursos, materias y la estructura completa del sistema.';
 } elseif (ControladorPermisos::esDocente()) {
   $mensajeRol = 'Tu espacio centraliza aulas, materiales, tareas, foros y calificaciones.';
+} elseif ($vistaEstudianteSimulada) {
+  $mensajeRol = 'Estás viendo el campus en modo estudiante para recorrer cursos y materias como lo haría un alumno.';
 } elseif (ControladorPermisos::esEstudiante()) {
   $mensajeRol = 'Aqui tenes el acceso directo a tus clases, notas, entregas y mensajes permitidos.';
 }

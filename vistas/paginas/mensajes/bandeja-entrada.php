@@ -20,9 +20,6 @@ $resumir = static function ($texto, $longitud = 90) {
   return strlen($texto) > $longitud ? substr($texto, 0, $longitud - 3) . '...' : $texto;
 };
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== null) {
-  echo "<script>setTimeout(function(){ window.location.href = 'index.php?r=bandeja-entrada&c=mensajes'; }, 5200);</script>";
-}
 ?>
 
 <section class="content page-fade">

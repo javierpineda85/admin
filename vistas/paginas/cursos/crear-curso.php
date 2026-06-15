@@ -1,15 +1,6 @@
 <?php
 $registro = ControladorCursos::crtGuardarCurso();
-$redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_message']));
 ?>
-
-<?php if ($redirigir): ?>
-  <script>
-    setTimeout(function () {
-      window.location.href = 'index.php?r=listado-cursos&c=cursos';
-    }, 5200);
-  </script>
-<?php endif; ?>
 
 <section class="content page-fade">
   <div class="container-fluid">

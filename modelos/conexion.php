@@ -27,6 +27,7 @@ class Conexion
         $link = new PDO($dsn, $user, $password);
         $link->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $link->exec('set names utf8mb4');
+        $link->exec("SET time_zone = '-03:00'");
 
         return $link;
     }

@@ -9,6 +9,8 @@ if ($accion !== '') {
 
 $seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
 $lecciones = $idSeccion > 0 ? ControladorLecciones::crtBuscarLeccionesPorSeccion($idSeccion) : [];
+$rolReal = ControladorPermisos::rolReal();
+$vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
 $esAdmin = ControladorPermisos::esAdministrador();
 $esDocente = ControladorPermisos::esDocente();
 $puedeGestionar = $esAdmin || $esDocente;
@@ -33,7 +35,7 @@ $seguimientoPersonal = ControladorPermisos::esEstudiante() && $idSeccion > 0 && 
 $misCalificaciones = ControladorPermisos::esEstudiante() && $idSeccion > 0 && $idUsuarioActual > 0
   ? ControladorCalificaciones::crtCalificacionesPorEstudiante($idSeccion, $idUsuarioActual)
   : [];
-$puedeAccederDocente = !$esDocente || $esAdmin || ($seccion && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual));
+$puedeAccederDocente = !$esDocente || $esAdmin || $vistaEstudianteSimulada || ($seccion && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual));
 $bannerSeccion = (string) ($seccion['bannerSeccion'] ?? '');
 $colorInicioBanner = (string) ($seccion['colorInicioBanner'] ?? '#0f172a');
 $colorFinBanner = (string) ($seccion['colorFinBanner'] ?? '#1d4ed8');
@@ -112,8 +114,8 @@ if (!$seccion) {
 }
 
 if (ControladorPermisos::esEstudiante()) {
-  $estaInscripto = !empty($seccion['id_curso'])
-    && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, (int) $seccion['id_curso']);
+  $estaInscripto = $vistaEstudianteSimulada || (!empty($seccion['id_curso'])
+    && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, (int) $seccion['id_curso']));
   $e = static function ($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
   };
@@ -135,7 +137,7 @@ if (ControladorPermisos::esEstudiante()) {
 
   <section class="content page-fade">
     <div class="container-fluid student-classroom">
-      <?php if (!$estaInscripto): ?>
+      <?php if (!$estaInscripto && !$vistaEstudianteSimulada): ?>
         <div class="empty-state">
           <i class="fas fa-lock"></i>
           <h4>No tenés acceso a esta materia</h4>
@@ -376,13 +378,6 @@ if (ControladorPermisos::esEstudiante()) {
   </div>
   </section>
 
-  <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== ''): ?>
-    <script>
-      setTimeout(function() {
-        window.location.href = 'index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>';
-      }, 5200);
-    </script>
-  <?php endif; ?>
 <?php
   return;
 }
@@ -1072,14 +1067,6 @@ if (ControladorPermisos::esEstudiante()) {
       </div>
     </div>
 </section>
-
-<?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && $accion !== ''): ?>
-  <script>
-    setTimeout(function() {
-      window.location.href = 'index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>';
-    }, 5200);
-  </script>
-<?php endif; ?>
 
 <script>
   document.querySelectorAll('.grade-form').forEach(function(form) {

@@ -273,7 +273,7 @@ class ModeloPanel
     {
         return self::listar(
             'SELECT m.idMensaje, m.contenidoMensaje, m.fechaMensaje,
-                    u.nombreUsuario, u.apellidoUsuario
+                    u.nombreUsuario, u.apellidoUsuario, u.imgUsuario
              FROM mensajes_participantes mp
              INNER JOIN mensajes m ON m.idMensaje = mp.id_mensaje
              INNER JOIN usuarios u ON u.idUsuario = m.id_remitente

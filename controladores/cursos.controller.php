@@ -120,4 +120,33 @@ class ControladorCursos
 
         }
     }
+
+    static public function crtQuitarEstudianteCurso()
+    {
+        if (!isset($_POST['accion_curso']) || $_POST['accion_curso'] !== 'quitar_estudiante') {
+            return null;
+        }
+
+        if (!ControladorPermisos::esAdministrador()) {
+            $_SESSION['error_message'] = 'No tenes permisos para quitar estudiantes del curso.';
+            return false;
+        }
+
+        $idCurso = (int) ($_POST['idCurso'] ?? ($_GET['idCurso'] ?? 0));
+        $idUsuario = (int) ($_POST['idUsuario'] ?? 0);
+
+        if ($idCurso <= 0 || $idUsuario <= 0) {
+            $_SESSION['error_message'] = 'No se pudo identificar el curso o el estudiante.';
+            return false;
+        }
+
+        $respuesta = ModeloCursos::mdlQuitarEstudianteCurso($idCurso, $idUsuario);
+        if ($respuesta === 'ok') {
+            $_SESSION['success_message'] = 'Estudiante quitado del curso correctamente';
+        } else {
+            $_SESSION['error_message'] = 'No se pudo quitar al estudiante del curso';
+        }
+
+        return $respuesta;
+    }
 }

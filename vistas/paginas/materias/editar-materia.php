@@ -17,17 +17,7 @@ $db = new Conexion;
 $cursos = $db->consultas("SELECT * FROM cursos ORDER BY nombreCurso ASC");
 $usuarios = ControladorUsuarios::crtUsuariosDocentesAsignables();
 $registro = ControladorMaterias::crtModificarMateria();
-$redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_message']));
 ?>
-
-<?php if ($redirigir): ?>
-  <script>
-    setTimeout(function () {
-      window.location.href = 'index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>';
-    }, 5200);
-  </script>
-<?php endif; ?>
-
 <section class="content page-fade">
   <div class="container-fluid">
     <div class="entity-hero mb-4">

@@ -70,6 +70,10 @@ class ModeloUsuarios
 
     private static function resolverRolWordPress($usuarioWp)
     {
+        if ((int) ($usuarioWp['user_status'] ?? 0) !== 0) {
+            return null;
+        }
+
         $email = strtolower(trim((string) ($usuarioWp['user_email'] ?? '')));
         $superAdmins = array_map('strtolower', WP_SUPER_ADMIN_EMAILS);
         if ($email !== '' && in_array($email, $superAdmins, true)) {
@@ -146,6 +150,7 @@ class ModeloUsuarios
                    u.user_login,
                    u.user_pass,
                    u.user_email,
+                   u.user_status,
                    u.display_name,
                    MAX(CASE WHEN um.meta_key = 'first_name' THEN um.meta_value END) AS first_name,
                    MAX(CASE WHEN um.meta_key = 'last_name' THEN um.meta_value END) AS last_name,
@@ -156,7 +161,7 @@ class ModeloUsuarios
             FROM {$tablaUsuarios} u
             LEFT JOIN {$tablaMeta} um ON um.user_id = u.ID
             WHERE u.user_email = :email OR u.user_login = :email
-            GROUP BY u.ID, u.user_login, u.user_pass, u.user_email, u.display_name
+            GROUP BY u.ID, u.user_login, u.user_pass, u.user_email, u.user_status, u.display_name
             LIMIT 1
         ");
         $stmt->bindValue(':metaCapabilities', $metaCapabilities, PDO::PARAM_STR);
@@ -239,7 +244,6 @@ class ModeloUsuarios
                     apellidoUsuario = :apellido,
                     email = :email,
                     rol = :rol,
-                    activo = 1,
                     wpUserId = :wpUserId,
                     origenAuth = 'WORDPRESS'
                 WHERE idUsuario = :idUsuario

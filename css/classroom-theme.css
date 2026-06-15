@@ -1777,8 +1777,12 @@ body.classroom-app .dataTables_wrapper .dt-buttons .btn {
   background: var(--primary);
   border-color: var(--primary);
   color: #fff;
-  border-radius: 12px;
-  margin-right: 0.35rem;
+  border-radius: 10px;
+  margin-right: 0.25rem;
+  padding: 0.28rem 0.6rem;
+  font-size: 0.72rem !important;
+  line-height: 1.2;
+  box-shadow: none;
 }
 
 body.classroom-app .dataTables_wrapper .dt-buttons .btn:hover,
@@ -1786,6 +1790,10 @@ body.classroom-app .dataTables_wrapper .dt-buttons .btn:focus {
   background: #6f33c5;
   border-color: #6f33c5;
   color: #fff;
+}
+
+body.classroom-app .dataTables_wrapper .dt-buttons .btn:last-child {
+  margin-right: 0;
 }
 
 body.classroom-app .dataTables_wrapper .page-link {

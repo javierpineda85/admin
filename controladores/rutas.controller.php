@@ -46,15 +46,76 @@ class RutasController
         ];
     }
 
+    private static function redireccionSegura($destino, $fallback = 'index.php')
+    {
+        $destino = trim(urldecode((string) $destino));
+        if ($destino === '') {
+            return $fallback;
+        }
+
+        $partes = parse_url($destino);
+        if ($partes === false || isset($partes['scheme'], $partes['host'])) {
+            return $fallback;
+        }
+
+        $ruta = trim((string) ($partes['path'] ?? ''));
+        if ($ruta !== '' && !preg_match('~(^|/)index\.php$~i', $ruta)) {
+            return $fallback;
+        }
+
+        return $destino;
+    }
+
+    private static function rutaDestinoDesdeUrl($destino)
+    {
+        $destino = trim(urldecode((string) $destino));
+        if ($destino === '') {
+            return '';
+        }
+
+        $partes = parse_url($destino);
+        if ($partes === false) {
+            return '';
+        }
+
+        $consulta = [];
+        if (!empty($partes['query'])) {
+            parse_str($partes['query'], $consulta);
+        }
+
+        return trim((string) ($consulta['r'] ?? ''));
+    }
+
     private static function rutaBasePaginas()
     {
         return __DIR__ . '/../vistas/paginas/';
+    }
+
+    public static function procesarVistaEstudiante()
+    {
+        $tieneSesion = isset($_SESSION['logueado']) && $_SESSION['logueado'] === true;
+        if (!$tieneSesion) {
+            return false;
+        }
+
+        $estado = trim((string) ($_GET['estado'] ?? '1'));
+        ControladorPermisos::activarVistaEstudiante(in_array($estado, ['1', 'true', 'on', 'si'], true));
+
+        $redirigir = self::redireccionSegura($_GET['redir'] ?? 'index.php');
+        $rutaRedirigir = self::rutaDestinoDesdeUrl($redirigir);
+        if ($rutaRedirigir !== '' && !ControladorPermisos::puedeAccederRuta($rutaRedirigir)) {
+            $redirigir = 'index.php';
+        }
+
+        header('Location: ' . $redirigir);
+        exit;
     }
 
     public static function cargarVista()
     {
         $ruta = isset($_GET['r']) ? trim($_GET['r']) : '';
         $mapeo = self::mapaRutas();
+        $tieneSesion = isset($_SESSION['logueado']) && $_SESSION['logueado'] === true;
 
         if ($ruta === 'logout') {
             if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -67,8 +128,11 @@ class RutasController
             exit;
         }
 
+        if ($ruta === 'vista-estudiante') {
+            self::procesarVistaEstudiante();
+        }
+
         $esPublica = $ruta !== '' && in_array($ruta, self::rutasPublicas(), true);
-        $tieneSesion = isset($_SESSION['logueado']) && $_SESSION['logueado'] === true;
 
         if (!$esPublica && !$tieneSesion) {
             header('Location: index.php?r=login');

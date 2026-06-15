@@ -91,11 +91,51 @@ if (!empty($flashToasts)) {
 
 <script>
   $(function() {
+    $.extend(true, $.fn.dataTable.defaults, {
+      language: {
+        emptyTable: 'No hay datos disponibles en la tabla',
+        info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
+        infoEmpty: 'Mostrando 0 a 0 de 0 registros',
+        infoFiltered: '(filtrado de _MAX_ registros totales)',
+        lengthMenu: 'Mostrar _MENU_ registros',
+        loadingRecords: 'Cargando...',
+        processing: 'Procesando...',
+        search: 'Buscar:',
+        zeroRecords: 'No se encontraron resultados',
+        paginate: {
+          first: 'Primero',
+          last: 'Último',
+          next: 'Siguiente',
+          previous: 'Anterior'
+        },
+        buttons: {
+          copy: 'Copiar',
+          copyTitle: 'Copiado al portapapeles',
+          copySuccess: {
+            1: '1 fila copiada',
+            _: '%d filas copiadas'
+          },
+          csv: 'CSV',
+          excel: 'Excel',
+          pdf: 'PDF',
+          print: 'Imprimir',
+          colvis: 'Columnas'
+        }
+      }
+    });
+
     $("#example1").DataTable({
       "responsive": true,
       "lengthChange": false,
       "autoWidth": false,
-      "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
+      "buttons": [
+        { extend: "copy", text: "Copiar" },
+        { extend: "csv", text: "CSV" },
+        { extend: "excel", text: "Excel" },
+        { extend: "pdf", text: "PDF" },
+        { extend: "print", text: "Imprimir" },
+        { extend: "colvis", text: "Columnas" }
+      ]
     }).buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');
     $('#example2').DataTable({
       "paging": true,

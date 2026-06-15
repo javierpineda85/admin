@@ -11,7 +11,7 @@ class ControladorMensajes
 
     private static function rolActual()
     {
-        return strtoupper(trim((string) ($_SESSION['usuario']['rol'] ?? '')));
+        return ControladorPermisos::rolActual();
     }
 
     private static function limpiarMensaje($mensaje)

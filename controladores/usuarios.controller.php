@@ -47,7 +47,7 @@ class ControladorUsuarios
     public static function crtDestinatariosPermitidos()
     {
         $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
-        $rolActual = $_SESSION['usuario']['rol'] ?? '';
+        $rolActual = ControladorPermisos::rolActual();
 
         return ModeloUsuarios::mdlDestinatariosPermitidos($idUsuarioActual, $rolActual);
     }

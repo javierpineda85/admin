@@ -16,6 +16,18 @@ if (!isset($_SESSION['logueado']) || $_SESSION['logueado'] !== true) {
   header('Location: index.php?r=login');
   exit;
 }
+
+$rutaVista = isset($_GET['r']) ? trim($_GET['r']) : '';
+if ($rutaVista === 'vista-estudiante') {
+  RutasController::procesarVistaEstudiante();
+}
+
+$usuarioSesionActual = ModeloUsuarios::mdlObtenerUsuarioPorId((int) ($_SESSION['usuario']['id'] ?? 0));
+if (!$usuarioSesionActual || (int) ($usuarioSesionActual['activo'] ?? 0) !== 1) {
+  session_destroy();
+  header('Location: index.php?r=login');
+  exit;
+}
 ?>
 <?php include_once('contenido/head.php'); ?>
 

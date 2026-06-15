@@ -1,9 +1,22 @@
 <?php
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$rolReal = ControladorPermisos::rolReal();
 $esEstudiante = ControladorPermisos::esEstudiante();
 $esDocente = ControladorPermisos::esDocente();
 $esAdmin = ControladorPermisos::esAdministrador();
-if ($esEstudiante) {
+$esDocenteReal = $rolReal === 'DOCENTE';
+$esAdminReal = $rolReal === 'ADMINISTRADOR';
+$vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
+
+if ($vistaEstudianteSimulada) {
+    $cursos = $esDocenteReal
+        ? ControladorCursos::crtCursosPorDocente($idUsuarioActual)
+        : ControladorCursos::crtListarCursos();
+
+    if (empty($cursos)) {
+        $cursos = ControladorCursos::crtListarCursos();
+    }
+} elseif ($esEstudiante) {
     $cursos = ControladorCursos::crtCursosPorEstudiante($idUsuarioActual);
 } elseif ($esDocente) {
     $cursos = ControladorCursos::crtCursosPorDocente($idUsuarioActual);
@@ -17,7 +30,43 @@ $e = static function ($valor) {
 
 <section class="content page-fade">
   <div class="container-fluid">
-    <?php if ($esEstudiante): ?>
+    <?php if ($vistaEstudianteSimulada): ?>
+      <div class="entity-hero mb-4">
+        <div class="entity-hero__content">
+          <span class="entity-kicker mb-3">Vista estudiante</span>
+          <h1 class="entity-title mb-2">Explorá el campus como estudiante</h1>
+          <p class="entity-lead mb-0">Elegí un curso para entrar al recorrido completo sin usar tu rol real de administración o docencia.</p>
+        </div>
+      </div>
+
+      <?php if (empty($cursos)): ?>
+        <div class="empty-state">
+          <i class="fas fa-layer-group"></i>
+          <h4>Todavía no hay cursos para previsualizar</h4>
+          <p class="mb-0">Cuando existan cursos cargados, vas a poder abrirlos desde esta vista.</p>
+        </div>
+      <?php else: ?>
+        <div class="student-class-grid">
+          <?php foreach ($cursos as $index => $curso): ?>
+            <a class="student-class-card theme-<?php echo (int) ($index % 4); ?>" href="index.php?r=detalle-curso&idCurso=<?php echo (int) $curso['idCurso']; ?>">
+              <div class="student-class-card__cover">
+                <div>
+                  <h2><?php echo $e($curso['nombreCurso'] ?? 'Curso'); ?></h2>
+                  <p><?php echo $e($curso['estado'] ?? 'Activo'); ?> · <?php echo $e($curso['fInicio'] ?? ''); ?></p>
+                </div>
+              </div>
+              <div class="student-class-card__body">
+                <p><?php echo $e($curso['contenidoCurso'] ?? 'Sin descripción cargada.'); ?></p>
+              </div>
+              <div class="student-class-card__footer">
+                <span><i class="fas fa-book-open"></i> <?php echo (int) ($curso['totalSecciones'] ?? 0); ?> materias</span>
+                <span><i class="fas fa-tasks"></i> <?php echo (int) ($curso['totalLecciones'] ?? 0); ?> clases</span>
+              </div>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    <?php elseif ($esEstudiante): ?>
       <div class="entity-hero mb-4">
         <div class="entity-hero__content">
           <span class="entity-kicker mb-3">Mis cursos</span>

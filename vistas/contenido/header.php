@@ -12,6 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion_notificacion']
 $cabecera = ControladorPanel::crtIndicadoresCabecera();
 $mensajesRecientes = $cabecera['mensajesRecientes'] ?? [];
 $notificacionesRecientes = $cabecera['actividadReciente'] ?? [];
+$puedeCambiarVista = ControladorPermisos::puedeActivarVistaEstudiante();
+$vistaEstudianteActiva = ControladorPermisos::vistaEstudianteActiva();
+$urlVistaEstudiante = 'index.php?r=vista-estudiante&estado=' . ($vistaEstudianteActiva ? '0' : '1') . '&redir=' . urlencode($_SERVER['REQUEST_URI'] ?? 'index.php');
 $resumirTexto = static function ($texto, $longitud) {
   $texto = trim(strip_tags((string) $texto));
   if (function_exists('mb_strimwidth')) {
@@ -38,10 +41,21 @@ $resumirTexto = static function ($texto, $longitud) {
 
   <ul class="navbar-nav ml-auto">
     <li class="nav-item d-none d-sm-inline-block">
-      <span class="nav-link text-muted badge badge-light border px-3 py-2" style="font-weight: 700;">
-        <i class="fas fa-user-tag mr-1"></i>
-        <?php echo htmlspecialchars(ControladorPermisos::etiquetaRol(), ENT_QUOTES, 'UTF-8'); ?>
-      </span>
+      <?php if ($puedeCambiarVista): ?>
+        <a
+          class="nav-link text-muted badge <?php echo $vistaEstudianteActiva ? 'badge-warning border border-warning' : 'badge-light border'; ?> px-3 py-2 classroom-role-switch"
+          href="<?php echo htmlspecialchars($urlVistaEstudiante, ENT_QUOTES, 'UTF-8'); ?>"
+          title="<?php echo $vistaEstudianteActiva ? 'Volver a mi rol real' : 'Cambiar a vista estudiante'; ?>"
+        >
+          <i class="fas <?php echo $vistaEstudianteActiva ? 'fa-user-graduate' : 'fa-user-tag'; ?> mr-1"></i>
+          <?php echo htmlspecialchars(ControladorPermisos::etiquetaRol(), ENT_QUOTES, 'UTF-8'); ?>
+        </a>
+      <?php else: ?>
+        <span class="nav-link text-muted badge badge-light border px-3 py-2">
+          <i class="fas fa-user mr-1"></i>
+          <?php echo htmlspecialchars(ControladorPermisos::etiquetaRol(), ENT_QUOTES, 'UTF-8'); ?>
+        </span>
+      <?php endif; ?>
     </li>
 
     <li class="nav-item dropdown">
@@ -56,9 +70,10 @@ $resumirTexto = static function ($texto, $longitud) {
         <div class="dropdown-divider"></div>
         <?php if (!empty($mensajesRecientes)): ?>
           <?php foreach ($mensajesRecientes as $mensaje): ?>
+            <?php $avatarRemitente = ControladorUsuarios::rutaImagenUsuario($mensaje['imgUsuario'] ?? '', 'user1-128x128.jpg'); ?>
             <a href="index.php?r=bandeja-entrada&c=mensajes" class="dropdown-item">
               <div class="media">
-                <img src="img/user1-128x128.jpg" alt="User Avatar" class="img-size-50 mr-3 img-circle">
+                <img src="img/<?php echo htmlspecialchars($avatarRemitente, ENT_QUOTES, 'UTF-8'); ?>" alt="User Avatar" class="img-size-50 mr-3 img-circle">
                 <div class="media-body">
                   <h3 class="dropdown-item-title">
                     <?php echo htmlspecialchars(trim(($mensaje['nombreUsuario'] ?? '') . ' ' . ($mensaje['apellidoUsuario'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>

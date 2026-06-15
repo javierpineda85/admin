@@ -7,9 +7,24 @@ class ControladorPermisos
         return strtoupper(trim((string) $rol));
     }
 
-    public static function rolActual()
+    public static function rolReal()
     {
         return self::normalizarRol($_SESSION['usuario']['rol'] ?? '');
+    }
+
+    public static function vistaEstudianteActiva()
+    {
+        return !empty($_SESSION['vista_estudiante'])
+            && in_array(self::rolReal(), ['ADMINISTRADOR', 'DOCENTE'], true);
+    }
+
+    public static function rolActual()
+    {
+        if (self::vistaEstudianteActiva()) {
+            return 'ESTUDIANTE';
+        }
+
+        return self::rolReal();
     }
 
     public static function esAdministrador()
@@ -56,6 +71,7 @@ class ControladorPermisos
                 'mensajes-enviados',
                 'papelera',
                 'detalle-mensaje',
+                'vista-estudiante',
             ],
             'ESTUDIANTE' => [
                 'perfil-usuario',
@@ -69,6 +85,7 @@ class ControladorPermisos
                 'mensajes-enviados',
                 'papelera',
                 'detalle-mensaje',
+                'vista-estudiante',
             ],
         ];
 
@@ -94,6 +111,25 @@ class ControladorPermisos
     public static function etiquetaRol()
     {
         $rol = self::rolActual();
+        if (self::vistaEstudianteActiva()) {
+            return 'ESTUDIANTE';
+        }
+
         return $rol !== '' ? $rol : 'SIN ROL';
+    }
+
+    public static function puedeActivarVistaEstudiante()
+    {
+        return in_array(self::rolReal(), ['ADMINISTRADOR', 'DOCENTE'], true);
+    }
+
+    public static function activarVistaEstudiante($activa)
+    {
+        if (!self::puedeActivarVistaEstudiante()) {
+            return false;
+        }
+
+        $_SESSION['vista_estudiante'] = (bool) $activa;
+        return true;
     }
 }

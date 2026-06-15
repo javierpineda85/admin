@@ -2,7 +2,6 @@
 $perfilActual = ControladorUsuarios::crtUsuarioActual();
 $perfilDatos = $perfilActual ? ModeloPerfiles::mdlObtenerPerfilPorUsuario((int) ($_SESSION['usuario']['id'] ?? 0)) : [];
 $registro = ControladorPerfiles::crtEditarPerfil();
-$redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_message']));
 $nombreCompleto = trim((string) (($perfilActual['nombreUsuario'] ?? '') . ' ' . ($perfilActual['apellidoUsuario'] ?? '')));
 $puedeCambiarClave = (int) ($_SESSION['usuario']['id'] ?? 0) > 0
   && (int) ($_SESSION['usuario']['id'] ?? 0) === (int) ($perfilActual['idUsuario'] ?? 0);
@@ -11,14 +10,6 @@ $e = static function ($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
 ?>
-
-<?php if ($redirigir): ?>
-  <script>
-    setTimeout(function () {
-      window.location.href = 'index.php?r=perfil-usuario';
-    }, 5200);
-  </script>
-<?php endif; ?>
 
 <section class="content page-fade">
   <div class="container-fluid">

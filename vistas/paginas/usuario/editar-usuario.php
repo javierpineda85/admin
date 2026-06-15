@@ -2,7 +2,6 @@
 $idUsuario = (int) ($_GET['id'] ?? 0);
 $registro = ControladorUsuarios::crtModificarUsuario();
 $baja = ControladorUsuarios::crtDarBajaUsuario();
-$redirigir = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['success_message']));
 $usuarioCompleto = $idUsuario > 0 ? ControladorUsuarios::crtUsuarioCompleto($idUsuario) : null;
 
 if (empty($usuarioCompleto)) {
@@ -34,14 +33,6 @@ $e = static function ($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
 ?>
-
-<?php if ($redirigir): ?>
-  <script>
-    setTimeout(function () {
-      window.location.href = 'index.php?r=listado-usuarios&c=usuario';
-    }, 5200);
-  </script>
-<?php endif; ?>
 
 <section class="content page-fade">
   <div class="container-fluid">

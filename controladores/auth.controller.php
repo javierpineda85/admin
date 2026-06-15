@@ -210,6 +210,7 @@ class ControladorAuth
             'email' => $email,
             'userId' => (int) ($usuarioWp['ID'] ?? 0),
             'login' => $usuarioWp['user_login'] ?? '',
+            'userStatus' => (int) ($usuarioWp['user_status'] ?? 0),
             'hashPrefix' => substr((string) ($usuarioWp['user_pass'] ?? ''), 0, 12),
             'rolCap' => $usuarioWp['capabilities'] ?? '',
             'isTutorInstructor' => $usuarioWp['is_tutor_instructor'] ?? null,
