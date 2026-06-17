@@ -8,6 +8,32 @@ Este registro resume las versiones estables del sistema y el criterio usado para
 - `x.13.xxxx`: dia del cambio.
 - `x.xx.0626`: mes y anio del cambio.
 
+## 5.16.0626 - Modulo de actividades version 5
+
+Version generada el 17/06/2026.
+
+### Cambios principales
+
+- Nuevo modulo de actividades integrado al campus con alta, edicion, resolucion y resultados.
+- Tipos iniciales disponibles: multiple choice, verdadero o falso, completar espacios y recurso externo embebible.
+- Configuracion de visibilidad por actividad: privada para curso, publica y oculta por enlace directo.
+- Ruta publica para listar y resolver actividades desde la web, preparada para integracion con el home WordPress de `mentemotion.com`.
+- Intentos permitidos por estudiante con bloqueo real al alcanzar el limite configurado.
+- Feedback por pregunta mediante pista y explicacion opcional cuando la respuesta es incorrecta.
+- Slug generado automaticamente desde el titulo, sin exponerlo como campo tecnico al docente.
+- Listado de actividades redisenado con cards, buscador y una presentacion mas clara para docente y estudiante.
+- Formulario de actividades dividido en parciales para simplificar mantenimiento y evolucion del modulo.
+
+### Estado
+
+- Version actual publicada en `main`.
+- Footer del sistema: `Version 5.16.0626`.
+
+### Observaciones
+
+- Esta release cubre las etapas 1 y 2 del plan de actividades.
+- La fase 3 queda abierta para banco de actividades y evolucion del editor de codigo con tipos pedagogicos adicionales.
+
 ## 4.15.0626 - Iteracion de experiencia y vistas
 
 Version generada el 15/06/2026.

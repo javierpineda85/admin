@@ -46,7 +46,7 @@ class ControladorPermisos
     {
         $ruta = trim((string) $ruta);
 
-        if ($ruta === '' || in_array($ruta, ['login', 'forgot', 'logout'], true)) {
+        if ($ruta === '' || in_array($ruta, ['login', 'forgot', 'logout', 'actividad-publica'], true)) {
             return true;
         }
 
@@ -71,6 +71,11 @@ class ControladorPermisos
                 'mensajes-enviados',
                 'papelera',
                 'detalle-mensaje',
+                'listado-actividades',
+                'crear-actividad',
+                'editar-actividad',
+                'ver-actividad',
+                'resultados-actividad',
                 'vista-estudiante',
             ],
             'ESTUDIANTE' => [
@@ -85,6 +90,8 @@ class ControladorPermisos
                 'mensajes-enviados',
                 'papelera',
                 'detalle-mensaje',
+                'listado-actividades',
+                'ver-actividad',
                 'vista-estudiante',
             ],
         ];
@@ -101,8 +108,8 @@ class ControladorPermisos
         }
 
         $visibles = [
-            'DOCENTE' => ['perfil', 'cursos', 'mensajes'],
-            'ESTUDIANTE' => ['perfil', 'cursos', 'mensajes'],
+            'DOCENTE' => ['perfil', 'cursos', 'mensajes', 'actividades'],
+            'ESTUDIANTE' => ['perfil', 'cursos', 'mensajes', 'actividades'],
         ];
 
         return in_array($seccion, $visibles[self::rolActual()] ?? [], true);

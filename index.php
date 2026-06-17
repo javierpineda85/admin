@@ -9,6 +9,7 @@ require_once("controladores/cursos.controller.php");
 require_once("controladores/materias.controller.php");
 require_once("controladores/lecciones.controller.php");
 require_once("controladores/calificaciones.controller.php");
+require_once("controladores/actividades.controller.php");
 require_once("controladores/panel.controller.php");
 require_once("controladores/perfiles.controller.php");
 require_once("controladores/mensajes.controller.php");

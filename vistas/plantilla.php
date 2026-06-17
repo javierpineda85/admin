@@ -1,6 +1,6 @@
 <?php
 $rutaActual = isset($_GET['r']) ? trim($_GET['r']) : '';
-$rutasPublicas = ['login', 'forgot'];
+$rutasPublicas = ['login', 'forgot', 'actividad-publica'];
 
 if ($rutaActual === 'logout') {
   RutasController::cargarVista();

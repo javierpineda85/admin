@@ -167,6 +167,31 @@
             </li>
           <?php endif; ?>
 
+          <?php if (ControladorPermisos::puedeVerMenu('actividades')): ?>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <i class="nav-icon fas fa-tasks text-warning"></i>
+                <p>Actividades<i class="fas fa-angle-left right"></i></p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="index.php?r=listado-actividades" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p><?php echo ControladorPermisos::esEstudiante() ? 'Mis actividades' : 'Ver actividades'; ?></p>
+                  </a>
+                </li>
+                <?php if (ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente()): ?>
+                  <li class="nav-item">
+                    <a href="index.php?r=crear-actividad" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Crear actividad</p>
+                    </a>
+                  </li>
+                <?php endif; ?>
+              </ul>
+            </li>
+          <?php endif; ?>
+
           <?php if (ControladorPermisos::puedeVerMenu('mensajes')): ?>
             <?php
               $idUsuarioSidebar = (int) ($_SESSION['usuario']['id'] ?? 0);

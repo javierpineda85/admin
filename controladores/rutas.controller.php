@@ -4,7 +4,7 @@ class RutasController
 {
     private static function rutasPublicas()
     {
-        return ['login', 'forgot'];
+        return ['login', 'forgot', 'actividad-publica'];
     }
 
     private static function mapaRutas()
@@ -38,10 +38,16 @@ class RutasController
             'mensajes-enviados'=> 'mensajes/mensajes-enviados.php',
             'papelera'        => 'mensajes/papelera.php',
             'detalle-mensaje' => 'mensajes/detalle-mensaje.php',
+            'listado-actividades' => 'actividades/listado-actividades.php',
+            'crear-actividad' => 'actividades/crear-actividad.php',
+            'editar-actividad' => 'actividades/editar-actividad.php',
+            'ver-actividad' => 'actividades/ver-actividad.php',
+            'resultados-actividad' => 'actividades/resultados-actividad.php',
 
             // Web pública
             'login'           => 'web/login.php',
             'forgot'          => 'web/forgot-password.php',
+            'actividad-publica' => 'web/actividad-publica.php',
             'logout'          => 'web/logout.php',
         ];
     }

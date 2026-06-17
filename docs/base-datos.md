@@ -16,6 +16,11 @@
 - `recursoslecciones`: adjuntos y enlaces de una leccion.
 - `entregaslecciones`: entregas de tareas por estudiante.
 - `calificaciones`: notas y devolucion.
+- `actividades`: configuracion principal de actividades privadas, publicas u ocultas.
+- `actividades_preguntas`: preguntas asociadas a una actividad.
+- `actividades_opciones`: opciones de multiple choice.
+- `actividades_intentos`: entregas de estudiantes o visitantes.
+- `actividades_respuestas`: respuestas registradas por intento.
 - `mensajes`: hilo principal del mensaje.
 - `mensajes_participantes`: estado por usuario, leido, papelera y eliminacion.
 - `mensajes_adjuntos`: archivos adjuntos.
