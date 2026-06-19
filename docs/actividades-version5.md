@@ -61,3 +61,17 @@ Se agrega una capa inicial de reutilizacion para docentes y administradores:
 - Accion `Usar plantilla` para convertir una plantilla en una nueva actividad de trabajo.
 
 Cada plantilla se guarda en la misma tabla `actividades`, diferenciada por `esPlantilla = 1`.
+
+## Fase 3B - Banco operativo
+
+Se agregan mejoras de gestion para que el banco funcione como herramienta diaria:
+
+- Plantillas `personales` o `institucionales`.
+- Filtros por tipo, estado, visibilidad y alcance.
+- Actividades publicas marcables como `destacadas`.
+- Acciones rapidas desde menu contextual:
+  - copiar enlace publico
+  - copiar embed
+  - alternar destacado
+  - cambiar alcance de plantilla
+  - mover plantilla al listado de trabajo

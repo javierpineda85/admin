@@ -29,6 +29,8 @@ class ModeloActividades
                 intentosPermitidos INT NOT NULL DEFAULT 1,
                 permiteVisitantes TINYINT(1) NOT NULL DEFAULT 1,
                 esPlantilla TINYINT(1) NOT NULL DEFAULT 0,
+                alcancePlantilla VARCHAR(20) NOT NULL DEFAULT 'personal',
+                destacadaPublica TINYINT(1) NOT NULL DEFAULT 0,
                 id_actividad_origen INT NULL,
                 recursoExternoUrl VARCHAR(255) NULL,
                 recursoExternoEmbed TEXT NULL,
@@ -103,6 +105,8 @@ class ModeloActividades
 
         self::agregarColumnaSiFalta($pdo, 'actividades', 'intentosPermitidos', "ALTER TABLE actividades ADD COLUMN intentosPermitidos INT NOT NULL DEFAULT 1 AFTER puntajeMaximo");
         self::agregarColumnaSiFalta($pdo, 'actividades', 'esPlantilla', "ALTER TABLE actividades ADD COLUMN esPlantilla TINYINT(1) NOT NULL DEFAULT 0 AFTER permiteVisitantes");
+        self::agregarColumnaSiFalta($pdo, 'actividades', 'alcancePlantilla', "ALTER TABLE actividades ADD COLUMN alcancePlantilla VARCHAR(20) NOT NULL DEFAULT 'personal' AFTER esPlantilla");
+        self::agregarColumnaSiFalta($pdo, 'actividades', 'destacadaPublica', "ALTER TABLE actividades ADD COLUMN destacadaPublica TINYINT(1) NOT NULL DEFAULT 0 AFTER alcancePlantilla");
         self::agregarColumnaSiFalta($pdo, 'actividades', 'id_actividad_origen', "ALTER TABLE actividades ADD COLUMN id_actividad_origen INT NULL AFTER esPlantilla");
         self::agregarColumnaSiFalta($pdo, 'actividades_preguntas', 'explicacionError', "ALTER TABLE actividades_preguntas ADD COLUMN explicacionError TEXT NULL AFTER pista");
 
@@ -163,7 +167,36 @@ class ModeloActividades
         ];
     }
 
-    public static function mdlListarParaUsuario($idUsuario, $rol, $busqueda = '', $tipo = '')
+    private static function condicionesValorExacto($columna, $valor, $prefijo)
+    {
+        $valor = trim((string) $valor);
+        if ($valor === '') {
+            return ['', []];
+        }
+
+        return [
+            "$columna = :{$prefijo}",
+            [
+                ":{$prefijo}" => $valor,
+            ],
+        ];
+    }
+
+    private static function condicionesBooleanas($columna, $valor, $prefijo)
+    {
+        if ($valor === '' || $valor === null) {
+            return ['', []];
+        }
+
+        return [
+            "$columna = :{$prefijo}",
+            [
+                ":{$prefijo}" => (int) $valor,
+            ],
+        ];
+    }
+
+    public static function mdlListarParaUsuario($idUsuario, $rol, $busqueda = '', $tipo = '', $visibilidad = '', $estado = '', $soloDestacadas = '')
     {
         self::prepararTablas();
 
@@ -171,6 +204,10 @@ class ModeloActividades
         $pdo = Conexion::conectar();
         list($condicionBusqueda, $parametrosBusqueda) = self::condicionesBusqueda($busqueda);
         list($condicionTipo, $parametrosTipo) = self::condicionesTipo($tipo);
+        list($condicionVisibilidad, $parametrosVisibilidad) = self::condicionesValorExacto('a.visibilidad', $visibilidad, 'visibilidadFiltro');
+        list($condicionEstado, $parametrosEstado) = self::condicionesValorExacto('a.estadoActividad', $estado, 'estadoFiltro');
+        list($condicionDestacada, $parametrosDestacada) = self::condicionesBooleanas('COALESCE(a.destacadaPublica, 0)', $soloDestacadas, 'destacadaFiltro');
+        $parametrosComunes = array_merge($parametrosBusqueda, $parametrosTipo, $parametrosVisibilidad, $parametrosEstado, $parametrosDestacada);
 
         if ($rol === 'ADMINISTRADOR') {
             $sql = "
@@ -193,9 +230,18 @@ class ModeloActividades
             if ($condicionTipo !== '') {
                 $sql .= " AND $condicionTipo";
             }
+            if ($condicionVisibilidad !== '') {
+                $sql .= " AND $condicionVisibilidad";
+            }
+            if ($condicionEstado !== '') {
+                $sql .= " AND $condicionEstado";
+            }
+            if ($condicionDestacada !== '') {
+                $sql .= " AND $condicionDestacada";
+            }
             $sql .= " ORDER BY a.fechaCreacion DESC";
             $stmt = $pdo->prepare($sql);
-            foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
+            foreach ($parametrosComunes as $clave => $valor) {
                 $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
             }
             $stmt->execute();
@@ -228,12 +274,21 @@ class ModeloActividades
             if ($condicionTipo !== '') {
                 $sql .= " AND $condicionTipo";
             }
+            if ($condicionVisibilidad !== '') {
+                $sql .= " AND $condicionVisibilidad";
+            }
+            if ($condicionEstado !== '') {
+                $sql .= " AND $condicionEstado";
+            }
+            if ($condicionDestacada !== '') {
+                $sql .= " AND $condicionDestacada";
+            }
             $sql .= " ORDER BY a.fechaCreacion DESC";
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
             $stmt->bindValue(':idUsuarioDocente', (int) $idUsuario, PDO::PARAM_INT);
             $stmt->bindValue(':idUsuarioTutor', (int) $idUsuario, PDO::PARAM_INT);
-            foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
+            foreach ($parametrosComunes as $clave => $valor) {
                 $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
             }
             $stmt->execute();
@@ -266,17 +321,26 @@ class ModeloActividades
         if ($condicionTipo !== '') {
             $sql .= " AND $condicionTipo";
         }
+        if ($condicionVisibilidad !== '') {
+            $sql .= " AND $condicionVisibilidad";
+        }
+        if ($condicionEstado !== '') {
+            $sql .= " AND $condicionEstado";
+        }
+        if ($condicionDestacada !== '') {
+            $sql .= " AND $condicionDestacada";
+        }
         $sql .= " ORDER BY a.fechaCreacion DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
-        foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
+        foreach ($parametrosComunes as $clave => $valor) {
             $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
         }
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public static function mdlListarBancoParaUsuario($idUsuario, $rol, $busqueda = '', $tipo = '')
+    public static function mdlListarBancoParaUsuario($idUsuario, $rol, $busqueda = '', $tipo = '', $alcance = '', $estado = '')
     {
         self::prepararTablas();
 
@@ -284,6 +348,9 @@ class ModeloActividades
         $pdo = Conexion::conectar();
         list($condicionBusqueda, $parametrosBusqueda) = self::condicionesBusqueda($busqueda, 'bancoBusqueda');
         list($condicionTipo, $parametrosTipo) = self::condicionesTipo($tipo, 'bancoTipo');
+        list($condicionAlcance, $parametrosAlcance) = self::condicionesValorExacto('a.alcancePlantilla', $alcance, 'bancoAlcance');
+        list($condicionEstado, $parametrosEstado) = self::condicionesValorExacto('a.estadoActividad', $estado, 'bancoEstado');
+        $parametrosComunes = array_merge($parametrosBusqueda, $parametrosTipo, $parametrosAlcance, $parametrosEstado);
 
         if ($rol === 'ESTUDIANTE') {
             return [];
@@ -304,9 +371,15 @@ class ModeloActividades
             if ($condicionTipo !== '') {
                 $sql .= " AND $condicionTipo";
             }
+            if ($condicionAlcance !== '') {
+                $sql .= " AND $condicionAlcance";
+            }
+            if ($condicionEstado !== '') {
+                $sql .= " AND $condicionEstado";
+            }
             $sql .= " ORDER BY COALESCE(a.fechaActualizacion, a.fechaCreacion) DESC";
             $stmt = $pdo->prepare($sql);
-            foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
+            foreach ($parametrosComunes as $clave => $valor) {
                 $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
             }
             $stmt->execute();
@@ -332,12 +405,18 @@ class ModeloActividades
         if ($condicionTipo !== '') {
             $sql .= " AND $condicionTipo";
         }
+        if ($condicionAlcance !== '') {
+            $sql .= " AND $condicionAlcance";
+        }
+        if ($condicionEstado !== '') {
+            $sql .= " AND $condicionEstado";
+        }
         $sql .= " ORDER BY COALESCE(a.fechaActualizacion, a.fechaCreacion) DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
         $stmt->bindValue(':idUsuarioDocente', (int) $idUsuario, PDO::PARAM_INT);
         $stmt->bindValue(':idUsuarioTutor', (int) $idUsuario, PDO::PARAM_INT);
-        foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
+        foreach ($parametrosComunes as $clave => $valor) {
             $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
         }
         $stmt->execute();
@@ -450,12 +529,14 @@ class ModeloActividades
             INSERT INTO actividades (
                 tituloActividad, slug, descripcionActividad, tipoActividad, visibilidad,
                 estadoActividad, id_curso, id_seccion, id_autor, puntajeMaximo,
-                intentosPermitidos, permiteVisitantes, esPlantilla, id_actividad_origen,
+                intentosPermitidos, permiteVisitantes, esPlantilla, alcancePlantilla,
+                destacadaPublica, id_actividad_origen,
                 recursoExternoUrl, recursoExternoEmbed
             ) VALUES (
                 :tituloActividad, :slug, :descripcionActividad, :tipoActividad, :visibilidad,
                 :estadoActividad, :id_curso, :id_seccion, :id_autor, :puntajeMaximo,
-                :intentosPermitidos, :permiteVisitantes, :esPlantilla, :id_actividad_origen,
+                :intentosPermitidos, :permiteVisitantes, :esPlantilla, :alcancePlantilla,
+                :destacadaPublica, :id_actividad_origen,
                 :recursoExternoUrl, :recursoExternoEmbed
             )
         ");
@@ -488,6 +569,8 @@ class ModeloActividades
                 intentosPermitidos = :intentosPermitidos,
                 permiteVisitantes = :permiteVisitantes,
                 esPlantilla = :esPlantilla,
+                alcancePlantilla = :alcancePlantilla,
+                destacadaPublica = :destacadaPublica,
                 id_actividad_origen = :id_actividad_origen,
                 recursoExternoUrl = :recursoExternoUrl,
                 recursoExternoEmbed = :recursoExternoEmbed,
@@ -524,9 +607,50 @@ class ModeloActividades
         $stmt->bindValue(':intentosPermitidos', (int) $datos['intentosPermitidos'], PDO::PARAM_INT);
         $stmt->bindValue(':permiteVisitantes', (int) $datos['permiteVisitantes'], PDO::PARAM_INT);
         $stmt->bindValue(':esPlantilla', (int) ($datos['esPlantilla'] ?? 0), PDO::PARAM_INT);
+        $stmt->bindValue(':alcancePlantilla', (string) ($datos['alcancePlantilla'] ?? 'personal'), PDO::PARAM_STR);
+        $stmt->bindValue(':destacadaPublica', (int) ($datos['destacadaPublica'] ?? 0), PDO::PARAM_INT);
         $stmt->bindValue(':id_actividad_origen', !empty($datos['id_actividad_origen']) ? (int) $datos['id_actividad_origen'] : null, !empty($datos['id_actividad_origen']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(':recursoExternoUrl', $datos['recursoExternoUrl'], PDO::PARAM_STR);
         $stmt->bindValue(':recursoExternoEmbed', $datos['recursoExternoEmbed'], PDO::PARAM_STR);
+    }
+
+    public static function mdlActualizarMetadatosActividad($idActividad, array $cambios)
+    {
+        self::prepararTablas();
+
+        $mapa = [
+            'esPlantilla' => 'esPlantilla',
+            'alcancePlantilla' => 'alcancePlantilla',
+            'destacadaPublica' => 'destacadaPublica',
+            'estadoActividad' => 'estadoActividad',
+            'visibilidad' => 'visibilidad',
+        ];
+
+        $sets = [];
+        $parametros = [':idActividad' => (int) $idActividad];
+        foreach ($mapa as $clave => $columna) {
+            if (!array_key_exists($clave, $cambios)) {
+                continue;
+            }
+            $sets[] = "$columna = :$clave";
+            $parametros[":$clave"] = $cambios[$clave];
+        }
+
+        if (empty($sets)) {
+            return 'ok';
+        }
+
+        $sql = "UPDATE actividades SET " . implode(', ', $sets) . ", fechaActualizacion = NOW() WHERE idActividad = :idActividad";
+        $stmt = Conexion::conectar()->prepare($sql);
+        foreach ($parametros as $clave => $valor) {
+            if (is_int($valor)) {
+                $stmt->bindValue($clave, $valor, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
+            }
+        }
+
+        return $stmt->execute() ? 'ok' : 'error';
     }
 
     private static function guardarPreguntas($idActividad, array $preguntas)

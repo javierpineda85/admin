@@ -26,6 +26,8 @@ Campos relevantes agregados al modulo de actividades:
 
 - `intentosPermitidos`: limita la cantidad de entregas por estudiante.
 - `esPlantilla`: marca si la actividad pertenece al banco de actividades.
+- `alcancePlantilla`: clasifica la plantilla como `personal` o `institucional`.
+- `destacadaPublica`: permite marcar actividades publicas para destacarlas en integraciones y listados.
 - `id_actividad_origen`: referencia la actividad desde la cual se duplico o guardo la plantilla.
 - `mensajes`: hilo principal del mensaje.
 - `mensajes_participantes`: estado por usuario, leido, papelera y eliminacion.

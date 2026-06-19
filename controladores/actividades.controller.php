@@ -34,12 +34,18 @@ class ControladorActividades
     {
         $busqueda = trim((string) ($_GET['q'] ?? ''));
         $tipo = trim((string) ($_GET['tipo'] ?? ''));
+        $visibilidad = trim((string) ($_GET['visibilidad'] ?? ''));
+        $estado = trim((string) ($_GET['estado'] ?? ''));
+        $soloDestacadas = isset($_GET['destacadas']) && $_GET['destacadas'] !== '' ? 1 : '';
 
         return ModeloActividades::mdlListarParaUsuario(
             (int) ($_SESSION['usuario']['id'] ?? 0),
             ControladorPermisos::rolActual(),
             $busqueda,
-            $tipo
+            $tipo,
+            $visibilidad,
+            $estado,
+            $soloDestacadas
         );
     }
 
@@ -47,13 +53,25 @@ class ControladorActividades
     {
         $busqueda = trim((string) ($_GET['q'] ?? ''));
         $tipo = trim((string) ($_GET['tipo'] ?? ''));
+        $alcance = trim((string) ($_GET['alcance'] ?? ''));
+        $estado = trim((string) ($_GET['estado'] ?? ''));
 
         return ModeloActividades::mdlListarBancoParaUsuario(
             (int) ($_SESSION['usuario']['id'] ?? 0),
             ControladorPermisos::rolActual(),
             $busqueda,
-            $tipo
+            $tipo,
+            $alcance,
+            $estado
         );
+    }
+
+    public static function alcancesPlantillaDisponibles()
+    {
+        return [
+            'personal' => 'Personal',
+            'institucional' => 'Institucional',
+        ];
     }
 
     public static function crtListarPublicas()
@@ -179,6 +197,18 @@ class ControladorActividades
 
         if ($accion === 'usar_plantilla') {
             return self::usarPlantilla();
+        }
+
+        if ($accion === 'alternar_destacada_publica') {
+            return self::alternarDestacadaPublica();
+        }
+
+        if ($accion === 'alternar_alcance_plantilla') {
+            return self::alternarAlcancePlantilla();
+        }
+
+        if ($accion === 'sacar_del_banco') {
+            return self::sacarDelBanco();
         }
 
         return null;
@@ -355,6 +385,89 @@ class ControladorActividades
 
         $_SESSION['success_message'] = 'Se creo una nueva actividad a partir de la plantilla.';
         self::redirigir('index.php?r=editar-actividad&idActividad=' . (int) $idNuevaActividad);
+    }
+
+    private static function alternarDestacadaPublica()
+    {
+        $idActividad = (int) ($_POST['idActividad'] ?? 0);
+        $actividad = $idActividad > 0 ? self::crtBuscarActividadPorId($idActividad) : null;
+
+        if (!$actividad || !self::puedeGestionarActividad($actividad)) {
+            $_SESSION['error_message'] = 'No tenes permisos para cambiar el destacado.';
+            return 'denied';
+        }
+
+        if (!in_array((string) ($actividad['visibilidad'] ?? ''), ['publica', 'oculta'], true)) {
+            $_SESSION['error_message'] = 'Solo las actividades publicas u ocultas pueden destacarse.';
+            return 'error';
+        }
+
+        $nuevoValor = (int) ($actividad['destacadaPublica'] ?? 0) === 1 ? 0 : 1;
+        $respuesta = ModeloActividades::mdlActualizarMetadatosActividad($idActividad, [
+            'destacadaPublica' => $nuevoValor,
+        ]);
+
+        if ($respuesta !== 'ok') {
+            $_SESSION['error_message'] = 'No se pudo actualizar el destacado.';
+            return 'error';
+        }
+
+        $_SESSION['success_message'] = $nuevoValor === 1
+            ? 'La actividad quedo marcada como destacada.'
+            : 'La actividad dejo de estar destacada.';
+        self::redirigir(self::rutaRetornoActividades());
+    }
+
+    private static function alternarAlcancePlantilla()
+    {
+        $idActividad = (int) ($_POST['idActividad'] ?? 0);
+        $actividad = $idActividad > 0 ? self::crtBuscarActividadPorId($idActividad) : null;
+
+        if (!$actividad || !self::puedeGestionarActividad($actividad) || (int) ($actividad['esPlantilla'] ?? 0) !== 1) {
+            $_SESSION['error_message'] = 'No tenes permisos para cambiar el alcance de esta plantilla.';
+            return 'denied';
+        }
+
+        $actual = (string) ($actividad['alcancePlantilla'] ?? 'personal');
+        $nuevo = $actual === 'institucional' ? 'personal' : 'institucional';
+        $respuesta = ModeloActividades::mdlActualizarMetadatosActividad($idActividad, [
+            'alcancePlantilla' => $nuevo,
+        ]);
+
+        if ($respuesta !== 'ok') {
+            $_SESSION['error_message'] = 'No se pudo actualizar el alcance de la plantilla.';
+            return 'error';
+        }
+
+        $_SESSION['success_message'] = $nuevo === 'institucional'
+            ? 'La plantilla ahora figura como institucional.'
+            : 'La plantilla ahora figura como personal.';
+        self::redirigir('index.php?r=banco-actividades');
+    }
+
+    private static function sacarDelBanco()
+    {
+        $idActividad = (int) ($_POST['idActividad'] ?? 0);
+        $actividad = $idActividad > 0 ? self::crtBuscarActividadPorId($idActividad) : null;
+
+        if (!$actividad || !self::puedeGestionarActividad($actividad) || (int) ($actividad['esPlantilla'] ?? 0) !== 1) {
+            $_SESSION['error_message'] = 'No tenes permisos para mover esta plantilla.';
+            return 'denied';
+        }
+
+        $respuesta = ModeloActividades::mdlActualizarMetadatosActividad($idActividad, [
+            'esPlantilla' => 0,
+            'estadoActividad' => 'BORRADOR',
+            'destacadaPublica' => 0,
+        ]);
+
+        if ($respuesta !== 'ok') {
+            $_SESSION['error_message'] = 'No se pudo mover la plantilla al listado de trabajo.';
+            return 'error';
+        }
+
+        $_SESSION['success_message'] = 'La plantilla volvio al listado de actividades de trabajo.';
+        self::redirigir('index.php?r=editar-actividad&idActividad=' . $idActividad);
     }
 
     private static function registrarIntento()
@@ -592,6 +705,8 @@ class ControladorActividades
             'intentosPermitidos' => (int) ($actividad['intentosPermitidos'] ?? 1),
             'permiteVisitantes' => (int) ($actividad['permiteVisitantes'] ?? 1),
             'esPlantilla' => (int) ($override['esPlantilla'] ?? 0),
+            'alcancePlantilla' => (string) ($override['alcancePlantilla'] ?? $actividad['alcancePlantilla'] ?? 'personal'),
+            'destacadaPublica' => (int) ($override['destacadaPublica'] ?? $actividad['destacadaPublica'] ?? 0),
             'id_actividad_origen' => (int) ($override['id_actividad_origen'] ?? 0),
             'recursoExternoUrl' => trim((string) ($actividad['recursoExternoUrl'] ?? '')),
             'recursoExternoEmbed' => trim((string) ($actividad['recursoExternoEmbed'] ?? '')),
@@ -676,6 +791,12 @@ class ControladorActividades
         $titulo = trim((string) $titulo);
         $titulo = preg_replace('/\s*-\s*plantilla\s*$/i', '', $titulo);
         return $titulo !== '' ? $titulo : 'Nueva actividad';
+    }
+
+    private static function rutaRetornoActividades()
+    {
+        $ruta = trim((string) ($_POST['ruta_retorno'] ?? ''));
+        return $ruta !== '' ? $ruta : 'index.php?r=listado-actividades';
     }
 
     private static function normalizarTexto($valor)
