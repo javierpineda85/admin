@@ -71,6 +71,11 @@ $enPapelera = (int) ($mensaje['enPapelera'] ?? 0) === 1;
               <div class="btn-group btn-group-sm">
                 <?php if (!$enPapelera): ?>
                   <?php if ($esDestinatario): ?>
+                    <a href="index.php?r=nuevo-mensaje&t=reply&idMsj=<?php echo (int) $idMensaje; ?>" class="btn btn-primary" title="Responder">
+                      <i class="fas fa-reply mr-1"></i>Responder
+                    </a>
+                  <?php endif; ?>
+                  <?php if ($esDestinatario): ?>
                     <form method="post" class="d-inline">
                       <input type="hidden" name="id_mensaje" value="<?php echo (int) $idMensaje; ?>">
                       <button type="submit" name="accion" value="<?php echo (int) ($mensaje['leido'] ?? 0) === 1 ? 'marcar_no_leido' : 'marcar_leido'; ?>" class="btn btn-default">

@@ -12,7 +12,7 @@ unset($_SESSION['login_error']);
   <link rel="shortcut icon" type="image/png" href="/img/favicon-16x16.png?v=2">
   <meta name="msapplication-TileColor" content="#ffffff">
   <meta name="theme-color" content="#ffffff">
-  <title>Classroom | Iniciar sesión</title>
+  <title>Campus | Iniciar sesión</title>
   <link rel="stylesheet" href="./plugins/fontawesome-free/css/all.min.css">
   <link rel="stylesheet" href="./plugins/icheck-bootstrap/icheck-bootstrap.min.css">
   <link rel="stylesheet" href="./css/adminlte.min.css">
@@ -49,11 +49,11 @@ unset($_SESSION['login_error']);
           </div>
         </div>
         <div class="input-group mb-3">
-          <input type="password" name="login_pass" class="form-control" placeholder="Contraseña" required>
+          <input type="password" id="loginPassword" name="login_pass" class="form-control" placeholder="Contraseña" required>
           <div class="input-group-append">
-            <div class="input-group-text">
-              <span class="fas fa-lock"></span>
-            </div>
+            <button type="button" id="toggleLoginPassword" class="input-group-text border-left-0" aria-label="Mostrar contrasena" aria-pressed="false">
+              <span class="fas fa-eye" aria-hidden="true"></span>
+            </button>
           </div>
         </div>
         <div class="row align-items-center">
@@ -77,6 +77,29 @@ unset($_SESSION['login_error']);
 <script src="./plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="./js/adminlte.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var password = document.getElementById('loginPassword');
+    var toggle = document.getElementById('toggleLoginPassword');
+
+    if (!password || !toggle) {
+      return;
+    }
+
+    toggle.addEventListener('click', function () {
+      var mostrar = password.type === 'password';
+      password.type = mostrar ? 'text' : 'password';
+      toggle.setAttribute('aria-pressed', mostrar ? 'true' : 'false');
+      toggle.setAttribute('aria-label', mostrar ? 'Ocultar contrasena' : 'Mostrar contrasena');
+
+      var icono = toggle.querySelector('span');
+      if (icono) {
+        icono.classList.toggle('fa-eye', !mostrar);
+        icono.classList.toggle('fa-eye-slash', mostrar);
+      }
+    });
+  });
+</script>
 <?php if ($loginError !== ''): ?>
   <script>
     document.addEventListener("DOMContentLoaded", function () {

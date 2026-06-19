@@ -14,7 +14,7 @@ unset($_SESSION['forgot_error'], $_SESSION['forgot_success'], $_SESSION['forgot_
   <link rel="shortcut icon" type="image/png" href="/img/favicon-16x16.png?v=2">
   <meta name="msapplication-TileColor" content="#ffffff">
   <meta name="theme-color" content="#ffffff">
-  <title>Classroom | Recuperar contraseña</title>
+  <title>Campus | Recuperar contraseña</title>
   <link rel="stylesheet" href="./plugins/fontawesome-free/css/all.min.css">
   <link rel="stylesheet" href="./plugins/icheck-bootstrap/icheck-bootstrap.min.css">
   <link rel="stylesheet" href="./css/adminlte.min.css">

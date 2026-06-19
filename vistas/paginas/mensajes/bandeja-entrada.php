@@ -121,6 +121,9 @@ $resumir = static function ($texto, $longitud = 90) {
                             <a href="index.php?r=detalle-mensaje&idMensaje=<?php echo (int) $mensaje['id_mensaje']; ?>" class="btn btn-default" title="Abrir">
                               <i class="far fa-eye"></i>
                             </a>
+                            <a href="index.php?r=nuevo-mensaje&t=reply&idMsj=<?php echo (int) $mensaje['id_mensaje']; ?>" class="btn btn-default" title="Responder">
+                              <i class="fas fa-reply"></i>
+                            </a>
                             <form method="post" class="d-inline">
                               <input type="hidden" name="id_mensaje" value="<?php echo (int) $mensaje['id_mensaje']; ?>">
                               <button type="submit" name="accion" value="<?php echo $esLeido ? 'marcar_no_leido' : 'marcar_leido'; ?>" class="btn btn-default" title="<?php echo $esLeido ? 'Marcar no leido' : 'Marcar leido'; ?>">

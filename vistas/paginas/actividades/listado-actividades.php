@@ -205,6 +205,9 @@ $visibilidadLabels = ControladorActividades::visibilidadesDisponibles();
                       <a href="index.php?r=resultados-actividad&idActividad=<?php echo (int) $actividad['idActividad']; ?>" class="btn btn-secondary btn-sm" title="Resultados">
                         <i class="fas fa-chart-bar"></i>
                       </a>
+                      <button type="button" class="btn btn-danger btn-sm eliminar-actividad" title="Eliminar" data-toggle="modal" data-target="#eliminarActividadModal" data-id="<?php echo (int) $actividad['idActividad']; ?>" data-titulo="<?php echo $e($actividad['tituloActividad']); ?>">
+                        <i class="fas fa-trash"></i>
+                      </button>
                     <?php endif; ?>
                     <?php if (in_array($actividad['visibilidad'], ['publica', 'oculta'], true)): ?>
                       <a href="<?php echo $e($publicUrl); ?>" target="_blank" class="btn btn-warning btn-sm" title="Abrir publica">
@@ -221,3 +224,44 @@ $visibilidadLabels = ControladorActividades::visibilidadesDisponibles();
     </div>
   </div>
 </section>
+
+<?php if ($puedeCrear): ?>
+  <div class="modal fade" id="eliminarActividadModal" tabindex="-1" role="dialog" aria-labelledby="eliminarActividadTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="eliminarActividadTitulo">Eliminar actividad</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form method="post">
+          <div class="modal-body">
+            <input type="hidden" name="accion_actividad" value="eliminar_actividad">
+            <input type="hidden" name="idActividad" id="eliminarActividadId" value="0">
+            <p class="mb-2">Vas a eliminar permanentemente <strong id="eliminarActividadNombre"></strong>.</p>
+            <p class="text-danger mb-0">Tambien se eliminaran sus preguntas, intentos y respuestas. Esta accion no se puede deshacer.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-danger">Eliminar permanentemente</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var campoId = document.getElementById('eliminarActividadId');
+      var campoNombre = document.getElementById('eliminarActividadNombre');
+
+      document.querySelectorAll('.eliminar-actividad').forEach(function (boton) {
+        boton.addEventListener('click', function () {
+          campoId.value = boton.getAttribute('data-id') || '0';
+          campoNombre.textContent = boton.getAttribute('data-titulo') || 'esta actividad';
+        });
+      });
+    });
+  </script>
+<?php endif; ?>

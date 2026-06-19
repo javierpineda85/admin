@@ -150,7 +150,32 @@ class ControladorActividades
             return self::registrarIntento();
         }
 
+        if ($accion === 'eliminar_actividad') {
+            return self::eliminarActividad();
+        }
+
         return null;
+    }
+
+    private static function eliminarActividad()
+    {
+        $idActividad = (int) ($_POST['idActividad'] ?? 0);
+        $actividad = $idActividad > 0 ? self::crtBuscarActividadPorId($idActividad) : null;
+
+        if (!$actividad || !self::puedeGestionarActividad($actividad)) {
+            $_SESSION['error_message'] = 'No tenes permisos para eliminar esta actividad.';
+            return 'denied';
+        }
+
+        $respuesta = ModeloActividades::mdlEliminarActividad($idActividad);
+        if ($respuesta !== 'ok') {
+            $_SESSION['error_message'] = 'No se pudo eliminar la actividad.';
+            return 'error';
+        }
+
+        unset($_SESSION['actividad_resultado_' . $idActividad]);
+        $_SESSION['success_message'] = 'Actividad eliminada permanentemente.';
+        self::redirigir('index.php?r=listado-actividades');
     }
 
     private static function guardarActividad()

@@ -125,10 +125,24 @@ class ControladorMensajes
         $contenido = self::limpiarMensaje($_POST['contenidoMensaje'] ?? '');
         $destinatarios = $_POST['id_destinatarios'] ?? [];
         $seccionDestino = (int) ($_POST['id_seccion_destino'] ?? 0);
+        $idMensajeRespuesta = (int) ($_POST['id_mensaje_respuesta'] ?? 0);
+        $idRemitenteOriginal = 0;
 
         if ($idRemitente <= 0 || $contenido === '') {
             $_SESSION['error_message'] = 'Completa el mensaje antes de enviarlo.';
             return false;
+        }
+
+        if ($idMensajeRespuesta > 0) {
+            $mensajeOriginal = ModeloMensajes::mdlMensajeDetalle($idMensajeRespuesta, $idRemitente);
+            if (!$mensajeOriginal || (string) ($mensajeOriginal['rolParticipante'] ?? '') !== 'DESTINATARIO') {
+                $_SESSION['error_message'] = 'No podes responder este mensaje.';
+                return false;
+            }
+
+            $idRemitenteOriginal = (int) ($mensajeOriginal['id_remitente'] ?? 0);
+            $destinatarios = [$idRemitenteOriginal];
+            $seccionDestino = 0;
         }
 
         $destinatarios = array_values(array_unique(array_filter(array_map('intval', (array) $destinatarios))));
@@ -165,6 +179,10 @@ class ControladorMensajes
             if (!$usuarioDestinatario) {
                 $_SESSION['error_message'] = 'Hay destinatarios que no existen o no están activos.';
                 return false;
+            }
+
+            if ($idMensajeRespuesta > 0 && $idDestinatario === $idRemitenteOriginal) {
+                continue;
             }
 
             if ($rolRemitente === 'ESTUDIANTE') {

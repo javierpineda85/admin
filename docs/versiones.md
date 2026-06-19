@@ -4,9 +4,36 @@ Este registro resume las versiones estables del sistema y el criterio usado para
 
 ## Criterio de versionado
 
-- `4.xx.xxxx`: cambios sustanciales realizados sobre el sistema.
-- `x.13.xxxx`: dia del cambio.
-- `x.xx.0626`: mes y anio del cambio.
+- `5.xx.xxxx`: numero principal para cambios sustanciales realizados sobre el sistema.
+- `x.06.xxxx`: mes del cambio, expresado con dos digitos.
+- `x.xx.2126`: dia y anio del cambio, expresados como `DDAA`.
+
+Ejemplo: `5.06.2126` identifica una version principal 5 realizada en junio, el dia 21 del ano 2026. Este orden evita que una version de julio resulte numericamente menor que una version de junio.
+
+Este es un esquema de versionado calendario, no SemVer. Las versiones anteriores mantienen su numeracion historica; `5.06.2126` es la primera que aplica el nuevo criterio y no debe compararse segmento por segmento con `5.16.0626`.
+
+## 5.06.2126 - Seguridad y mejoras operativas
+
+Version identificada bajo el nuevo criterio cronologico.
+
+### Cambios principales
+
+- Nuevo formato de versionado `mayor.mes.dia-anio` para mantener un orden cronologico claro.
+- Control para mostrar u ocultar la contrasena en el login.
+- Cierre automatico de sesion luego de 30 minutos sin actividad.
+- Cards del inicio adaptadas a dos columnas en celular y tablet, con contenido centrado y navegacion por modulo.
+- Respuesta directa a mensajes recibidos con validacion del remitente original.
+- Eliminacion permanente de actividades con modal de confirmacion y limpieza de preguntas, intentos y respuestas asociadas.
+
+### Estado
+
+- Version en desarrollo sobre la rama `v5.06.2126`.
+- Footer del sistema: `Version 5.06.2126`.
+
+### Observaciones
+
+- La eliminacion de actividades es irreversible.
+- El limite de inactividad puede configurarse con `SESSION_INACTIVITY_TIMEOUT`; el valor predeterminado es `1800` segundos.
 
 ## 5.16.0626 - Modulo de actividades version 5
 

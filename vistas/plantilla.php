@@ -17,6 +17,26 @@ if (!isset($_SESSION['logueado']) || $_SESSION['logueado'] !== true) {
   exit;
 }
 
+$ahora = time();
+$limiteInactividad = defined('SESSION_INACTIVITY_TIMEOUT') ? (int) SESSION_INACTIVITY_TIMEOUT : 1800;
+$ultimaActividad = (int) ($_SESSION['ultima_actividad'] ?? $ahora);
+
+if (($ahora - $ultimaActividad) >= $limiteInactividad) {
+  session_unset();
+  session_destroy();
+
+  if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+  }
+
+  session_regenerate_id(true);
+  $_SESSION['login_error'] = 'Tu sesion se cerro por 30 minutos de inactividad.';
+  header('Location: index.php?r=login');
+  exit;
+}
+
+$_SESSION['ultima_actividad'] = $ahora;
+
 $rutaVista = isset($_GET['r']) ? trim($_GET['r']) : '';
 if ($rutaVista === 'vista-estudiante') {
   RutasController::procesarVistaEstudiante();

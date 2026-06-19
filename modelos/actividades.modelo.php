@@ -482,6 +482,49 @@ class ModeloActividades
         $stmt->execute();
     }
 
+    public static function mdlEliminarActividad($idActividad)
+    {
+        self::prepararTablas();
+
+        $pdo = Conexion::conectar();
+
+        try {
+            $stmt = $pdo->prepare("
+                DELETE r
+                FROM actividades_respuestas r
+                INNER JOIN actividades_intentos i ON i.idIntento = r.id_intento
+                WHERE i.id_actividad = :idActividad
+            ");
+            $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmt = $pdo->prepare("DELETE FROM actividades_intentos WHERE id_actividad = :idActividad");
+            $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmt = $pdo->prepare("
+                DELETE o
+                FROM actividades_opciones o
+                INNER JOIN actividades_preguntas p ON p.idPregunta = o.id_pregunta
+                WHERE p.id_actividad = :idActividad
+            ");
+            $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmt = $pdo->prepare("DELETE FROM actividades_preguntas WHERE id_actividad = :idActividad");
+            $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmt = $pdo->prepare("DELETE FROM actividades WHERE idActividad = :idActividad");
+            $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->rowCount() === 1 ? 'ok' : 'error';
+        } catch (Throwable $e) {
+            return 'error';
+        }
+    }
+
     public static function mdlRegistrarIntento($datosIntento, array $respuestas)
     {
         self::prepararTablas();

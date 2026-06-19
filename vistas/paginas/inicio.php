@@ -117,6 +117,44 @@ if (ControladorPermisos::esAdministrador()) {
     'class' => 'context-item--warning',
   ];
 }
+
+$primeraMateriaDashboard = [];
+if (ControladorPermisos::esAdministrador()) {
+  $primeraMateriaDashboard = $db->consultas('SELECT idSeccion FROM secciones ORDER BY idSeccion ASC LIMIT 1');
+} elseif (ControladorPermisos::esDocente()) {
+  $materiasDocenteDashboard = ControladorMaterias::crtBuscarMateriasPorDocente($idUsuarioActual);
+  $primeraMateriaDashboard = !empty($materiasDocenteDashboard) ? [$materiasDocenteDashboard[0]] : [];
+} elseif (ControladorPermisos::esEstudiante()) {
+  $primeraMateriaDashboard = $db->consultas("
+    SELECT s.idSeccion
+    FROM secciones s
+    INNER JOIN asignacioncursos a ON a.id_seccion = s.id_curso
+    WHERE a.id_estudiante = {$idUsuarioActual}
+    ORDER BY s.idSeccion ASC
+    LIMIT 1
+  ");
+}
+
+$idPrimeraMateriaDashboard = (int) ($primeraMateriaDashboard[0]['idSeccion'] ?? 0);
+$rutaAulaDashboard = $idPrimeraMateriaDashboard > 0
+  ? 'index.php?r=detalle-seccion&idSeccion=' . $idPrimeraMateriaDashboard
+  : (ControladorPermisos::esEstudiante() ? 'index.php?r=listado-cursos' : 'index.php?r=listado-materias');
+$rutaCalificacionesDashboard = $idPrimeraMateriaDashboard > 0
+  ? 'index.php?r=calificaciones-seccion&idSeccion=' . $idPrimeraMateriaDashboard
+  : (ControladorPermisos::esEstudiante() ? 'index.php?r=listado-cursos' : 'index.php?r=listado-materias');
+
+$rutasTarjetasDashboard = [
+  'Usuarios activos' => 'index.php?r=listado-usuarios',
+  'Conectados 60m' => 'index.php?r=listado-usuarios',
+  'Cursos' => 'index.php?r=listado-cursos',
+  'Secciones' => 'index.php?r=listado-materias',
+  'Secciones a cargo' => 'index.php?r=listado-materias',
+  'Lecciones' => $rutaAulaDashboard,
+  'Entregas' => $rutaAulaDashboard,
+  'Pendientes' => $rutaCalificacionesDashboard,
+  'Mensajes' => 'index.php?r=bandeja-entrada',
+  'Promedio' => $rutaCalificacionesDashboard,
+];
 ?>
 
 <div class="page-fade">
@@ -172,16 +210,20 @@ if (ControladorPermisos::esAdministrador()) {
         ];
         $claseTarjeta = (string) ($tarjeta['class'] ?? 'bg-primary');
         $estiloIcono = $estilosIcono[$claseTarjeta] ?? $estilosIcono['bg-primary'];
+        $etiquetaTarjeta = trim((string) ($tarjeta['label'] ?? ''));
+        $rutaTarjeta = $rutasTarjetasDashboard[$etiquetaTarjeta] ?? 'index.php';
       ?>
-      <div class="col-md-6 col-xl-2 mb-3">
-        <div class="metric-card">
-          <div class="metric-icon" style="<?php echo htmlspecialchars($estiloIcono, ENT_QUOTES, 'UTF-8'); ?>">
-            <i class="<?php echo htmlspecialchars((string) ($tarjeta['icon'] ?? 'fas fa-chart-bar'), ENT_QUOTES, 'UTF-8'); ?>"></i>
+      <div class="col-6 col-xl-2 mb-3">
+        <a href="<?php echo htmlspecialchars($rutaTarjeta, ENT_QUOTES, 'UTF-8'); ?>" class="metric-card-link" aria-label="Abrir <?php echo htmlspecialchars($etiquetaTarjeta, ENT_QUOTES, 'UTF-8'); ?>">
+          <div class="metric-card metric-card--interactive">
+            <div class="metric-icon" style="<?php echo htmlspecialchars($estiloIcono, ENT_QUOTES, 'UTF-8'); ?>">
+              <i class="<?php echo htmlspecialchars((string) ($tarjeta['icon'] ?? 'fas fa-chart-bar'), ENT_QUOTES, 'UTF-8'); ?>"></i>
+            </div>
+            <span class="metric-number"><?php echo htmlspecialchars((string) ($tarjeta['value'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></span>
+            <span class="metric-label"><?php echo htmlspecialchars($etiquetaTarjeta, ENT_QUOTES, 'UTF-8'); ?></span>
+            <small class="text-muted d-block mt-1"><?php echo htmlspecialchars((string) ($tarjeta['note'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
           </div>
-          <span class="metric-number"><?php echo htmlspecialchars((string) ($tarjeta['value'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></span>
-          <span class="metric-label"><?php echo htmlspecialchars((string) ($tarjeta['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
-          <small class="text-muted d-block mt-1"><?php echo htmlspecialchars((string) ($tarjeta['note'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
-        </div>
+        </a>
       </div>
     <?php endforeach; ?>
   </div>

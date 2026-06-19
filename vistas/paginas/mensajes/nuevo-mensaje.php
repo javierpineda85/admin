@@ -12,8 +12,11 @@ $textoInicial = '';
 
 if ($tipoMensaje === 'reply' && $idMsj > 0) {
     $mensajeOriginal = ControladorMensajes::crtMostrarUnMensaje($idMsj);
-    if (!empty($mensajeOriginal)) {
+    if (!empty($mensajeOriginal) && (string) ($mensajeOriginal['rolParticipante'] ?? '') === 'DESTINATARIO') {
         $destinatariosSeleccionados[] = (int) ($mensajeOriginal['id_remitente'] ?? 0);
+    } else {
+        $mensajeOriginal = null;
+        $_SESSION['error_message'] = 'Solo podes responder mensajes que hayas recibido.';
     }
 } elseif ($tipoMensaje === 'share' && $idMsj > 0) {
     $mensajeOriginal = ControladorMensajes::crtMostrarUnMensaje($idMsj);
@@ -25,6 +28,8 @@ if ($tipoMensaje === 'reply' && $idMsj > 0) {
 if ($idDestinatarioPreseleccionado > 0) {
     $destinatariosSeleccionados[] = $idDestinatarioPreseleccionado;
 }
+
+$esRespuesta = $tipoMensaje === 'reply' && !empty($mensajeOriginal);
 ?>
 
 <section class="content page-fade">
@@ -95,10 +100,18 @@ if ($idDestinatarioPreseleccionado > 0) {
 
                             <form action="" method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="accion" value="enviar_mensaje">
+                                <?php if ($esRespuesta): ?>
+                                    <input type="hidden" name="id_mensaje_respuesta" value="<?php echo (int) $idMsj; ?>">
+                                    <input type="hidden" name="id_destinatarios[]" value="<?php echo (int) ($mensajeOriginal['id_remitente'] ?? 0); ?>">
+                                <?php endif; ?>
 
                                 <div class="row">
                                     <div class="form-group col-md-8">
                                         <label>Destinatarios</label>
+                                        <?php if ($esRespuesta): ?>
+                                            <input type="text" class="form-control" readonly value="<?php echo htmlspecialchars(trim(($mensajeOriginal['nombreUsuario'] ?? '') . ' ' . ($mensajeOriginal['apellidoUsuario'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
+                                            <small class="text-muted d-block mt-1">La respuesta se enviara al remitente original.</small>
+                                        <?php else: ?>
                                         <select class="custom-select" name="id_destinatarios[]" multiple>
                                             <?php foreach ($usuarios as $valor): ?>
                                                 <?php $seleccionado = in_array((int) $valor['idUsuario'], $destinatariosSeleccionados, true); ?>
@@ -108,11 +121,12 @@ if ($idDestinatarioPreseleccionado > 0) {
                                             <?php endforeach; ?>
                                         </select>
                                         <small class="text-muted d-block mt-1">Usá Ctrl o Cmd para elegir más de un destinatario.</small>
+                                        <?php endif; ?>
                                     </div>
 
                                     <div class="form-group col-md-4">
                                         <label>Materia / Sección</label>
-                                        <select class="custom-select" name="id_seccion_destino">
+                                        <select class="custom-select" name="id_seccion_destino" <?php echo $esRespuesta ? 'disabled' : ''; ?>>
                                             <option value="0">Sin envío masivo</option>
                                             <?php foreach ($secciones as $seccion): ?>
                                                 <option value="<?php echo (int) $seccion['idSeccion']; ?>">

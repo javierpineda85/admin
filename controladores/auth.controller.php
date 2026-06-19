@@ -53,6 +53,7 @@ class ControladorAuth
         session_regenerate_id(true);
 
         $_SESSION['logueado'] = true;
+        $_SESSION['ultima_actividad'] = time();
         $_SESSION['usuario'] = [
             'id' => (int) $usuario['idUsuario'],
             'nombre' => $usuario['nombreUsuario'],
