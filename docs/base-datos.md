@@ -16,11 +16,17 @@
 - `recursoslecciones`: adjuntos y enlaces de una leccion.
 - `entregaslecciones`: entregas de tareas por estudiante.
 - `calificaciones`: notas y devolucion.
-- `actividades`: configuracion principal de actividades privadas, publicas u ocultas.
+- `actividades`: configuracion principal de actividades privadas, publicas, ocultas o guardadas como plantilla.
 - `actividades_preguntas`: preguntas asociadas a una actividad.
 - `actividades_opciones`: opciones de multiple choice.
 - `actividades_intentos`: entregas de estudiantes o visitantes.
 - `actividades_respuestas`: respuestas registradas por intento.
+
+Campos relevantes agregados al modulo de actividades:
+
+- `intentosPermitidos`: limita la cantidad de entregas por estudiante.
+- `esPlantilla`: marca si la actividad pertenece al banco de actividades.
+- `id_actividad_origen`: referencia la actividad desde la cual se duplico o guardo la plantilla.
 - `mensajes`: hilo principal del mensaje.
 - `mensajes_participantes`: estado por usuario, leido, papelera y eliminacion.
 - `mensajes_adjuntos`: archivos adjuntos.

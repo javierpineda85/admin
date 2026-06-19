@@ -182,6 +182,12 @@
                 </li>
                 <?php if (ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente()): ?>
                   <li class="nav-item">
+                    <a href="index.php?r=banco-actividades" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Banco de actividades</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
                     <a href="index.php?r=crear-actividad" class="nav-link">
                       <i class="far fa-circle nav-icon"></i>
                       <p>Crear actividad</p>

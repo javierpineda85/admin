@@ -39,6 +39,7 @@ class RutasController
             'papelera'        => 'mensajes/papelera.php',
             'detalle-mensaje' => 'mensajes/detalle-mensaje.php',
             'listado-actividades' => 'actividades/listado-actividades.php',
+            'banco-actividades' => 'actividades/banco-actividades.php',
             'crear-actividad' => 'actividades/crear-actividad.php',
             'editar-actividad' => 'actividades/editar-actividad.php',
             'ver-actividad' => 'actividades/ver-actividad.php',

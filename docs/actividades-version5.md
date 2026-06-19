@@ -50,3 +50,14 @@ Opciones:
 - Crear una pagina de WordPress "Actividades" e insertar un bloque HTML con un iframe al listado publico.
 
 Mas adelante se puede agregar una regla de reescritura para URLs limpias como `/actividad/SLUG`, pero no es necesario para validar la funcionalidad.
+
+## Fase 3A - Banco de actividades
+
+Se agrega una capa inicial de reutilizacion para docentes y administradores:
+
+- `index.php?r=banco-actividades`: banco de plantillas.
+- Accion `Guardar como plantilla` desde el listado de actividades.
+- Accion `Duplicar` para crear una copia editable.
+- Accion `Usar plantilla` para convertir una plantilla en una nueva actividad de trabajo.
+
+Cada plantilla se guarda en la misma tabla `actividades`, diferenciada por `esPlantilla = 1`.

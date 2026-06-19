@@ -72,6 +72,7 @@ class ControladorPermisos
                 'papelera',
                 'detalle-mensaje',
                 'listado-actividades',
+                'banco-actividades',
                 'crear-actividad',
                 'editar-actividad',
                 'ver-actividad',

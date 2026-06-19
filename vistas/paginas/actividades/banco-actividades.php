@@ -1,16 +1,17 @@
 <?php
 ControladorActividades::crtProcesarAcciones();
 
-$actividades = ControladorActividades::crtListarActividades();
+$actividades = ControladorActividades::crtListarBancoActividades();
 $puedeCrear = ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente();
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $busquedaActual = trim((string) ($_GET['q'] ?? ''));
+$tipoActual = trim((string) ($_GET['tipo'] ?? ''));
 $e = static function ($valor) {
   return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
 $tipoLabels = ControladorActividades::tiposDisponibles();
 $visibilidadLabels = ControladorActividades::visibilidadesDisponibles();
-$tipoActual = trim((string) ($_GET['tipo'] ?? ''));
+$esBanco = true;
 ?>
 
 <style>
@@ -113,26 +114,24 @@ $tipoActual = trim((string) ($_GET['tipo'] ?? ''));
   <div class="container-fluid">
     <div class="entity-hero mb-4">
       <div class="entity-hero__content">
-        <span class="entity-kicker mb-3">Actividades</span>
-        <h1 class="entity-title mb-2"><?php echo $puedeCrear ? 'Gestion de actividades' : 'Mis actividades'; ?></h1>
-        <p class="entity-lead mb-0">Administra actividades privadas del curso o publicas para compartir desde la web.</p>
+        <span class="entity-kicker mb-3">Plantillas</span>
+        <h1 class="entity-title mb-2">Banco de actividades</h1>
+        <p class="entity-lead mb-0">Guarda actividades reutilizables, duplicalas y crea nuevas propuestas sin empezar de cero.</p>
       </div>
     </div>
 
     <div class="card glass-card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">Actividades registradas</h3>
-        <?php if ($puedeCrear): ?>
-          <a href="index.php?r=crear-actividad" class="btn btn-primary btn-sm">Nueva actividad</a>
-        <?php endif; ?>
+        <h3 class="card-title mb-0">Plantillas disponibles</h3>
+        <a href="index.php?r=listado-actividades" class="btn btn-outline-secondary btn-sm">Volver al listado</a>
       </div>
       <div class="card-body">
         <form method="get" class="mb-4">
-          <input type="hidden" name="r" value="listado-actividades">
+          <input type="hidden" name="r" value="banco-actividades">
           <div class="row align-items-end">
             <div class="col-lg-5">
-              <label for="q">Buscar actividad</label>
-              <input type="text" id="q" name="q" class="form-control" value="<?php echo $e($busquedaActual); ?>" placeholder="Titulo, descripcion, curso, materia o slug">
+              <label for="q">Buscar plantilla</label>
+              <input type="text" id="q" name="q" class="form-control" value="<?php echo $e($busquedaActual); ?>" placeholder="Titulo, descripcion, curso o materia">
             </div>
             <div class="col-lg-3">
               <label for="tipo">Tipo</label>
@@ -149,7 +148,7 @@ $tipoActual = trim((string) ($_GET['tipo'] ?? ''));
                   <i class="fas fa-search"></i> Filtrar
                 </button>
                 <?php if ($busquedaActual !== '' || $tipoActual !== ''): ?>
-                  <a href="index.php?r=listado-actividades" class="btn btn-outline-secondary mb-2 mb-lg-0">Limpiar</a>
+                  <a href="index.php?r=banco-actividades" class="btn btn-outline-secondary mb-2 mb-lg-0">Limpiar</a>
                 <?php endif; ?>
               </div>
             </div>
@@ -158,22 +157,13 @@ $tipoActual = trim((string) ($_GET['tipo'] ?? ''));
 
         <?php if (empty($actividades)): ?>
           <div class="empty-state">
-            <i class="fas fa-tasks"></i>
-            <h4><?php echo $busquedaActual !== '' ? 'No hay resultados para la busqueda' : 'No hay actividades cargadas'; ?></h4>
-            <p class="mb-0">
-              <?php
-              if ($busquedaActual !== '') {
-                echo 'Proba con otro termino o limpia el filtro para volver al listado completo.';
-              } else {
-                echo $puedeCrear ? 'Crea la primera actividad para una materia o para acceso publico.' : 'Cuando haya actividades disponibles van a aparecer aca.';
-              }
-              ?>
-            </p>
+            <i class="fas fa-bookmark"></i>
+            <h4>No hay plantillas disponibles</h4>
+            <p class="mb-0">Desde el listado de actividades podes guardar una actividad como plantilla y va a aparecer aca.</p>
           </div>
         <?php else: ?>
           <div class="activity-card-grid">
             <?php foreach ($actividades as $index => $actividad): ?>
-              <?php $esBanco = false; ?>
               <?php include __DIR__ . '/_actividad-card.php'; ?>
             <?php endforeach; ?>
           </div>
@@ -188,7 +178,7 @@ $tipoActual = trim((string) ($_GET['tipo'] ?? ''));
     <div class="modal-dialog modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="eliminarActividadTitulo">Eliminar actividad</h5>
+          <h5 class="modal-title" id="eliminarActividadTitulo">Eliminar plantilla</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -198,7 +188,7 @@ $tipoActual = trim((string) ($_GET['tipo'] ?? ''));
             <input type="hidden" name="accion_actividad" value="eliminar_actividad">
             <input type="hidden" name="idActividad" id="eliminarActividadId" value="0">
             <p class="mb-2">Vas a eliminar permanentemente <strong id="eliminarActividadNombre"></strong>.</p>
-            <p class="text-danger mb-0">Tambien se eliminaran sus preguntas, intentos y respuestas. Esta accion no se puede deshacer.</p>
+            <p class="text-danger mb-0">Esta accion no se puede deshacer.</p>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancelar</button>

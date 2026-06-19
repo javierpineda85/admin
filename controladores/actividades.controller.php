@@ -33,11 +33,26 @@ class ControladorActividades
     public static function crtListarActividades()
     {
         $busqueda = trim((string) ($_GET['q'] ?? ''));
+        $tipo = trim((string) ($_GET['tipo'] ?? ''));
 
         return ModeloActividades::mdlListarParaUsuario(
             (int) ($_SESSION['usuario']['id'] ?? 0),
             ControladorPermisos::rolActual(),
-            $busqueda
+            $busqueda,
+            $tipo
+        );
+    }
+
+    public static function crtListarBancoActividades()
+    {
+        $busqueda = trim((string) ($_GET['q'] ?? ''));
+        $tipo = trim((string) ($_GET['tipo'] ?? ''));
+
+        return ModeloActividades::mdlListarBancoParaUsuario(
+            (int) ($_SESSION['usuario']['id'] ?? 0),
+            ControladorPermisos::rolActual(),
+            $busqueda,
+            $tipo
         );
     }
 
@@ -154,6 +169,18 @@ class ControladorActividades
             return self::eliminarActividad();
         }
 
+        if ($accion === 'duplicar_actividad') {
+            return self::duplicarActividad(false);
+        }
+
+        if ($accion === 'guardar_como_plantilla') {
+            return self::duplicarActividad(true);
+        }
+
+        if ($accion === 'usar_plantilla') {
+            return self::usarPlantilla();
+        }
+
         return null;
     }
 
@@ -241,6 +268,8 @@ class ControladorActividades
             'puntajeMaximo' => $puntajeMaximo,
             'intentosPermitidos' => max(0, (int) ($_POST['intentosPermitidos'] ?? 1)),
             'permiteVisitantes' => isset($_POST['permiteVisitantes']) ? 1 : 0,
+            'esPlantilla' => max(0, min(1, (int) ($actividadActual['esPlantilla'] ?? 0))),
+            'id_actividad_origen' => (int) ($actividadActual['id_actividad_origen'] ?? 0),
             'recursoExternoUrl' => trim((string) ($_POST['recursoExternoUrl'] ?? '')),
             'recursoExternoEmbed' => trim((string) ($_POST['recursoExternoEmbed'] ?? '')),
         ];
@@ -257,6 +286,75 @@ class ControladorActividades
         $_SESSION['success_message'] = 'Actividad guardada correctamente.';
         $idDestino = $idActividad > 0 ? $idActividad : (int) $respuesta;
         self::redirigir('index.php?r=editar-actividad&idActividad=' . $idDestino);
+    }
+
+    private static function duplicarActividad($comoPlantilla)
+    {
+        $idActividad = (int) ($_POST['idActividad'] ?? 0);
+        $actividad = $idActividad > 0 ? self::crtBuscarActividadPorId($idActividad) : null;
+
+        if (!$actividad || !self::puedeGestionarActividad($actividad)) {
+            $_SESSION['error_message'] = 'No tenes permisos para reutilizar esta actividad.';
+            return 'denied';
+        }
+
+        $preguntas = self::crtPreguntasActividad($idActividad);
+        $tituloBase = trim((string) ($actividad['tituloActividad'] ?? 'Actividad'));
+        if ($comoPlantilla) {
+            $tituloBase = self::normalizarTituloPlantilla($tituloBase);
+        } else {
+            $tituloBase = self::normalizarTituloCopia($tituloBase);
+        }
+
+        $datos = self::datosActividadClonada($actividad, [
+            'tituloActividad' => $tituloBase,
+            'estadoActividad' => 'BORRADOR',
+            'esPlantilla' => $comoPlantilla ? 1 : 0,
+            'id_actividad_origen' => (int) ($actividad['idActividad'] ?? 0),
+        ]);
+
+        $idNuevaActividad = ModeloActividades::mdlGuardarActividad($datos, self::clonarPreguntas($preguntas));
+        if ((int) $idNuevaActividad <= 0) {
+            $_SESSION['error_message'] = 'No se pudo crear la copia de la actividad.';
+            return 'error';
+        }
+
+        $_SESSION['success_message'] = $comoPlantilla
+            ? 'La actividad se guardo como plantilla.'
+            : 'Se creo una copia editable de la actividad.';
+
+        self::redirigir($comoPlantilla
+            ? 'index.php?r=banco-actividades'
+            : 'index.php?r=editar-actividad&idActividad=' . (int) $idNuevaActividad);
+    }
+
+    private static function usarPlantilla()
+    {
+        $idActividad = (int) ($_POST['idActividad'] ?? 0);
+        $actividad = $idActividad > 0 ? self::crtBuscarActividadPorId($idActividad) : null;
+
+        if (!$actividad || !self::puedeGestionarActividad($actividad) || (int) ($actividad['esPlantilla'] ?? 0) !== 1) {
+            $_SESSION['error_message'] = 'No tenes permisos para usar esta plantilla.';
+            return 'denied';
+        }
+
+        $preguntas = self::crtPreguntasActividad($idActividad);
+        $tituloBase = self::normalizarTituloDesdePlantilla((string) ($actividad['tituloActividad'] ?? 'Actividad'));
+        $datos = self::datosActividadClonada($actividad, [
+            'tituloActividad' => $tituloBase,
+            'estadoActividad' => 'BORRADOR',
+            'esPlantilla' => 0,
+            'id_actividad_origen' => (int) ($actividad['idActividad'] ?? 0),
+        ]);
+
+        $idNuevaActividad = ModeloActividades::mdlGuardarActividad($datos, self::clonarPreguntas($preguntas));
+        if ((int) $idNuevaActividad <= 0) {
+            $_SESSION['error_message'] = 'No se pudo crear una actividad desde la plantilla.';
+            return 'error';
+        }
+
+        $_SESSION['success_message'] = 'Se creo una nueva actividad a partir de la plantilla.';
+        self::redirigir('index.php?r=editar-actividad&idActividad=' . (int) $idNuevaActividad);
     }
 
     private static function registrarIntento()
@@ -448,6 +546,64 @@ class ControladorActividades
         return $preguntas;
     }
 
+    private static function clonarPreguntas(array $preguntas)
+    {
+        $resultado = [];
+
+        foreach ($preguntas as $pregunta) {
+            $clon = [
+                'tipoPregunta' => (string) ($pregunta['tipoPregunta'] ?? ''),
+                'textoPregunta' => (string) ($pregunta['textoPregunta'] ?? ''),
+                'respuestaCorrecta' => (string) ($pregunta['respuestaCorrecta'] ?? ''),
+                'puntaje' => (float) ($pregunta['puntaje'] ?? 0),
+                'pista' => (string) ($pregunta['pista'] ?? ''),
+                'explicacionError' => (string) ($pregunta['explicacionError'] ?? ''),
+                'opciones' => [],
+            ];
+
+            foreach (($pregunta['opciones'] ?? []) as $opcion) {
+                $clon['opciones'][] = [
+                    'textoOpcion' => (string) ($opcion['textoOpcion'] ?? ''),
+                    'esCorrecta' => (int) ($opcion['esCorrecta'] ?? 0),
+                ];
+            }
+
+            $resultado[] = $clon;
+        }
+
+        return $resultado;
+    }
+
+    private static function datosActividadClonada(array $actividad, array $override = [])
+    {
+        $titulo = trim((string) ($override['tituloActividad'] ?? $actividad['tituloActividad'] ?? 'Actividad'));
+
+        $datos = [
+            'tituloActividad' => $titulo,
+            'slug' => self::slugUnico($titulo),
+            'descripcionActividad' => trim((string) ($actividad['descripcionActividad'] ?? '')),
+            'tipoActividad' => (string) ($actividad['tipoActividad'] ?? 'multiple_choice'),
+            'visibilidad' => (string) ($actividad['visibilidad'] ?? 'privada'),
+            'estadoActividad' => (string) ($override['estadoActividad'] ?? $actividad['estadoActividad'] ?? 'BORRADOR'),
+            'id_curso' => (int) ($actividad['id_curso'] ?? 0),
+            'id_seccion' => (int) ($actividad['id_seccion'] ?? 0),
+            'id_autor' => (int) ($_SESSION['usuario']['id'] ?? 0),
+            'puntajeMaximo' => (float) ($actividad['puntajeMaximo'] ?? 0),
+            'intentosPermitidos' => (int) ($actividad['intentosPermitidos'] ?? 1),
+            'permiteVisitantes' => (int) ($actividad['permiteVisitantes'] ?? 1),
+            'esPlantilla' => (int) ($override['esPlantilla'] ?? 0),
+            'id_actividad_origen' => (int) ($override['id_actividad_origen'] ?? 0),
+            'recursoExternoUrl' => trim((string) ($actividad['recursoExternoUrl'] ?? '')),
+            'recursoExternoEmbed' => trim((string) ($actividad['recursoExternoEmbed'] ?? '')),
+        ];
+
+        if (array_key_exists('visibilidad', $override)) {
+            $datos['visibilidad'] = (string) $override['visibilidad'];
+        }
+
+        return $datos;
+    }
+
     private static function valorPermitido($valor, array $permitidos, $fallback)
     {
         $valor = trim((string) $valor);
@@ -493,6 +649,33 @@ class ControladorActividades
         }
 
         return $slug;
+    }
+
+    private static function normalizarTituloCopia($titulo)
+    {
+        $titulo = trim((string) $titulo);
+        return $titulo === '' ? 'Actividad copia' : $titulo . ' (copia)';
+    }
+
+    private static function normalizarTituloPlantilla($titulo)
+    {
+        $titulo = trim((string) $titulo);
+        if ($titulo === '') {
+            return 'Plantilla';
+        }
+
+        if (preg_match('/plantilla/i', $titulo)) {
+            return $titulo;
+        }
+
+        return $titulo . ' - plantilla';
+    }
+
+    private static function normalizarTituloDesdePlantilla($titulo)
+    {
+        $titulo = trim((string) $titulo);
+        $titulo = preg_replace('/\s*-\s*plantilla\s*$/i', '', $titulo);
+        return $titulo !== '' ? $titulo : 'Nueva actividad';
     }
 
     private static function normalizarTexto($valor)

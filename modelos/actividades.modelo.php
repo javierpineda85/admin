@@ -28,6 +28,8 @@ class ModeloActividades
                 puntajeMaximo DECIMAL(6,2) NOT NULL DEFAULT 0,
                 intentosPermitidos INT NOT NULL DEFAULT 1,
                 permiteVisitantes TINYINT(1) NOT NULL DEFAULT 1,
+                esPlantilla TINYINT(1) NOT NULL DEFAULT 0,
+                id_actividad_origen INT NULL,
                 recursoExternoUrl VARCHAR(255) NULL,
                 recursoExternoEmbed TEXT NULL,
                 fechaCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -100,6 +102,8 @@ class ModeloActividades
         ");
 
         self::agregarColumnaSiFalta($pdo, 'actividades', 'intentosPermitidos', "ALTER TABLE actividades ADD COLUMN intentosPermitidos INT NOT NULL DEFAULT 1 AFTER puntajeMaximo");
+        self::agregarColumnaSiFalta($pdo, 'actividades', 'esPlantilla', "ALTER TABLE actividades ADD COLUMN esPlantilla TINYINT(1) NOT NULL DEFAULT 0 AFTER permiteVisitantes");
+        self::agregarColumnaSiFalta($pdo, 'actividades', 'id_actividad_origen', "ALTER TABLE actividades ADD COLUMN id_actividad_origen INT NULL AFTER esPlantilla");
         self::agregarColumnaSiFalta($pdo, 'actividades_preguntas', 'explicacionError', "ALTER TABLE actividades_preguntas ADD COLUMN explicacionError TEXT NULL AFTER pista");
 
         self::$tablasPreparadas = true;
@@ -144,13 +148,29 @@ class ModeloActividades
         ];
     }
 
-    public static function mdlListarParaUsuario($idUsuario, $rol, $busqueda = '')
+    private static function condicionesTipo($tipo, $prefijo = 'tipoFiltro')
+    {
+        $tipo = trim((string) $tipo);
+        if ($tipo === '') {
+            return ['', []];
+        }
+
+        return [
+            "a.tipoActividad = :{$prefijo}",
+            [
+                ":{$prefijo}" => $tipo,
+            ],
+        ];
+    }
+
+    public static function mdlListarParaUsuario($idUsuario, $rol, $busqueda = '', $tipo = '')
     {
         self::prepararTablas();
 
         $rol = strtoupper((string) $rol);
         $pdo = Conexion::conectar();
         list($condicionBusqueda, $parametrosBusqueda) = self::condicionesBusqueda($busqueda);
+        list($condicionTipo, $parametrosTipo) = self::condicionesTipo($tipo);
 
         if ($rol === 'ADMINISTRADOR') {
             $sql = "
@@ -165,13 +185,17 @@ class ModeloActividades
                     FROM actividades_intentos
                     GROUP BY id_actividad
                 ) i ON i.id_actividad = a.idActividad
+                WHERE COALESCE(a.esPlantilla, 0) = 0
             ";
             if ($condicionBusqueda !== '') {
-                $sql .= " WHERE $condicionBusqueda";
+                $sql .= " AND $condicionBusqueda";
+            }
+            if ($condicionTipo !== '') {
+                $sql .= " AND $condicionTipo";
             }
             $sql .= " ORDER BY a.fechaCreacion DESC";
             $stmt = $pdo->prepare($sql);
-            foreach ($parametrosBusqueda as $clave => $valor) {
+            foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
                 $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
             }
             $stmt->execute();
@@ -196,16 +220,20 @@ class ModeloActividades
                     OR s.docente = :idUsuarioDocente
                     OR s.tutor = :idUsuarioTutor
                 )
+                  AND COALESCE(a.esPlantilla, 0) = 0
             ";
             if ($condicionBusqueda !== '') {
                 $sql .= " AND $condicionBusqueda";
+            }
+            if ($condicionTipo !== '') {
+                $sql .= " AND $condicionTipo";
             }
             $sql .= " ORDER BY a.fechaCreacion DESC";
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
             $stmt->bindValue(':idUsuarioDocente', (int) $idUsuario, PDO::PARAM_INT);
             $stmt->bindValue(':idUsuarioTutor', (int) $idUsuario, PDO::PARAM_INT);
-            foreach ($parametrosBusqueda as $clave => $valor) {
+            foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
                 $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
             }
             $stmt->execute();
@@ -226,6 +254,7 @@ class ModeloActividades
                 GROUP BY id_actividad
             ) i ON i.id_actividad = a.idActividad
             WHERE a.estadoActividad = 'PUBLICADA'
+              AND COALESCE(a.esPlantilla, 0) = 0
               AND (
                 a.visibilidad IN ('publica', 'oculta')
                 OR (a.visibilidad = 'privada' AND ac.id_estudiante = :idUsuario)
@@ -234,10 +263,81 @@ class ModeloActividades
         if ($condicionBusqueda !== '') {
             $sql .= " AND $condicionBusqueda";
         }
+        if ($condicionTipo !== '') {
+            $sql .= " AND $condicionTipo";
+        }
         $sql .= " ORDER BY a.fechaCreacion DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
-        foreach ($parametrosBusqueda as $clave => $valor) {
+        foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
+            $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function mdlListarBancoParaUsuario($idUsuario, $rol, $busqueda = '', $tipo = '')
+    {
+        self::prepararTablas();
+
+        $rol = strtoupper((string) $rol);
+        $pdo = Conexion::conectar();
+        list($condicionBusqueda, $parametrosBusqueda) = self::condicionesBusqueda($busqueda, 'bancoBusqueda');
+        list($condicionTipo, $parametrosTipo) = self::condicionesTipo($tipo, 'bancoTipo');
+
+        if ($rol === 'ESTUDIANTE') {
+            return [];
+        }
+
+        if ($rol === 'ADMINISTRADOR') {
+            $sql = "
+                SELECT a.*, s.tituloSeccion, c.nombreCurso, u.nombreUsuario, u.apellidoUsuario
+                FROM actividades a
+                LEFT JOIN secciones s ON s.idSeccion = a.id_seccion
+                LEFT JOIN cursos c ON c.idCurso = a.id_curso
+                LEFT JOIN usuarios u ON u.idUsuario = a.id_autor
+                WHERE COALESCE(a.esPlantilla, 0) = 1
+            ";
+            if ($condicionBusqueda !== '') {
+                $sql .= " AND $condicionBusqueda";
+            }
+            if ($condicionTipo !== '') {
+                $sql .= " AND $condicionTipo";
+            }
+            $sql .= " ORDER BY COALESCE(a.fechaActualizacion, a.fechaCreacion) DESC";
+            $stmt = $pdo->prepare($sql);
+            foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
+                $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $sql = "
+            SELECT a.*, s.tituloSeccion, c.nombreCurso, u.nombreUsuario, u.apellidoUsuario
+            FROM actividades a
+            LEFT JOIN secciones s ON s.idSeccion = a.id_seccion
+            LEFT JOIN cursos c ON c.idCurso = a.id_curso
+            LEFT JOIN usuarios u ON u.idUsuario = a.id_autor
+            WHERE COALESCE(a.esPlantilla, 0) = 1
+              AND (
+                a.id_autor = :idUsuario
+                OR s.docente = :idUsuarioDocente
+                OR s.tutor = :idUsuarioTutor
+              )
+        ";
+        if ($condicionBusqueda !== '') {
+            $sql .= " AND $condicionBusqueda";
+        }
+        if ($condicionTipo !== '') {
+            $sql .= " AND $condicionTipo";
+        }
+        $sql .= " ORDER BY COALESCE(a.fechaActualizacion, a.fechaCreacion) DESC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
+        $stmt->bindValue(':idUsuarioDocente', (int) $idUsuario, PDO::PARAM_INT);
+        $stmt->bindValue(':idUsuarioTutor', (int) $idUsuario, PDO::PARAM_INT);
+        foreach (array_merge($parametrosBusqueda, $parametrosTipo) as $clave => $valor) {
             $stmt->bindValue($clave, $valor, PDO::PARAM_STR);
         }
         $stmt->execute();
@@ -254,6 +354,7 @@ class ModeloActividades
             LEFT JOIN secciones s ON s.idSeccion = a.id_seccion
             LEFT JOIN cursos c ON c.idCurso = a.id_curso
             WHERE a.estadoActividad = 'PUBLICADA'
+              AND COALESCE(a.esPlantilla, 0) = 0
               AND a.visibilidad = 'publica'
             ORDER BY a.fechaCreacion DESC
         ");
@@ -349,11 +450,13 @@ class ModeloActividades
             INSERT INTO actividades (
                 tituloActividad, slug, descripcionActividad, tipoActividad, visibilidad,
                 estadoActividad, id_curso, id_seccion, id_autor, puntajeMaximo,
-                intentosPermitidos, permiteVisitantes, recursoExternoUrl, recursoExternoEmbed
+                intentosPermitidos, permiteVisitantes, esPlantilla, id_actividad_origen,
+                recursoExternoUrl, recursoExternoEmbed
             ) VALUES (
                 :tituloActividad, :slug, :descripcionActividad, :tipoActividad, :visibilidad,
                 :estadoActividad, :id_curso, :id_seccion, :id_autor, :puntajeMaximo,
-                :intentosPermitidos, :permiteVisitantes, :recursoExternoUrl, :recursoExternoEmbed
+                :intentosPermitidos, :permiteVisitantes, :esPlantilla, :id_actividad_origen,
+                :recursoExternoUrl, :recursoExternoEmbed
             )
         ");
 
@@ -384,6 +487,8 @@ class ModeloActividades
                 puntajeMaximo = :puntajeMaximo,
                 intentosPermitidos = :intentosPermitidos,
                 permiteVisitantes = :permiteVisitantes,
+                esPlantilla = :esPlantilla,
+                id_actividad_origen = :id_actividad_origen,
                 recursoExternoUrl = :recursoExternoUrl,
                 recursoExternoEmbed = :recursoExternoEmbed,
                 fechaActualizacion = NOW()
@@ -418,6 +523,8 @@ class ModeloActividades
         $stmt->bindValue(':puntajeMaximo', (string) $datos['puntajeMaximo'], PDO::PARAM_STR);
         $stmt->bindValue(':intentosPermitidos', (int) $datos['intentosPermitidos'], PDO::PARAM_INT);
         $stmt->bindValue(':permiteVisitantes', (int) $datos['permiteVisitantes'], PDO::PARAM_INT);
+        $stmt->bindValue(':esPlantilla', (int) ($datos['esPlantilla'] ?? 0), PDO::PARAM_INT);
+        $stmt->bindValue(':id_actividad_origen', !empty($datos['id_actividad_origen']) ? (int) $datos['id_actividad_origen'] : null, !empty($datos['id_actividad_origen']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(':recursoExternoUrl', $datos['recursoExternoUrl'], PDO::PARAM_STR);
         $stmt->bindValue(':recursoExternoEmbed', $datos['recursoExternoEmbed'], PDO::PARAM_STR);
     }
