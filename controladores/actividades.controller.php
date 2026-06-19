@@ -113,6 +113,125 @@ class ControladorActividades
         return ModeloActividades::mdlIntentosActividad((int) $idActividad);
     }
 
+    public static function crtPanelResultadosActividad($idActividad)
+    {
+        $idActividad = (int) $idActividad;
+        $intentos = ModeloActividades::mdlIntentosActividad($idActividad);
+        $detallePlano = ModeloActividades::mdlDetalleIntentosActividad($idActividad);
+        $metricasPreguntas = ModeloActividades::mdlMetricasPreguntasActividad($idActividad);
+        $erroresFrecuentes = ModeloActividades::mdlErroresFrecuentesActividad($idActividad);
+
+        $personas = [];
+        $sumaPuntaje = 0.0;
+        $mejorPuntaje = null;
+        $menorPuntaje = null;
+        $intentosPorPersona = [];
+
+        foreach (array_reverse($intentos) as $intento) {
+            $clavePersona = self::clavePersonaIntento($intento);
+            if (!isset($intentosPorPersona[$clavePersona])) {
+                $intentosPorPersona[$clavePersona] = 0;
+            }
+            $intentosPorPersona[$clavePersona]++;
+        }
+
+        $intentosAgrupados = [];
+        $respuestasCorrectas = 0;
+        $respuestasTotales = 0;
+
+        foreach ($intentos as $intento) {
+            $clavePersona = self::clavePersonaIntento($intento);
+            $personas[$clavePersona] = true;
+
+            $puntaje = (float) ($intento['puntaje'] ?? 0);
+            $sumaPuntaje += $puntaje;
+            $mejorPuntaje = $mejorPuntaje === null ? $puntaje : max($mejorPuntaje, $puntaje);
+            $menorPuntaje = $menorPuntaje === null ? $puntaje : min($menorPuntaje, $puntaje);
+
+            $intentosAgrupados[(int) $intento['idIntento']] = $intento + [
+                'numeroIntentoPersona' => (int) ($intentosPorPersona[$clavePersona] ?? 1),
+                'respuestas' => [],
+            ];
+            $intentosPorPersona[$clavePersona] = max(0, (int) ($intentosPorPersona[$clavePersona] ?? 1) - 1);
+        }
+
+        foreach ($detallePlano as $fila) {
+            $idIntento = (int) ($fila['idIntento'] ?? 0);
+            if ($idIntento <= 0 || !isset($intentosAgrupados[$idIntento]) || empty($fila['idRespuesta'])) {
+                continue;
+            }
+
+            $esCorrecta = (int) ($fila['esCorrecta'] ?? 0) === 1;
+            $respuestasTotales++;
+            if ($esCorrecta) {
+                $respuestasCorrectas++;
+            }
+
+            $intentosAgrupados[$idIntento]['respuestas'][] = [
+                'idPregunta' => (int) ($fila['id_pregunta'] ?? 0),
+                'pregunta' => (string) ($fila['textoPregunta'] ?? ''),
+                'tipoPregunta' => (string) ($fila['tipoPregunta'] ?? ''),
+                'textoRespuesta' => (string) ($fila['textoRespuesta'] ?? ''),
+                'esCorrecta' => $esCorrecta,
+                'puntajeObtenido' => (float) ($fila['puntajeObtenido'] ?? 0),
+                'puntajePregunta' => (float) ($fila['puntajePregunta'] ?? 0),
+                'respuestaCorrecta' => (string) ($fila['respuestaCorrecta'] ?? ''),
+                'explicacionError' => (string) ($fila['explicacionError'] ?? ''),
+                'lenguajeCodigo' => (string) ($fila['lenguajeCodigo'] ?? 'plaintext'),
+            ];
+        }
+
+        $erroresPorPregunta = [];
+        foreach ($erroresFrecuentes as $error) {
+            $idPregunta = (int) ($error['idPregunta'] ?? 0);
+            if ($idPregunta <= 0) {
+                continue;
+            }
+
+            if (!isset($erroresPorPregunta[$idPregunta])) {
+                $erroresPorPregunta[$idPregunta] = [];
+            }
+
+            if (count($erroresPorPregunta[$idPregunta]) < 5) {
+                $erroresPorPregunta[$idPregunta][] = [
+                    'textoRespuesta' => (string) ($error['textoRespuesta'] ?? ''),
+                    'total' => (int) ($error['total'] ?? 0),
+                ];
+            }
+        }
+
+        foreach ($metricasPreguntas as &$metricaPregunta) {
+            $totalRespuestasPregunta = (int) ($metricaPregunta['totalRespuestas'] ?? 0);
+            $respuestasCorrectasPregunta = (int) ($metricaPregunta['respuestasCorrectas'] ?? 0);
+            $respuestasIncorrectasPregunta = (int) ($metricaPregunta['respuestasIncorrectas'] ?? 0);
+            $metricaPregunta['tasaAcierto'] = $totalRespuestasPregunta > 0
+                ? round(($respuestasCorrectasPregunta / $totalRespuestasPregunta) * 100, 1)
+                : 0.0;
+            $metricaPregunta['tasaError'] = $totalRespuestasPregunta > 0
+                ? round(($respuestasIncorrectasPregunta / $totalRespuestasPregunta) * 100, 1)
+                : 0.0;
+            $metricaPregunta['erroresFrecuentes'] = $erroresPorPregunta[(int) ($metricaPregunta['idPregunta'] ?? 0)] ?? [];
+        }
+        unset($metricaPregunta);
+
+        $totalIntentos = count($intentos);
+
+        return [
+            'resumen' => [
+                'totalIntentos' => $totalIntentos,
+                'personasUnicas' => count($personas),
+                'promedioPuntaje' => $totalIntentos > 0 ? round($sumaPuntaje / $totalIntentos, 2) : 0.0,
+                'mejorPuntaje' => $mejorPuntaje !== null ? $mejorPuntaje : 0.0,
+                'menorPuntaje' => $menorPuntaje !== null ? $menorPuntaje : 0.0,
+                'respuestasTotales' => $respuestasTotales,
+                'respuestasCorrectas' => $respuestasCorrectas,
+                'precisionGlobal' => $respuestasTotales > 0 ? round(($respuestasCorrectas / $respuestasTotales) * 100, 1) : 0.0,
+            ],
+            'intentos' => array_values($intentosAgrupados),
+            'preguntas' => $metricasPreguntas,
+        ];
+    }
+
     public static function crtIntentosUsadosUsuario($idActividad, $idUsuario)
     {
         return ModeloActividades::mdlContarIntentosUsuario((int) $idActividad, (int) $idUsuario);
@@ -754,6 +873,26 @@ class ControladorActividades
     {
         $valor = trim((string) $valor);
         return in_array($valor, $permitidos, true) ? $valor : $fallback;
+    }
+
+    private static function clavePersonaIntento(array $intento)
+    {
+        $idUsuario = (int) ($intento['id_usuario'] ?? 0);
+        if ($idUsuario > 0) {
+            return 'usuario:' . $idUsuario;
+        }
+
+        $email = trim((string) ($intento['emailVisitante'] ?? ''));
+        if ($email !== '') {
+            return 'visitante-email:' . strtolower($email);
+        }
+
+        $nombre = trim((string) ($intento['nombreVisitante'] ?? ''));
+        if ($nombre !== '') {
+            return 'visitante-nombre:' . self::normalizarTexto($nombre);
+        }
+
+        return 'intento:' . (int) ($intento['idIntento'] ?? 0);
     }
 
     private static function redirigir($url)

@@ -840,4 +840,106 @@ class ModeloActividades
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public static function mdlDetalleIntentosActividad($idActividad)
+    {
+        self::prepararTablas();
+
+        $stmt = Conexion::conectar()->prepare("
+            SELECT
+                i.idIntento,
+                i.id_usuario,
+                i.nombreVisitante,
+                i.emailVisitante,
+                i.puntaje,
+                i.estadoIntento,
+                i.fechaInicio,
+                i.fechaEntrega,
+                u.nombreUsuario,
+                u.apellidoUsuario,
+                u.email,
+                r.idRespuesta,
+                r.id_pregunta,
+                r.id_opcion,
+                r.textoRespuesta,
+                r.esCorrecta,
+                r.puntajeObtenido,
+                p.textoPregunta,
+                p.tipoPregunta,
+                p.codigoBase,
+                p.lenguajeCodigo,
+                p.variantesCodigo,
+                p.respuestaCorrecta,
+                p.puntaje AS puntajePregunta,
+                p.orden AS ordenPregunta,
+                p.pista,
+                p.explicacionError
+            FROM actividades_intentos i
+            LEFT JOIN usuarios u ON u.idUsuario = i.id_usuario
+            LEFT JOIN actividades_respuestas r ON r.id_intento = i.idIntento
+            LEFT JOIN actividades_preguntas p ON p.idPregunta = r.id_pregunta
+            WHERE i.id_actividad = :idActividad
+            ORDER BY i.fechaEntrega DESC, i.idIntento DESC, p.orden ASC, p.idPregunta ASC
+        ");
+        $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function mdlMetricasPreguntasActividad($idActividad)
+    {
+        self::prepararTablas();
+
+        $stmt = Conexion::conectar()->prepare("
+            SELECT
+                p.idPregunta,
+                p.textoPregunta,
+                p.tipoPregunta,
+                p.codigoBase,
+                p.lenguajeCodigo,
+                p.variantesCodigo,
+                p.respuestaCorrecta,
+                p.puntaje,
+                p.orden,
+                COUNT(r.idRespuesta) AS totalRespuestas,
+                SUM(CASE WHEN r.esCorrecta = 1 THEN 1 ELSE 0 END) AS respuestasCorrectas,
+                SUM(CASE WHEN r.esCorrecta = 0 THEN 1 ELSE 0 END) AS respuestasIncorrectas,
+                AVG(CASE WHEN r.idRespuesta IS NOT NULL THEN r.puntajeObtenido ELSE NULL END) AS promedioPuntaje
+            FROM actividades_preguntas p
+            LEFT JOIN actividades_respuestas r ON r.id_pregunta = p.idPregunta
+            LEFT JOIN actividades_intentos i ON i.idIntento = r.id_intento AND i.id_actividad = :idActividad
+            WHERE p.id_actividad = :idActividad
+            GROUP BY
+                p.idPregunta, p.textoPregunta, p.tipoPregunta, p.codigoBase, p.lenguajeCodigo,
+                p.variantesCodigo, p.respuestaCorrecta, p.puntaje, p.orden
+            ORDER BY p.orden ASC, p.idPregunta ASC
+        ");
+        $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function mdlErroresFrecuentesActividad($idActividad)
+    {
+        self::prepararTablas();
+
+        $stmt = Conexion::conectar()->prepare("
+            SELECT
+                p.idPregunta,
+                p.tipoPregunta,
+                TRIM(COALESCE(r.textoRespuesta, '')) AS textoRespuesta,
+                COUNT(*) AS total
+            FROM actividades_respuestas r
+            INNER JOIN actividades_intentos i ON i.idIntento = r.id_intento
+            INNER JOIN actividades_preguntas p ON p.idPregunta = r.id_pregunta
+            WHERE i.id_actividad = :idActividad
+              AND r.esCorrecta = 0
+              AND TRIM(COALESCE(r.textoRespuesta, '')) <> ''
+            GROUP BY p.idPregunta, p.tipoPregunta, TRIM(COALESCE(r.textoRespuesta, ''))
+            ORDER BY p.idPregunta ASC, total DESC, textoRespuesta ASC
+        ");
+        $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

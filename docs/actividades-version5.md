@@ -102,6 +102,21 @@ Se mejora el tipo `Detectar error en codigo` con dos frentes:
   - variantes validas opcionales, una por linea
   - comparacion por similitud y palabras clave para aceptar redacciones equivalentes
 
+## Fase 4C - Resultados y analitica docente
+
+Se cierra el circuito pedagogico de la actividad de codigo con una vista de resultados mas profunda:
+
+- Resumen general de intentos, personas unicas, promedio y precision global.
+- Analitica por pregunta:
+  - cantidad de respuestas correctas e incorrectas
+  - tasa de acierto y tasa de error
+  - errores frecuentes en preguntas de codigo
+- Detalle por intento:
+  - puntaje obtenido
+  - numero de intento por estudiante o visitante
+  - respuesta entregada
+  - respuesta esperada y feedback configurado por el docente
+
 ## Nota sobre iframes externos
 
 La integracion externa no queda atada a Wordwall. Si una herramienta permite copiar un `iframe`, se puede embeber desde la actividad tipo `Recurso externo`.
