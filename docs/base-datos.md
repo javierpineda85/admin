@@ -29,6 +29,9 @@ Campos relevantes agregados al modulo de actividades:
 - `alcancePlantilla`: clasifica la plantilla como `personal` o `institucional`.
 - `destacadaPublica`: permite marcar actividades publicas para destacarlas en integraciones y listados.
 - `id_actividad_origen`: referencia la actividad desde la cual se duplico o guardo la plantilla.
+- `codigoBase`: guarda el fragmento fuente para las actividades de deteccion de errores en codigo.
+- `lenguajeCodigo`: permite adaptar la consigna de codigo segun el lenguaje elegido.
+- `variantesCodigo`: guarda alternativas validas para una misma correccion esperada.
 - `mensajes`: hilo principal del mensaje.
 - `mensajes_participantes`: estado por usuario, leido, papelera y eliminacion.
 - `mensajes_adjuntos`: archivos adjuntos.

@@ -1,5 +1,13 @@
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    document.body.style.cursor = 'default';
+    document.querySelectorAll('textarea, input[type="text"], input[type="number"], input[type="url"]').forEach(function (campo) {
+      campo.style.cursor = 'text';
+    });
+    document.querySelectorAll('button, .btn, select').forEach(function (control) {
+      control.style.cursor = 'pointer';
+    });
+
     var tipo = document.getElementById('tipoActividad');
     var preguntasContainer = document.getElementById('preguntasContainer');
     var agregarPregunta = document.getElementById('agregarPregunta');
@@ -95,10 +103,22 @@
           input.disabled = valor !== 'completar';
         });
       });
+      document.querySelectorAll('.respuesta-codigo').forEach(function (el) {
+        el.style.display = valor === 'codigo' ? '' : 'none';
+        el.querySelectorAll('input, select, textarea').forEach(function (input) {
+          input.disabled = valor !== 'codigo';
+        });
+      });
       document.querySelectorAll('.respuesta-vf').forEach(function (el) {
         el.style.display = valor === 'verdadero_falso' ? '' : 'none';
         el.querySelectorAll('input, select, textarea').forEach(function (input) {
           input.disabled = valor !== 'verdadero_falso';
+        });
+      });
+      document.querySelectorAll('.bloque-codigo').forEach(function (el) {
+        el.style.display = valor === 'codigo' ? '' : 'none';
+        el.querySelectorAll('input, select, textarea').forEach(function (input) {
+          input.disabled = valor !== 'codigo';
         });
       });
     }

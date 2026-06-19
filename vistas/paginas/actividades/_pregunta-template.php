@@ -11,6 +11,27 @@
         <label>Enunciado</label>
         <textarea name="preguntaTexto[__INDEX__]" class="form-control" rows="2" placeholder="Ejemplo: La etiqueta ____ se usa para crear un enlace."></textarea>
       </div>
+      <div class="form-group bloque-codigo">
+        <div class="row">
+          <div class="col-lg-4">
+            <label>Lenguaje</label>
+            <select name="lenguajeCodigo[__INDEX__]" class="form-control">
+              <?php foreach ($lenguajesCodigo as $clave => $label): ?>
+                <option value="<?php echo $e($clave); ?>" <?php echo $clave === 'plaintext' ? 'selected' : ''; ?>><?php echo $e($label); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+        <label class="mt-3">Codigo con error</label>
+        <div class="code-editor-shell">
+          <div class="code-editor-shell__header">
+            <span>Fragmento para revisar</span>
+            <small>Se muestra con numeracion de lineas</small>
+          </div>
+          <textarea name="codigoBase[__INDEX__]" class="form-control code-editor-textarea" rows="10" placeholder="Pega aca el fragmento de codigo que el estudiante debe revisar."></textarea>
+        </div>
+        <small class="form-text text-muted">Usa este bloque para el codigo original. Debajo define como se acepta la correccion.</small>
+      </div>
       <div class="row">
         <div class="col-md-8">
           <div class="form-group respuesta-simple">
@@ -20,6 +41,11 @@
           <div class="form-group respuesta-completar">
             <label>Palabra correcta</label>
             <input type="text" name="respuestaCorrecta[__INDEX__]" class="form-control" placeholder="Ejemplo: a">
+          </div>
+          <div class="form-group respuesta-codigo">
+            <label>Error o correccion esperada</label>
+            <input type="text" name="respuestaCorrecta[__INDEX__]" class="form-control" placeholder="Ejemplo: falta COMMIT o falta cerrar una etiqueta">
+            <small class="form-text text-muted">La correccion acepta redacciones equivalentes y compara palabras clave.</small>
           </div>
           <div class="form-group respuesta-vf">
             <label>Respuesta correcta</label>
@@ -43,6 +69,11 @@
       <div class="form-group">
         <label>Explicacion si se equivoca</label>
         <textarea name="explicacionError[__INDEX__]" class="form-control" rows="2" placeholder="Opcional: explica por que esa respuesta seria incorrecta."></textarea>
+      </div>
+      <div class="form-group bloque-codigo">
+        <label>Variantes validas de respuesta</label>
+        <textarea name="variantesCodigo[__INDEX__]" class="form-control" rows="3" placeholder="Una variante por linea. Ejemplo:&#10;falta commit&#10;no se confirma la transaccion"></textarea>
+        <small class="form-text text-muted">Sirve para aceptar distintas maneras correctas de describir el mismo error.</small>
       </div>
       <div class="opciones-multiple">
         <label>Opciones</label>

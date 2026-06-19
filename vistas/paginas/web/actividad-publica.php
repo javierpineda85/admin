@@ -11,6 +11,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 $e = static function ($valor) {
   return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
+$tipoLabels = ControladorActividades::tiposDisponibles();
+$lenguajesCodigo = ControladorActividades::lenguajesCodigoDisponibles();
 
 $renderIframe = static function ($embed, $url) use ($e) {
   $src = '';
@@ -26,6 +28,16 @@ $renderIframe = static function ($embed, $url) use ($e) {
 
   return '<iframe class="activity-frame" src="' . $e($src) . '" allowfullscreen loading="lazy"></iframe>';
 };
+$renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) {
+  $lineas = preg_split('/\r\n|\r|\n/', (string) $codigo);
+  $lineas = $lineas === false ? [(string) $codigo] : $lineas;
+  $contenido = [];
+  foreach ($lineas as $indice => $linea) {
+    $contenido[] = '<span class="code-line"><span class="code-line__number">' . (int) ($indice + 1) . '</span><span class="code-line__text">' . $e($linea === '' ? ' ' : $linea) . '</span></span>';
+  }
+
+  return '<div class="code-box"><div class="code-box__header"><span>Codigo para revisar</span><span class="code-pill">' . $e($lenguajesCodigo[$lenguaje] ?? 'Texto plano') . '</span></div><div class="code-box__body">' . implode('', $contenido) . '</div></div>';
+};
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -37,7 +49,7 @@ $renderIframe = static function ($embed, $url) use ($e) {
   <style>
     :root { --ink:#172033; --muted:#667085; --line:#d9e0ea; --brand:#2563eb; --bg:#f5f7fb; }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Arial, sans-serif; color: var(--ink); background: var(--bg); }
+    body { margin: 0; font-family: Arial, sans-serif; color: var(--ink); background: var(--bg); cursor: default; }
     .wrap { width: min(1040px, calc(100% - 32px)); margin: 0 auto; }
     .top { background: #fff; border-bottom: 1px solid var(--line); }
     .top .wrap { min-height: 68px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
@@ -54,7 +66,7 @@ $renderIframe = static function ($embed, $url) use ($e) {
     .question { margin-bottom:16px; }
     .question h3 { margin:0 0 10px; font-size:18px; }
     label { display:block; margin:8px 0; }
-    input[type="text"], input[type="email"] { width:100%; min-height:42px; border:1px solid var(--line); border-radius:6px; padding:8px 10px; }
+    input[type="text"], input[type="email"] { width:100%; min-height:42px; border:1px solid var(--line); border-radius:6px; padding:8px 10px; cursor:text; }
     .activity-frame { width:100%; aspect-ratio:16/9; border:1px solid var(--line); border-radius:8px; background:#fff; }
     .alert { padding:12px 14px; border-radius:6px; margin-bottom:16px; }
     .alert.ok { background:#e8f8ef; color:#166534; border:1px solid #bbf7d0; }
@@ -65,6 +77,14 @@ $renderIframe = static function ($embed, $url) use ($e) {
     .badge.err { background:#fee2e2; color:#991b1b; }
     .meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .pill { border:1px solid var(--line); border-radius:999px; padding:5px 10px; color:var(--muted); font-size:13px; background:#fff; }
+    textarea { width:100%; min-height:110px; border:1px solid var(--line); border-radius:6px; padding:10px 12px; font: inherit; cursor:text; }
+    .code-box { border:1px solid #1e293b; border-radius:8px; overflow:hidden; background:linear-gradient(180deg, #111827 0%, #0f172a 100%); margin:12px 0; box-shadow:0 16px 34px rgba(15,23,42,.12); }
+    .code-box__header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; background:#111827; color:#cbd5e1; border-bottom:1px solid rgba(148,163,184,.18); cursor:default; }
+    .code-pill { border-radius:999px; padding:4px 10px; font-size:12px; font-weight:700; background:rgba(59,130,246,.18); color:#bfdbfe; }
+    .code-box__body { padding:12px 0; }
+    .code-line { display:grid; grid-template-columns:48px 1fr; gap:12px; padding:0 16px; font-family:Consolas, Monaco, monospace; font-size:14px; line-height:1.7; color:#e2e8f0; white-space:pre-wrap; }
+    .code-line__number { color:#64748b; text-align:right; user-select:none; }
+    .code-line__text { overflow-wrap:anywhere; }
   </style>
 </head>
 <body>
@@ -99,7 +119,7 @@ $renderIframe = static function ($embed, $url) use ($e) {
             <p class="muted"><?php echo $e($item['descripcionActividad'] ?? ''); ?></p>
             <div class="meta">
               <span class="pill"><?php echo $e($item['nombreCurso'] ?? 'Publica'); ?></span>
-              <span class="pill"><?php echo $e($item['tipoActividad']); ?></span>
+              <span class="pill"><?php echo $e($tipoLabels[$item['tipoActividad']] ?? $item['tipoActividad']); ?></span>
             </div>
             <p><a class="btn" href="index.php?r=actividad-publica&slug=<?php echo rawurlencode((string) $item['slug']); ?>">Abrir actividad</a></p>
           </article>
@@ -128,7 +148,7 @@ $renderIframe = static function ($embed, $url) use ($e) {
         <h1><?php echo $e($actividad['tituloActividad']); ?></h1>
         <p class="lead"><?php echo $e($actividad['descripcionActividad'] ?? ''); ?></p>
         <div class="meta">
-          <span class="pill"><?php echo $e($actividad['tipoActividad']); ?></span>
+          <span class="pill"><?php echo $e($tipoLabels[$actividad['tipoActividad']] ?? $actividad['tipoActividad']); ?></span>
           <span class="pill"><?php echo (float) ($actividad['puntajeMaximo'] ?? 0); ?> puntos</span>
           <?php if ($intentosPermitidos > 0): ?>
             <span class="pill">Intentos <?php echo (int) $intentosPermitidos; ?></span>
@@ -194,6 +214,9 @@ $renderIframe = static function ($embed, $url) use ($e) {
             <div class="question">
               <h3><?php echo (int) ($index + 1); ?>. <?php echo $e($pregunta['textoPregunta']); ?></h3>
               <?php if (!empty($pregunta['pista'])): ?><p class="muted">Pista: <?php echo $e($pregunta['pista']); ?></p><?php endif; ?>
+              <?php if (($pregunta['tipoPregunta'] ?? '') === 'codigo' && !empty($pregunta['codigoBase'])): ?>
+                <?php echo $renderCodigo($pregunta['codigoBase'], (string) ($pregunta['lenguajeCodigo'] ?? 'plaintext')); ?>
+              <?php endif; ?>
               <?php if (($pregunta['tipoPregunta'] ?? '') === 'multiple_choice'): ?>
                 <?php foreach ($pregunta['opciones'] as $opcion): ?>
                   <label>
@@ -216,6 +239,8 @@ $renderIframe = static function ($embed, $url) use ($e) {
               <?php elseif (($pregunta['tipoPregunta'] ?? '') === 'verdadero_falso'): ?>
                 <label><input type="radio" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" value="verdadero" required> Verdadero</label>
                 <label><input type="radio" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" value="falso" required> Falso</label>
+              <?php elseif (($pregunta['tipoPregunta'] ?? '') === 'codigo'): ?>
+                <textarea name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" rows="3" placeholder="Describe el error o escribe la correccion esperada." required></textarea>
               <?php else: ?>
                 <input type="text" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" required>
               <?php endif; ?>

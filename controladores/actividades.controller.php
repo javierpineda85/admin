@@ -9,6 +9,7 @@ class ControladorActividades
             'multiple_choice' => 'Multiple choice',
             'verdadero_falso' => 'Verdadero / falso',
             'completar' => 'Completar espacios',
+            'codigo' => 'Detectar error en codigo',
             'externa' => 'Recurso externo',
         ];
     }
@@ -71,6 +72,19 @@ class ControladorActividades
         return [
             'personal' => 'Personal',
             'institucional' => 'Institucional',
+        ];
+    }
+
+    public static function lenguajesCodigoDisponibles()
+    {
+        return [
+            'plaintext' => 'Texto plano',
+            'html' => 'HTML',
+            'css' => 'CSS',
+            'javascript' => 'JavaScript',
+            'php' => 'PHP',
+            'sql' => 'SQL',
+            'python' => 'Python',
         ];
     }
 
@@ -561,7 +575,11 @@ class ControladorActividades
             }
         } else {
             $textoRespuesta = trim((string) $respuesta);
-            $correcta = self::normalizarTexto($textoRespuesta) === self::normalizarTexto((string) ($pregunta['respuestaCorrecta'] ?? ''));
+            if ($tipo === 'codigo') {
+                $correcta = self::coincideRespuestaCodigo($textoRespuesta, $pregunta);
+            } else {
+                $correcta = self::normalizarTexto($textoRespuesta) === self::normalizarTexto((string) ($pregunta['respuestaCorrecta'] ?? ''));
+            }
         }
 
         return [
@@ -584,6 +602,9 @@ class ControladorActividades
         $puntajes = $_POST['puntajePregunta'] ?? [];
         $pistas = $_POST['pistaPregunta'] ?? [];
         $explicaciones = $_POST['explicacionError'] ?? [];
+        $codigos = $_POST['codigoBase'] ?? [];
+        $lenguajesCodigo = $_POST['lenguajeCodigo'] ?? [];
+        $variantesCodigo = $_POST['variantesCodigo'] ?? [];
         $opciones = $_POST['opciones'] ?? [];
         $correctas = $_POST['opcionCorrecta'] ?? [];
         $preguntas = [];
@@ -598,6 +619,9 @@ class ControladorActividades
                 'tipoPregunta' => $tipo,
                 'textoPregunta' => $texto,
                 'respuestaCorrecta' => trim((string) ($respuestas[$indice] ?? '')),
+                'codigoBase' => trim((string) ($codigos[$indice] ?? '')),
+                'lenguajeCodigo' => self::valorPermitido($lenguajesCodigo[$indice] ?? 'plaintext', array_keys(self::lenguajesCodigoDisponibles()), 'plaintext'),
+                'variantesCodigo' => trim((string) ($variantesCodigo[$indice] ?? '')),
                 'puntaje' => max(0, (float) ($puntajes[$indice] ?? 1)),
                 'pista' => trim((string) ($pistas[$indice] ?? '')),
                 'explicacionError' => trim((string) ($explicaciones[$indice] ?? '')),
@@ -653,6 +677,10 @@ class ControladorActividades
                 }
             }
 
+            if ($tipo === 'codigo' && ($pregunta['codigoBase'] === '' || $pregunta['respuestaCorrecta'] === '')) {
+                continue;
+            }
+
             $preguntas[] = $pregunta;
         }
 
@@ -668,6 +696,9 @@ class ControladorActividades
                 'tipoPregunta' => (string) ($pregunta['tipoPregunta'] ?? ''),
                 'textoPregunta' => (string) ($pregunta['textoPregunta'] ?? ''),
                 'respuestaCorrecta' => (string) ($pregunta['respuestaCorrecta'] ?? ''),
+                'codigoBase' => (string) ($pregunta['codigoBase'] ?? ''),
+                'lenguajeCodigo' => (string) ($pregunta['lenguajeCodigo'] ?? 'plaintext'),
+                'variantesCodigo' => (string) ($pregunta['variantesCodigo'] ?? ''),
                 'puntaje' => (float) ($pregunta['puntaje'] ?? 0),
                 'pista' => (string) ($pregunta['pista'] ?? ''),
                 'explicacionError' => (string) ($pregunta['explicacionError'] ?? ''),
@@ -805,6 +836,102 @@ class ControladorActividades
         $valor = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $valor);
         $valor = preg_replace('/\s+/', ' ', $valor);
         return $valor;
+    }
+
+    private static function coincideRespuestaCodigo($respuesta, array $pregunta)
+    {
+        $respuestaNormalizada = self::normalizarTextoComparacion($respuesta);
+        if ($respuestaNormalizada === '') {
+            return false;
+        }
+
+        foreach (self::candidatosRespuestaCodigo($pregunta) as $candidata) {
+            $candidataNormalizada = self::normalizarTextoComparacion($candidata);
+            if ($candidataNormalizada === '') {
+                continue;
+            }
+
+            if ($respuestaNormalizada === $candidataNormalizada) {
+                return true;
+            }
+
+            if (strlen($candidataNormalizada) >= 6 && (strpos($respuestaNormalizada, $candidataNormalizada) !== false || strpos($candidataNormalizada, $respuestaNormalizada) !== false)) {
+                return true;
+            }
+
+            similar_text($respuestaNormalizada, $candidataNormalizada, $porcentaje);
+            if ($porcentaje >= 78) {
+                return true;
+            }
+
+            $palabrasClave = self::palabrasClaveCodigo($candidataNormalizada);
+            if (!empty($palabrasClave) && self::cumpleCoberturaPalabrasClave($respuestaNormalizada, $palabrasClave)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function candidatosRespuestaCodigo(array $pregunta)
+    {
+        $candidatos = [];
+        $principal = trim((string) ($pregunta['respuestaCorrecta'] ?? ''));
+        if ($principal !== '') {
+            $candidatos[] = $principal;
+        }
+
+        $variantes = preg_split('/\r\n|\r|\n/', (string) ($pregunta['variantesCodigo'] ?? ''));
+        foreach ($variantes as $variante) {
+            $variante = trim((string) $variante);
+            if ($variante !== '') {
+                $candidatos[] = $variante;
+            }
+        }
+
+        return array_values(array_unique($candidatos));
+    }
+
+    private static function normalizarTextoComparacion($valor)
+    {
+        $valor = self::normalizarTexto($valor);
+        $valor = preg_replace('/[^a-z0-9\s]/', ' ', $valor);
+        $valor = preg_replace('/\s+/', ' ', trim((string) $valor));
+        return $valor;
+    }
+
+    private static function palabrasClaveCodigo($texto)
+    {
+        $stopwords = [
+            'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'al', 'y', 'o',
+            'que', 'se', 'en', 'por', 'para', 'con', 'sin', 'es', 'esta', 'este', 'falta',
+            'hay', 'usar', 'usa', 'debe', 'deberia', 'tiene', 'tener', 'error', 'codigo'
+        ];
+
+        $partes = preg_split('/\s+/', (string) $texto);
+        $palabras = [];
+        foreach ($partes as $parte) {
+            $parte = trim((string) $parte);
+            if ($parte === '' || strlen($parte) < 3 || in_array($parte, $stopwords, true)) {
+                continue;
+            }
+            $palabras[] = $parte;
+        }
+
+        return array_values(array_unique($palabras));
+    }
+
+    private static function cumpleCoberturaPalabrasClave($respuestaNormalizada, array $palabrasClave)
+    {
+        $coincidencias = 0;
+        foreach ($palabrasClave as $palabra) {
+            if (preg_match('/(^|\s)' . preg_quote($palabra, '/') . '(\s|$)/', $respuestaNormalizada)) {
+                $coincidencias++;
+            }
+        }
+
+        $minimo = count($palabrasClave) <= 2 ? count($palabrasClave) : max(2, (int) ceil(count($palabrasClave) * 0.7));
+        return $coincidencias >= $minimo;
     }
 
     private static function normalizarSlugBase($valor)

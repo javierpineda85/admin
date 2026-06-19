@@ -2,6 +2,23 @@
 include __DIR__ . '/_formulario-actividad-config.php';
 ?>
 
+<style>
+  .page-fade { cursor: default; }
+  .page-fade button,
+  .page-fade [type="button"],
+  .page-fade [type="submit"],
+  .page-fade select,
+  .page-fade a.btn,
+  .page-fade .btn { cursor: pointer; }
+  .page-fade input,
+  .page-fade textarea { cursor: text; }
+  .code-editor-shell { border: 1px solid #dbe3ef; border-radius: 8px; overflow: hidden; background: linear-gradient(180deg, #111827 0%, #0f172a 100%); box-shadow: 0 16px 34px rgba(15, 23, 42, .12), inset 0 1px 0 rgba(255,255,255,.04); }
+  .code-editor-shell__header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .65rem .85rem; background: #111827; color: #cbd5e1; border-bottom: 1px solid rgba(148, 163, 184, .18); cursor: default; }
+  .code-editor-shell__header small { color: #94a3b8; margin: 0; }
+  .code-editor-textarea { border: 0; border-radius: 0; min-height: 220px; resize: vertical; background: transparent; color: #e2e8f0; font-family: Consolas, Monaco, monospace; line-height: 1.55; tab-size: 2; cursor: text !important; }
+  .code-editor-textarea:focus { background: #0f172a; color: #f8fafc; box-shadow: none; }
+</style>
+
 <section class="content page-fade">
   <div class="container-fluid">
     <div class="entity-hero mb-4">

@@ -49,6 +49,9 @@ class ModeloActividades
                 id_actividad INT NOT NULL,
                 tipoPregunta VARCHAR(30) NOT NULL,
                 textoPregunta TEXT NOT NULL,
+                codigoBase MEDIUMTEXT NULL,
+                lenguajeCodigo VARCHAR(30) NOT NULL DEFAULT 'plaintext',
+                variantesCodigo TEXT NULL,
                 respuestaCorrecta TEXT NULL,
                 puntaje DECIMAL(6,2) NOT NULL DEFAULT 1,
                 orden INT NOT NULL DEFAULT 1,
@@ -108,6 +111,9 @@ class ModeloActividades
         self::agregarColumnaSiFalta($pdo, 'actividades', 'alcancePlantilla', "ALTER TABLE actividades ADD COLUMN alcancePlantilla VARCHAR(20) NOT NULL DEFAULT 'personal' AFTER esPlantilla");
         self::agregarColumnaSiFalta($pdo, 'actividades', 'destacadaPublica', "ALTER TABLE actividades ADD COLUMN destacadaPublica TINYINT(1) NOT NULL DEFAULT 0 AFTER alcancePlantilla");
         self::agregarColumnaSiFalta($pdo, 'actividades', 'id_actividad_origen', "ALTER TABLE actividades ADD COLUMN id_actividad_origen INT NULL AFTER esPlantilla");
+        self::agregarColumnaSiFalta($pdo, 'actividades_preguntas', 'codigoBase', "ALTER TABLE actividades_preguntas ADD COLUMN codigoBase MEDIUMTEXT NULL AFTER textoPregunta");
+        self::agregarColumnaSiFalta($pdo, 'actividades_preguntas', 'lenguajeCodigo', "ALTER TABLE actividades_preguntas ADD COLUMN lenguajeCodigo VARCHAR(30) NOT NULL DEFAULT 'plaintext' AFTER codigoBase");
+        self::agregarColumnaSiFalta($pdo, 'actividades_preguntas', 'variantesCodigo', "ALTER TABLE actividades_preguntas ADD COLUMN variantesCodigo TEXT NULL AFTER lenguajeCodigo");
         self::agregarColumnaSiFalta($pdo, 'actividades_preguntas', 'explicacionError', "ALTER TABLE actividades_preguntas ADD COLUMN explicacionError TEXT NULL AFTER pista");
 
         self::$tablasPreparadas = true;
@@ -658,14 +664,17 @@ class ModeloActividades
         foreach ($preguntas as $orden => $pregunta) {
             $stmt = Conexion::conectar()->prepare("
                 INSERT INTO actividades_preguntas (
-                    id_actividad, tipoPregunta, textoPregunta, respuestaCorrecta, puntaje, orden, pista, explicacionError
+                    id_actividad, tipoPregunta, textoPregunta, codigoBase, lenguajeCodigo, variantesCodigo, respuestaCorrecta, puntaje, orden, pista, explicacionError
                 ) VALUES (
-                    :id_actividad, :tipoPregunta, :textoPregunta, :respuestaCorrecta, :puntaje, :orden, :pista, :explicacionError
+                    :id_actividad, :tipoPregunta, :textoPregunta, :codigoBase, :lenguajeCodigo, :variantesCodigo, :respuestaCorrecta, :puntaje, :orden, :pista, :explicacionError
                 )
             ");
             $stmt->bindValue(':id_actividad', (int) $idActividad, PDO::PARAM_INT);
             $stmt->bindValue(':tipoPregunta', $pregunta['tipoPregunta'], PDO::PARAM_STR);
             $stmt->bindValue(':textoPregunta', $pregunta['textoPregunta'], PDO::PARAM_STR);
+            $stmt->bindValue(':codigoBase', $pregunta['codigoBase'] ?? null, !empty($pregunta['codigoBase']) ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':lenguajeCodigo', $pregunta['lenguajeCodigo'] ?? 'plaintext', PDO::PARAM_STR);
+            $stmt->bindValue(':variantesCodigo', $pregunta['variantesCodigo'] ?? null, !empty($pregunta['variantesCodigo']) ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':respuestaCorrecta', $pregunta['respuestaCorrecta'], PDO::PARAM_STR);
             $stmt->bindValue(':puntaje', (string) $pregunta['puntaje'], PDO::PARAM_STR);
             $stmt->bindValue(':orden', (int) ($orden + 1), PDO::PARAM_INT);

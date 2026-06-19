@@ -17,6 +17,9 @@ if (empty($preguntas)) {
   $preguntas = [[
     'textoPregunta' => '',
     'respuestaCorrecta' => '',
+    'codigoBase' => '',
+    'lenguajeCodigo' => 'plaintext',
+    'variantesCodigo' => '',
     'puntaje' => 1,
     'pista' => '',
     'explicacionError' => '',
@@ -33,5 +36,6 @@ $e = static function ($valor) {
   return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
 $tipos = ControladorActividades::tiposDisponibles();
+$lenguajesCodigo = ControladorActividades::lenguajesCodigoDisponibles();
 $visibilidades = ControladorActividades::visibilidadesDisponibles();
 $estados = ControladorActividades::estadosDisponibles();

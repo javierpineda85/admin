@@ -22,7 +22,8 @@ $esBanco = true;
   @media (max-width: 1399.98px) { .activity-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 991.98px) { .activity-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 575.98px) { .activity-card-grid { grid-template-columns: 1fr; } }
-  .activity-card { border: 1px solid rgba(15, 23, 42, .1); border-radius: 8px; background: #fff; min-height: 100%; box-shadow: 0 10px 24px rgba(15, 23, 42, .06); overflow: hidden; }
+  .activity-card { position: relative; z-index: 1; border: 1px solid rgba(15, 23, 42, .1); border-radius: 8px; background: #fff; min-height: 100%; box-shadow: 0 10px 24px rgba(15, 23, 42, .06); overflow: visible; }
+  .activity-card.is-menu-open { z-index: 30; }
   .activity-card__top { min-height: 92px; padding: 1rem; background: linear-gradient(135deg, #5b21b6, #2563eb); color: #fff; }
   .activity-card__top.theme-1 { background: linear-gradient(135deg, #047857, #0f766e); }
   .activity-card__top.theme-2 { background: linear-gradient(135deg, #be123c, #c2410c); }
@@ -38,6 +39,8 @@ $esBanco = true;
   .activity-actions { display: inline-flex; align-items: center; gap: .35rem; flex-wrap: wrap; justify-content: flex-end; }
   .activity-menu-button { min-width: 36px; }
   .dropdown-item-form { margin: 0; }
+  .activity-actions .dropdown { position: relative; }
+  .activity-actions .dropdown-menu { z-index: 1080; }
 </style>
 
 <section class="content page-fade">
@@ -163,6 +166,22 @@ $esBanco = true;
           navigator.clipboard.writeText(texto);
         });
       });
+
+      if (window.jQuery) {
+        window.jQuery('.activity-actions .dropdown').on('show.bs.dropdown', function () {
+          var card = this.closest('.activity-card');
+          if (card) {
+            card.classList.add('is-menu-open');
+          }
+        });
+
+        window.jQuery('.activity-actions .dropdown').on('hidden.bs.dropdown', function () {
+          var card = this.closest('.activity-card');
+          if (card) {
+            card.classList.remove('is-menu-open');
+          }
+        });
+      }
     });
   </script>
 <?php endif; ?>

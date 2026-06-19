@@ -75,3 +75,33 @@ Se agregan mejoras de gestion para que el banco funcione como herramienta diaria
   - alternar destacado
   - cambiar alcance de plantilla
   - mover plantilla al listado de trabajo
+
+## Fase 4A - Actividad de codigo
+
+Se incorpora una nueva actividad pedagogica para debugging guiado:
+
+- Tipo `Detectar error en codigo`.
+- Cada desafio puede incluir:
+  - enunciado
+  - bloque de codigo con error
+  - respuesta esperada
+  - pista
+  - explicacion si el estudiante se equivoca
+- La correccion sigue usando el mismo motor de intentos del modulo.
+
+## Fase 4B - UX y correccion flexible
+
+Se mejora el tipo `Detectar error en codigo` con dos frentes:
+
+- UX del docente y del estudiante:
+  - selector de lenguaje
+  - bloque visual de codigo mas cercano a VS Code
+  - numeracion de lineas en la vista de resolucion
+- Correccion mas flexible:
+  - respuesta principal esperada
+  - variantes validas opcionales, una por linea
+  - comparacion por similitud y palabras clave para aceptar redacciones equivalentes
+
+## Nota sobre iframes externos
+
+La integracion externa no queda atada a Wordwall. Si una herramienta permite copiar un `iframe`, se puede embeber desde la actividad tipo `Recurso externo`.
