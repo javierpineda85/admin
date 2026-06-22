@@ -56,13 +56,15 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(request).then((cached) => {
-      const network = fetch(request).then((response) => {
-        if (response && response.ok) {
-          const copia = response.clone();
-          caches.open(STATIC_CACHE).then((cache) => cache.put(request, copia));
-        }
-        return response;
-      });
+      const network = fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            const copia = response.clone();
+            caches.open(STATIC_CACHE).then((cache) => cache.put(request, copia));
+          }
+          return response;
+        })
+        .catch(() => cached || Response.error());
 
       return cached || network;
     })
