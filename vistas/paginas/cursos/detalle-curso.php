@@ -13,9 +13,7 @@ $db = new Conexion;
 $sql = "SELECT * FROM cursos WHERE idCurso = $idCurso";
 $curso = $db->consultas($sql);
 
-$db = new Conexion;
-$sql = "SELECT * FROM usuarios WHERE rol = 'ESTUDIANTE' ORDER BY apellidoUsuario ASC, nombreUsuario ASC";
-$estudiantes = $db->consultas($sql);
+$estudiantes = $esAdmin ? ControladorCursos::crtEstudiantesDisponiblesCurso($idCurso) : [];
 
 $db = new Conexion;
 $sql = "SELECT * FROM asignacioncursos
@@ -268,6 +266,7 @@ if (ControladorPermisos::esEstudiante()) {
                             </div>
                             <div class="card-body">
                                 <form action="" method="POST">
+                                    <input type="hidden" name="idCurso" value="<?php echo (int) $idCurso; ?>">
                                     <table id="example1" class="table table-bordered table-striped table-sm">
                                         <thead>
                                             <tr>
@@ -277,6 +276,11 @@ if (ControladorPermisos::esEstudiante()) {
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            <?php if (empty($estudiantes)): ?>
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted py-4">Todos los estudiantes activos ya estan inscriptos en este curso.</td>
+                                                </tr>
+                                            <?php endif; ?>
                                             <?php foreach ($estudiantes as $valor): ?>
                                                 <tr>
                                                     <td><?php echo htmlspecialchars($valor['apellidoUsuario'] . ' ' . $valor['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
@@ -287,7 +291,7 @@ if (ControladorPermisos::esEstudiante()) {
                                         </tbody>
                                     </table>
                                     <?php $registro = ControladorCursos::crtAsignarCurso(); ?>
-                                    <input type="submit" value="AGREGAR" class="btn btn-primary">
+                                    <input type="submit" value="AGREGAR" class="btn btn-primary" <?php echo empty($estudiantes) ? 'disabled' : ''; ?>>
                                 </form>
                             </div>
                         </div>

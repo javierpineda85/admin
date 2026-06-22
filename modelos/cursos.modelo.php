@@ -192,12 +192,36 @@ class ModeloCursos
     }
 
     /* ASIGNAR CURSO */
+    static public function mdlEstudiantesDisponiblesCurso($idCurso)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT u.*
+            FROM usuarios u
+            WHERE u.rol = 'ESTUDIANTE'
+              AND u.activo = 1
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM asignacioncursos a
+                  WHERE a.id_estudiante = u.idUsuario
+                    AND a.id_seccion = :idCurso
+              )
+            ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC
+        ");
+        $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     static public function mdlAsignarCurso($tabla, $datos)
     {
         $registro = Conexion::conectar()->prepare("
             INSERT INTO $tabla (id_estudiante,id_seccion)
-            SELECT :idUsuario, :idCurso
-            WHERE NOT EXISTS (
+            SELECT u.idUsuario, :idCurso
+            FROM usuarios u
+            WHERE u.idUsuario = :idUsuario
+              AND u.rol = 'ESTUDIANTE'
+              AND u.activo = 1
+              AND NOT EXISTS (
                 SELECT 1
                 FROM $tabla
                 WHERE id_estudiante = :idUsuarioExiste
@@ -212,7 +236,7 @@ class ModeloCursos
 
      
         if ($registro->execute()) {
-            return "ok";
+            return $registro->rowCount() === 1 ? "ok" : "exists";
         } else {
             print_r(Conexion::conectar()->errorInfo());
         }
