@@ -1,0 +1,49 @@
+{
+  "name": "MenteMotion Campus",
+  "short_name": "Campus",
+  "description": "Campus virtual para estudiantes, docentes y administradores.",
+  "lang": "es-AR",
+  "start_url": "./index.php",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f6f9",
+  "theme_color": "#59249b",
+  "icons": [
+    {
+      "src": "pwa/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Cursos",
+      "url": "./index.php?r=listado-cursos",
+      "icons": [{ "src": "pwa/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mensajes",
+      "url": "./index.php?r=bandeja-entrada",
+      "icons": [{ "src": "pwa/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Actividades",
+      "url": "./index.php?r=listado-actividades",
+      "icons": [{ "src": "pwa/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

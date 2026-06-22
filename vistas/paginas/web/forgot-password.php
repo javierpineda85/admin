@@ -12,8 +12,13 @@ unset($_SESSION['forgot_error'], $_SESSION['forgot_success'], $_SESSION['forgot_
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png?v=2">
   <link rel="shortcut icon" type="image/png" href="/img/favicon-16x16.png?v=2">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./pwa/icons/icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Campus">
   <meta name="msapplication-TileColor" content="#ffffff">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#59249b">
   <title>Campus | Recuperar contraseña</title>
   <link rel="stylesheet" href="./plugins/fontawesome-free/css/all.min.css">
   <link rel="stylesheet" href="./plugins/icheck-bootstrap/icheck-bootstrap.min.css">

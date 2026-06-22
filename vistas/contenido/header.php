@@ -40,6 +40,13 @@ $resumirTexto = static function ($texto, $longitud) {
   </ul>
 
   <ul class="navbar-nav ml-auto">
+    <li class="nav-item d-none" data-pwa-install-container>
+      <button type="button" class="nav-link btn btn-link" data-pwa-install title="Instalar Campus en este dispositivo">
+        <i class="fas fa-download mr-sm-1"></i>
+        <span class="d-none d-sm-inline">Instalar app</span>
+      </button>
+    </li>
+
     <li class="nav-item d-none d-sm-inline-block">
       <?php if ($puedeCambiarVista): ?>
         <a
@@ -163,3 +170,27 @@ $resumirTexto = static function ($texto, $longitud) {
     </li>
   </ul>
 </nav>
+
+<div class="modal fade" id="pwaInstallHelpModal" tabindex="-1" role="dialog" aria-labelledby="pwaInstallHelpTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="pwaInstallHelpTitle">Instalar Campus</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div id="pwaInstallIOS" class="d-none">
+          <p class="mb-2">En Safari, toca <strong>Compartir</strong> y luego <strong>Agregar a pantalla de inicio</strong>.</p>
+          <p class="text-muted mb-0">El acceso aparecera junto a tus aplicaciones.</p>
+        </div>
+        <div id="pwaInstallGeneral">
+          <p class="mb-2">Abri el menu del navegador y elegi <strong>Instalar aplicacion</strong> o <strong>Crear acceso directo</strong>.</p>
+          <p class="text-muted mb-0">Chrome y Edge muestran esta opcion en la barra de direcciones cuando esta disponible.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">Entendido</button>
+      </div>
+    </div>
+  </div>
+</div>

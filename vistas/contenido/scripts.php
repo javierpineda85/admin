@@ -5,6 +5,7 @@
 <script>
   $.widget.bridge('uibutton', $.ui.button)
 </script>
+<script src="./js/pwa-install.js"></script>
 <!-- Bootstrap 4 -->
 <script src="./plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- ChartJS -->

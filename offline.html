@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#59249b">
+  <title>Campus sin conexion</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; background: #f4f6f9; color: #172033; font-family: Arial, sans-serif; }
+    main { width: min(100%, 480px); text-align: center; }
+    img { width: 96px; height: 96px; border-radius: 20px; }
+    h1 { font-size: 1.6rem; margin: 20px 0 10px; }
+    p { color: #64748b; line-height: 1.55; }
+    button { margin-top: 12px; border: 0; border-radius: 6px; padding: 12px 18px; background: #59249b; color: #fff; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="pwa/icons/icon-192.png" alt="MenteMotion Campus">
+    <h1>Estas sin conexion</h1>
+    <p>El campus necesita internet para proteger y actualizar tus cursos, mensajes y calificaciones.</p>
+    <button type="button" onclick="window.location.reload()">Reintentar</button>
+  </main>
+</body>
+</html>

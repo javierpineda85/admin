@@ -8,8 +8,14 @@
   <meta name="description" content="Sistema de administración de estudiantes y cursos de e-learning realizado en PHP ">
   <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16x16.png?v=2">
   <link rel="shortcut icon" type="image/png" href="/img/favicon-16x16.png?v=2">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./pwa/icons/icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Campus">
   <meta name="msapplication-TileColor" content="#ffffff">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#59249b">
   <title>Campus</title>
 
   <!-- Google Font: Montserrat -->
