@@ -16,6 +16,8 @@
 - `recursoslecciones`: adjuntos y enlaces de una leccion.
 - `entregaslecciones`: entregas de tareas por estudiante.
 - `calificaciones`: notas y devolucion.
+- `evaluaciones`: evaluaciones creadas por tema y fecha sin depender de una leccion o trabajo practico.
+- `evaluaciones_calificaciones`: calificaciones y devoluciones de cada estudiante para una evaluacion independiente.
 - `actividades`: configuracion principal de actividades privadas, publicas, ocultas o guardadas como plantilla.
 - `actividades_preguntas`: preguntas asociadas a una actividad.
 - `actividades_opciones`: opciones de multiple choice.
