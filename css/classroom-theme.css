@@ -994,6 +994,10 @@ body.classroom-app .people-row:first-of-type {
   border-top: 0;
 }
 
+body.classroom-app .people-row__actions {
+  flex: 0 0 auto;
+}
+
 body.classroom-app .note-editor .note-modal,
 body.classroom-app .note-popover {
   z-index: 1065 !important;
@@ -1282,6 +1286,16 @@ body.login-page.classroom-auth .input-group-text {
 
   body.classroom-app .resource-grid {
     grid-template-columns: 1fr;
+  }
+
+  body.classroom-app .people-row {
+    flex-wrap: wrap;
+  }
+
+  body.classroom-app .people-row__actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-left: 3.55rem;
   }
 
   body.classroom-app .dashboard-context-head {

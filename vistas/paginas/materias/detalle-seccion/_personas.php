@@ -10,6 +10,9 @@ $idTutor = (int) ($seccion['tutor'] ?? 0);
 $puedeEnviarMensaje = function (int $idUsuario) use ($idUsuarioActual): bool {
     return $idUsuario > 0 && $idUsuario !== (int) $idUsuarioActual;
 };
+$urlPerfil = function (int $idUsuario) use ($idSeccion): string {
+    return 'index.php?r=perfil-publico&idUsuario=' . $idUsuario . '&idSeccion=' . (int) $idSeccion;
+};
 ?>
 
 <div class="people-panel">
@@ -24,11 +27,16 @@ $puedeEnviarMensaje = function (int $idUsuario) use ($idUsuarioActual): bool {
       <strong><?php echo $esc($docenteNombre !== '' ? $docenteNombre : 'Docente'); ?></strong>
       <small>Docente responsable</small>
     </div>
-    <?php if ($puedeEnviarMensaje($idDocente)): ?>
-      <a class="btn btn-outline-primary btn-sm" href="index.php?r=nuevo-mensaje&id_destinatario=<?php echo $idDocente; ?>">
-        <i class="fas fa-paper-plane mr-1"></i>Mensaje
+    <div class="people-row__actions d-flex flex-wrap align-items-center">
+      <a class="btn btn-outline-secondary btn-sm mr-2" href="<?php echo $esc($urlPerfil($idDocente)); ?>">
+        <i class="fas fa-user mr-1"></i>Perfil
       </a>
-    <?php endif; ?>
+      <?php if ($puedeEnviarMensaje($idDocente)): ?>
+        <a class="btn btn-outline-primary btn-sm" href="index.php?r=nuevo-mensaje&id_destinatario=<?php echo $idDocente; ?>">
+          <i class="fas fa-paper-plane mr-1"></i>Mensaje
+        </a>
+      <?php endif; ?>
+    </div>
   </div>
 
   <?php if ($idTutor > 0): ?>
@@ -38,11 +46,16 @@ $puedeEnviarMensaje = function (int $idUsuario) use ($idUsuarioActual): bool {
         <strong><?php echo $esc($tutorNombre !== '' ? $tutorNombre : 'Tutor'); ?></strong>
         <small>Tutor de la materia</small>
       </div>
-      <?php if ($puedeEnviarMensaje($idTutor)): ?>
-        <a class="btn btn-outline-primary btn-sm" href="index.php?r=nuevo-mensaje&id_destinatario=<?php echo $idTutor; ?>">
-          <i class="fas fa-paper-plane mr-1"></i>Mensaje
+      <div class="people-row__actions d-flex flex-wrap align-items-center">
+        <a class="btn btn-outline-secondary btn-sm mr-2" href="<?php echo $esc($urlPerfil($idTutor)); ?>">
+          <i class="fas fa-user mr-1"></i>Perfil
         </a>
-      <?php endif; ?>
+        <?php if ($puedeEnviarMensaje($idTutor)): ?>
+          <a class="btn btn-outline-primary btn-sm" href="index.php?r=nuevo-mensaje&id_destinatario=<?php echo $idTutor; ?>">
+            <i class="fas fa-paper-plane mr-1"></i>Mensaje
+          </a>
+        <?php endif; ?>
+      </div>
     </div>
   <?php endif; ?>
 </div>
@@ -67,11 +80,16 @@ $puedeEnviarMensaje = function (int $idUsuario) use ($idUsuarioActual): bool {
           <strong><?php echo $esc($nombreEstudiantePersona !== '' ? $nombreEstudiantePersona : 'Estudiante'); ?></strong>
           <small><?php echo $esc($estudiante['email'] ?? ''); ?></small>
         </div>
-        <?php if ($puedeEnviarMensaje($idEstudiantePersona)): ?>
-          <a class="btn btn-outline-primary btn-sm" href="index.php?r=nuevo-mensaje&id_destinatario=<?php echo $idEstudiantePersona; ?>">
-            <i class="fas fa-paper-plane mr-1"></i>Mensaje
+        <div class="people-row__actions d-flex flex-wrap align-items-center">
+          <a class="btn btn-outline-secondary btn-sm mr-2" href="<?php echo $esc($urlPerfil($idEstudiantePersona)); ?>">
+            <i class="fas fa-user mr-1"></i>Perfil
           </a>
-        <?php endif; ?>
+          <?php if ($puedeEnviarMensaje($idEstudiantePersona)): ?>
+            <a class="btn btn-outline-primary btn-sm" href="index.php?r=nuevo-mensaje&id_destinatario=<?php echo $idEstudiantePersona; ?>">
+              <i class="fas fa-paper-plane mr-1"></i>Mensaje
+            </a>
+          <?php endif; ?>
+        </div>
       </div>
     <?php endforeach; ?>
   <?php endif; ?>

@@ -67,6 +67,40 @@ class ControladorUsuarios
         return ModeloUsuarios::mdlObtenerUsuarioCompleto((int) $idUsuario);
     }
 
+    public static function crtPuedeVerPerfilEnSeccion($idUsuarioPerfil, $idSeccion)
+    {
+        $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+        $idUsuarioPerfil = (int) $idUsuarioPerfil;
+        $idSeccion = (int) $idSeccion;
+
+        if ($idUsuarioActual <= 0 || $idUsuarioPerfil <= 0 || $idSeccion <= 0) {
+            return false;
+        }
+
+        $seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
+        if (!$seccion) {
+            return false;
+        }
+
+        $idCurso = (int) ($seccion['id_curso'] ?? 0);
+        $rolReal = ControladorPermisos::rolReal();
+        $puedeEntrar = $rolReal === 'ADMINISTRADOR'
+            || ($rolReal === 'DOCENTE' && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual))
+            || ($rolReal === 'ESTUDIANTE' && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, $idCurso));
+
+        if (!$puedeEntrar) {
+            return false;
+        }
+
+        $esDocenteOTutor = in_array($idUsuarioPerfil, [
+            (int) ($seccion['docente'] ?? 0),
+            (int) ($seccion['tutor'] ?? 0),
+        ], true);
+
+        return $esDocenteOTutor
+            || ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioPerfil, $idCurso);
+    }
+
     public static function rutaImagenUsuario($rutaImagen, $fallback = 'user2-160x160.jpg')
     {
         $rutaImagen = trim((string) $rutaImagen);

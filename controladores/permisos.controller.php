@@ -59,6 +59,7 @@ class ControladorPermisos
         $permisos = [
             'DOCENTE' => [
                 'perfil-usuario',
+                'perfil-publico',
                 'editar-perfil',
                 'listado-cursos',
                 'detalle-curso',
@@ -81,6 +82,7 @@ class ControladorPermisos
             ],
             'ESTUDIANTE' => [
                 'perfil-usuario',
+                'perfil-publico',
                 'editar-perfil',
                 'listado-cursos',
                 'detalle-curso',
