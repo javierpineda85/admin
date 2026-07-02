@@ -1,5 +1,6 @@
 <?php
 require_once('modelos/lecciones.modelo.php');
+require_once('controladores/notificaciones.controller.php');
 
 class ControladorLecciones
 {
@@ -168,6 +169,13 @@ class ControladorLecciones
                 $_SESSION['error_message'] = 'No se pudo guardar el recurso inicial.';
                 return 'error';
             }
+            if ($estadoLeccion === 'PUBLICADA') {
+                $seccion = self::crtBuscarSeccionPorId($idModulo);
+                $leccionNueva = self::crtBuscarLeccionPorId($idLeccionNueva);
+                if ($seccion && $leccionNueva) {
+                    ControladorNotificaciones::crtNotificarLeccionPublicada($leccionNueva, $seccion);
+                }
+            }
             $_SESSION['success_message'] = $estadoLeccion === 'BORRADOR'
                 ? 'Leccion guardada como borrador.'
                 : 'Leccion publicada correctamente.';
@@ -221,6 +229,13 @@ class ControladorLecciones
         ]);
 
         if ($respuesta === 'ok') {
+            if ($estadoActual !== 'PUBLICADA' && $estadoLeccion === 'PUBLICADA') {
+                $seccion = self::crtBuscarSeccionPorId((int) ($leccion['id_modulo'] ?? 0));
+                $leccionActualizada = self::crtBuscarLeccionPorId($idLeccion);
+                if ($seccion && $leccionActualizada) {
+                    ControladorNotificaciones::crtNotificarLeccionPublicada($leccionActualizada, $seccion);
+                }
+            }
             $_SESSION['success_message'] = $estadoLeccion === 'BORRADOR'
                 ? 'Leccion guardada como borrador.'
                 : 'Leccion publicada correctamente.';

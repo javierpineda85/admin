@@ -1,6 +1,7 @@
 <?php
 require_once('conexion.php');
 require_once('mensajes.modelo.php');
+require_once('notificaciones.modelo.php');
 
 class ModeloPanel
 {
@@ -430,6 +431,11 @@ class ModeloPanel
         );
     }
 
+    private static function actividadNotificaciones($idUsuario, $limite = 5)
+    {
+        return ModeloNotificaciones::mdlListarNotificacionesUsuario((int) $idUsuario, (int) $limite);
+    }
+
     private static function prepararTablaLecturas()
     {
         if (self::$tablaLecturasPreparada) {
@@ -512,6 +518,17 @@ class ModeloPanel
                     'icon' => 'fas fa-star',
                     'class' => 'bg-success',
                     'orden' => (int) ($item['idCalificacion'] ?? 0),
+                ];
+            } elseif (isset($item['idNotificacion'])) {
+                $tipo = (string) ($item['tipoNotificacion'] ?? '');
+                $notificacion = [
+                    'clave' => 'notificacion:' . (int) ($item['idNotificacion'] ?? 0),
+                    'titulo' => (string) ($item['tituloNotificacion'] ?? 'Nueva publicacion'),
+                    'detalle' => (string) ($item['detalleNotificacion'] ?? ''),
+                    'fecha' => (string) ($item['fechaNotificacion'] ?? 'Reciente'),
+                    'icon' => $tipo === 'ACTIVIDAD_PUBLICADA' ? 'fas fa-tasks' : 'fas fa-book-open',
+                    'class' => $tipo === 'ACTIVIDAD_PUBLICADA' ? 'bg-info' : 'bg-success',
+                    'orden' => strtotime((string) ($item['fechaNotificacion'] ?? '')) ?: (int) ($item['idNotificacion'] ?? 0),
                 ];
             }
 
@@ -709,6 +726,7 @@ class ModeloPanel
 
         $mensajesRecientes = self::actividadMensajes($idUsuario, 5);
         $actividadReciente = array_slice(self::actividadNormalizada(array_merge(
+            self::actividadNotificaciones($idUsuario, 10),
             self::actividadEntregas($idUsuario, $rol, 10),
             self::actividadPosteos($idUsuario, $rol, 10),
             self::actividadCalificaciones($idUsuario, $rol, 10)

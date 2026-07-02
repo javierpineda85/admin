@@ -77,3 +77,15 @@ if (!defined('WP_SUPER_ADMIN_EMAILS')) {
     $wpSuperAdminEmails = array_values(array_filter(array_map('trim', explode(',', $wpSuperAdminEmailsRaw))));
     define('WP_SUPER_ADMIN_EMAILS', $wpSuperAdminEmails);
 }
+
+if (!defined('APP_BASE_URL')) {
+    define('APP_BASE_URL', rtrim((string) config_env('APP_BASE_URL', 'http://localhost/admin'), '/'));
+}
+
+if (!defined('MAIL_FROM_EMAIL')) {
+    define('MAIL_FROM_EMAIL', (string) config_env('MAIL_FROM_EMAIL', 'no-reply@classroom.local'));
+}
+
+if (!defined('MAIL_FROM_NAME')) {
+    define('MAIL_FROM_NAME', (string) config_env('MAIL_FROM_NAME', 'Classroom'));
+}

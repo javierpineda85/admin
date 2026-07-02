@@ -29,14 +29,13 @@ $renderIframe = static function ($embed, $url) use ($e) {
   return '<iframe class="activity-frame" src="' . $e($src) . '" allowfullscreen loading="lazy"></iframe>';
 };
 $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) {
-  $lineas = preg_split('/\r\n|\r|\n/', (string) $codigo);
-  $lineas = $lineas === false ? [(string) $codigo] : $lineas;
-  $contenido = [];
-  foreach ($lineas as $indice => $linea) {
-    $contenido[] = '<span class="code-line"><span class="code-line__number">' . (int) ($indice + 1) . '</span><span class="code-line__text">' . $e($linea === '' ? ' ' : $linea) . '</span></span>';
-  }
-
-  return '<div class="code-box"><div class="code-box__header"><span>Codigo para revisar</span><span class="code-pill">' . $e($lenguajesCodigo[$lenguaje] ?? 'Texto plano') . '</span></div><div class="code-box__body">' . implode('', $contenido) . '</div></div>';
+  $contenido = ControladorActividades::renderCodigoConEstilo($codigo, $lenguaje, $e);
+  $contenido = str_replace(
+    ['activity-code__line', 'activity-code__number', 'activity-code__text'],
+    ['code-line', 'code-line__number', 'code-line__text'],
+    $contenido
+  );
+  return '<div class="code-box"><div class="code-box__header"><span>Codigo para revisar</span><span class="code-pill">' . $e($lenguajesCodigo[$lenguaje] ?? 'Texto plano') . '</span></div><div class="code-box__body">' . $contenido . '</div></div>';
 };
 ?>
 <!DOCTYPE html>
@@ -85,6 +84,13 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
     .code-line { display:grid; grid-template-columns:48px 1fr; gap:12px; padding:0 16px; font-family:Consolas, Monaco, monospace; font-size:14px; line-height:1.7; color:#e2e8f0; white-space:pre-wrap; }
     .code-line__number { color:#64748b; text-align:right; user-select:none; }
     .code-line__text { overflow-wrap:anywhere; }
+    .activity-code__token--kw { color:#c792ea; font-weight:600; }
+    .activity-code__token--fn { color:#82aaff; }
+    .activity-code__token--var { color:#ffcb6b; }
+    .activity-code__token--num { color:#f78c6c; }
+    .activity-code__token--tag { color:#7fdbca; }
+    .activity-code__token--attr { color:#c3e88d; }
+    .activity-code__token--string { color:#ecc48d; }
   </style>
 </head>
 <body>

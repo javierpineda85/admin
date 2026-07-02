@@ -1,5 +1,6 @@
 <?php
 require_once('modelos/actividades.modelo.php');
+require_once('controladores/notificaciones.controller.php');
 
 class ControladorActividades
 {
@@ -86,6 +87,23 @@ class ControladorActividades
             'sql' => 'SQL',
             'python' => 'Python',
         ];
+    }
+
+    public static function renderCodigoConEstilo($codigo, $lenguaje, callable $escapeHtml = null)
+    {
+        $escapeHtml = static function ($valor) {
+            return htmlspecialchars((string) $valor, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        };
+
+        $lineas = preg_split('/\r\n|\r|\n/', (string) $codigo);
+        $lineas = $lineas === false ? [(string) $codigo] : $lineas;
+        $contenido = [];
+
+        foreach ($lineas as $indice => $linea) {
+            $contenido[] = '<span class="activity-code__line"><span class="activity-code__number">' . (int) ($indice + 1) . '</span><span class="activity-code__text">' . self::resaltarCodigoLinea($linea === '' ? ' ' : $linea, $lenguaje, $escapeHtml) . '</span></span>';
+        }
+
+        return implode('', $contenido);
     }
 
     public static function crtListarPublicas()
@@ -448,6 +466,13 @@ class ControladorActividades
 
         $_SESSION['success_message'] = 'Actividad guardada correctamente.';
         $idDestino = $idActividad > 0 ? $idActividad : (int) $respuesta;
+        $estadoAnterior = strtoupper((string) ($actividadActual['estadoActividad'] ?? ''));
+        if ($estado === 'PUBLICADA' && ($idActividad <= 0 || $estadoAnterior !== 'PUBLICADA')) {
+            $actividadPublicada = self::crtBuscarActividadPorId($idDestino);
+            if ($actividadPublicada) {
+                ControladorNotificaciones::crtNotificarActividadPublicada($actividadPublicada);
+            }
+        }
         self::redirigir('index.php?r=editar-actividad&idActividad=' . $idDestino);
     }
 
@@ -873,6 +898,48 @@ class ControladorActividades
     {
         $valor = trim((string) $valor);
         return in_array($valor, $permitidos, true) ? $valor : $fallback;
+    }
+
+    private static function resaltarCodigoLinea($linea, $lenguaje, callable $escapeHtml)
+    {
+        $texto = $escapeHtml((string) $linea);
+        $lenguaje = strtolower(trim((string) $lenguaje));
+
+        if ($lenguaje === 'html') {
+            $texto = preg_replace('/(&lt;\/?)([a-zA-Z][a-zA-Z0-9:-]*)/', '$1<span class="activity-code__token activity-code__token--tag">$2</span>', $texto);
+            $texto = preg_replace('/\s([a-zA-Z:-]+)=(&quot;.*?&quot;|&#039;.*?&#039;)/', ' <span class="activity-code__token activity-code__token--attr">$1</span>=<span class="activity-code__token activity-code__token--string">$2</span>', $texto);
+            return $texto;
+        }
+
+        if ($lenguaje === 'css') {
+            $texto = preg_replace('/([.#]?[a-zA-Z_][a-zA-Z0-9\-_]*)(\s*\{)/', '<span class="activity-code__token activity-code__token--tag">$1</span>$2', $texto);
+            $texto = preg_replace('/([a-zA-Z\-]+)(\s*:)/', '<span class="activity-code__token activity-code__token--attr">$1</span>$2', $texto);
+        }
+
+        $texto = preg_replace('/(\$[a-zA-Z_][a-zA-Z0-9_]*)/', '<span class="activity-code__token activity-code__token--var">$1</span>', $texto);
+        $texto = preg_replace('/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/', '<span class="activity-code__token activity-code__token--fn">$1</span>', $texto);
+        $texto = preg_replace('/(?<![a-zA-Z0-9_])(\d+(?:\.\d+)?)(?![a-zA-Z0-9_])/', '<span class="activity-code__token activity-code__token--num">$1</span>', $texto);
+
+        foreach (self::keywordsPorLenguaje($lenguaje) as $keyword) {
+            $texto = preg_replace('/\b(' . preg_quote($keyword, '/') . ')\b/i', '<span class="activity-code__token activity-code__token--kw">$1</span>', $texto);
+        }
+
+        return $texto;
+    }
+
+    private static function keywordsPorLenguaje($lenguaje)
+    {
+        $mapa = [
+            'javascript' => ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'document', 'window', 'true', 'false', 'null', 'new'],
+            'php' => ['function', 'return', 'if', 'else', 'foreach', 'as', 'public', 'private', 'protected', 'class', 'static', 'null', 'true', 'false', 'echo'],
+            'sql' => ['select', 'from', 'where', 'insert', 'into', 'update', 'delete', 'join', 'inner', 'left', 'right', 'on', 'group', 'by', 'order', 'begin', 'commit', 'rollback', 'set'],
+            'python' => ['def', 'return', 'if', 'else', 'elif', 'for', 'while', 'in', 'True', 'False', 'None', 'class', 'import', 'from', 'print'],
+            'html' => ['html', 'head', 'body', 'div', 'span', 'script', 'style', 'form', 'input', 'button'],
+            'css' => ['display', 'position', 'color', 'background', 'padding', 'margin', 'border', 'width', 'height', 'grid', 'flex'],
+            'plaintext' => [],
+        ];
+
+        return $mapa[$lenguaje] ?? $mapa['plaintext'];
     }
 
     private static function clavePersonaIntento(array $intento)
