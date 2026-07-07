@@ -8,6 +8,9 @@ if ($accion !== '') {
 }
 
 $seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
+if ($idSeccion > 0) {
+  ControladorLecciones::crtProcesarLeccionesProgramadas($idSeccion);
+}
 $lecciones = $idSeccion > 0 ? ControladorLecciones::crtBuscarLeccionesPorSeccion($idSeccion) : [];
 $rolReal = ControladorPermisos::rolReal();
 $vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
@@ -84,6 +87,22 @@ $claseBadgeTipoLeccion = static function ($tipo): string {
   return 'lesson-type-badge lesson-type-badge--material';
 };
 
+$fechaProgramadaInput = static function ($valor): string {
+  $timestamp = strtotime((string) $valor);
+  return $timestamp ? date('Y-m-d\TH:i', $timestamp) : '';
+};
+
+$leccionProgramada = static function (array $leccion): bool {
+  $estado = strtoupper((string) ($leccion['estadoLeccion'] ?? 'PUBLICADA'));
+  $fecha = trim((string) ($leccion['fechaPublicacionLeccion'] ?? ''));
+  return $estado === 'PUBLICADA' && $fecha !== '' && strtotime($fecha) > time();
+};
+
+$fechaProgramadaTexto = static function ($valor): string {
+  $timestamp = strtotime((string) $valor);
+  return $timestamp ? date('d/m/Y H:i', $timestamp) : '';
+};
+
 if (ControladorPermisos::esDocente() && !$puedeAccederDocente) {
 ?>
   <section class="content page-fade">
@@ -155,7 +174,7 @@ if (ControladorPermisos::esEstudiante()) {
 
         <ul class="nav nav-tabs classroom-tabs mb-4" role="tablist">
           <li class="nav-item">
-            <a class="nav-link active" data-toggle="tab" href="#tablon" role="tab">Tablón</a>
+            <a class="nav-link active" data-toggle="tab" href="#tablon" role="tab">Novedades</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" data-toggle="tab" href="#trabajo-clase" role="tab">Trabajo de clase</a>
@@ -475,15 +494,20 @@ if (ControladorPermisos::esEstudiante()) {
                     <label class="small text-muted">Nombre</label>
                     <input type="text" name="nombreLeccion" class="form-control form-control-sm" placeholder="Ej. Introduccion al tema" required>
                   </div>
-                  <div class="form-group col-sm-12 col-md-3">
-                    <label class="small text-muted">Tipo</label>
-                    <select name="tipoLeccion" class="form-control form-control-sm" required>
-                      <option value="MATERIAL">Material</option>
-                      <option value="TAREA">Tarea</option>
-                      <option value="PREGUNTA">Pregunta</option>
-                    </select>
-                  </div>
-                </div>
+	                  <div class="form-group col-sm-12 col-md-3">
+	                    <label class="small text-muted">Tipo</label>
+	                    <select name="tipoLeccion" class="form-control form-control-sm" required>
+	                      <option value="MATERIAL">Material</option>
+	                      <option value="TAREA">Tarea</option>
+	                      <option value="PREGUNTA">Pregunta</option>
+	                    </select>
+	                  </div>
+	                  <div class="form-group col-sm-12 col-md-4">
+	                    <label class="small text-muted">Programar publicacion</label>
+	                    <input type="datetime-local" name="fechaPublicacionLeccion" class="form-control form-control-sm">
+	                    <small class="form-text text-muted">Si queda vacio, se publica al momento.</small>
+	                  </div>
+	                </div>
 
                 <div class="form-group">
                   <label class="small text-muted">Contenido</label>
@@ -574,10 +598,11 @@ if (ControladorPermisos::esEstudiante()) {
             <?php endif; ?>
 
             <?php foreach ($leccionesGestion as $leccion): ?>
-              <?php
-              $tipoLeccion = strtoupper((string) ($leccion['tipoLeccion'] ?? 'MATERIAL'));
-              $estadoLeccion = strtoupper((string) ($leccion['estadoLeccion'] ?? 'PUBLICADA'));
-              $recursos = ControladorLecciones::crtBuscarRecursosPorLeccion((int) $leccion['idLeccion']);
+	              <?php
+	              $tipoLeccion = strtoupper((string) ($leccion['tipoLeccion'] ?? 'MATERIAL'));
+	              $estadoLeccion = strtoupper((string) ($leccion['estadoLeccion'] ?? 'PUBLICADA'));
+	              $estaProgramada = $leccionProgramada($leccion);
+	              $recursos = ControladorLecciones::crtBuscarRecursosPorLeccion((int) $leccion['idLeccion']);
               $posts = $tipoLeccion === 'PREGUNTA' ? ControladorLecciones::crtBuscarPostsPorLeccion((int) $leccion['idLeccion']) : [];
               $entrega = $tipoLeccion === 'TAREA' && ControladorPermisos::esEstudiante()
                 ? ControladorLecciones::crtBuscarEntregaPorLeccionEstudiante((int) $leccion['idLeccion'], $idUsuarioActual)
@@ -592,9 +617,9 @@ if (ControladorPermisos::esEstudiante()) {
                     </h4>
                     <div class="d-flex align-items-center">
                       <span class="<?php echo $claseBadgeTipoLeccion($tipoLeccion); ?> mr-2"><?php echo htmlspecialchars($tipoLeccion, ENT_QUOTES, 'UTF-8'); ?></span>
-                      <span class="badge badge-<?php echo $estadoLeccion === 'BORRADOR' ? 'warning' : 'success'; ?> mr-2">
-                        <?php echo $estadoLeccion === 'BORRADOR' ? 'Borrador' : 'Publicada'; ?>
-                      </span>
+	                      <span class="badge badge-<?php echo $estadoLeccion === 'BORRADOR' || $estaProgramada ? 'warning' : 'success'; ?> mr-2">
+	                        <?php echo $estadoLeccion === 'BORRADOR' ? 'Borrador' : ($estaProgramada ? 'Programada' : 'Publicada'); ?>
+	                      </span>
                       <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#<?php echo $collapseIdDocente; ?>" aria-expanded="false">
                         <i class="fas fa-chevron-right"></i>
                       </button>
@@ -603,7 +628,10 @@ if (ControladorPermisos::esEstudiante()) {
                   <small class="text-muted">
                     <?php echo (int) $leccion['totalRecursos']; ?> recursos ·
                     <?php echo (int) $leccion['totalEntregas']; ?> entregas ·
-                    <?php echo (int) $leccion['totalPosts']; ?> mensajes
+	                    <?php echo (int) $leccion['totalPosts']; ?> mensajes
+	                    <?php if ($estaProgramada): ?>
+	                      - Disponible desde <?php echo htmlspecialchars($fechaProgramadaTexto($leccion['fechaPublicacionLeccion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+	                    <?php endif; ?>
                   </small>
                 </div>
                 <div id="<?php echo $collapseIdDocente; ?>" class="collapse">
@@ -630,15 +658,20 @@ if (ControladorPermisos::esEstudiante()) {
                               <option value="PREGUNTA" <?php echo $tipoLeccion === 'PREGUNTA' ? 'selected' : ''; ?>>Pregunta</option>
                             </select>
                           </div>
-                          <div class="form-group col-md-4">
-                            <label class="small text-muted">Estado</label>
-                            <div>
-                              <span class="badge badge-<?php echo $estadoLeccion === 'BORRADOR' ? 'warning' : 'success'; ?> px-3 py-2">
-                                <?php echo $estadoLeccion === 'BORRADOR' ? 'Borrador' : 'Publicada'; ?>
-                              </span>
-                            </div>
-                          </div>
-                          <div class="form-group col-12">
+	                          <div class="form-group col-md-4">
+	                            <label class="small text-muted">Estado</label>
+	                            <div>
+	                              <span class="badge badge-<?php echo $estadoLeccion === 'BORRADOR' || $estaProgramada ? 'warning' : 'success'; ?> px-3 py-2">
+	                                <?php echo $estadoLeccion === 'BORRADOR' ? 'Borrador' : ($estaProgramada ? 'Programada' : 'Publicada'); ?>
+	                              </span>
+	                            </div>
+	                          </div>
+	                          <div class="form-group col-md-4">
+	                            <label class="small text-muted">Programar publicacion</label>
+	                            <input type="datetime-local" name="fechaPublicacionLeccion" class="form-control form-control-sm" value="<?php echo htmlspecialchars($fechaProgramadaInput($leccion['fechaPublicacionLeccion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+	                            <small class="form-text text-muted">Dejalo vacio para publicar inmediatamente.</small>
+	                          </div>
+	                          <div class="form-group col-12">
                             <label class="small text-muted">Contenido</label>
                             <textarea name="contenidoLeccion" rows="4" class="form-control form-control-sm summernote-leccion"><?php echo htmlspecialchars((string) $leccion['contenidoLeccion'], ENT_QUOTES, 'UTF-8'); ?></textarea>
                           </div>

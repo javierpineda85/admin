@@ -39,6 +39,35 @@ class ControladorLecciones
         return in_array($estado, ['BORRADOR', 'PUBLICADA'], true) ? $estado : $fallback;
     }
 
+    private static function normalizarFechaPublicacion($fecha)
+    {
+        $fecha = trim((string) $fecha);
+        if ($fecha === '') {
+            return null;
+        }
+
+        $fecha = str_replace('T', ' ', $fecha);
+        $timestamp = strtotime($fecha);
+        return $timestamp ? date('Y-m-d H:i:s', $timestamp) : null;
+    }
+
+    private static function leccionDisponibleParaEstudiantes($estado, $fechaPublicacion)
+    {
+        if (strtoupper((string) $estado) !== 'PUBLICADA') {
+            return false;
+        }
+
+        $fechaPublicacion = trim((string) $fechaPublicacion);
+        return $fechaPublicacion === '' || strtotime($fechaPublicacion) <= time();
+    }
+
+    public static function crtProcesarLeccionesProgramadas($idSeccion = 0)
+    {
+        foreach (ModeloLecciones::mdlBuscarLeccionesProgramadasVencidas((int) $idSeccion) as $leccion) {
+            ControladorNotificaciones::crtNotificarLeccionPublicada($leccion, $leccion);
+        }
+    }
+
     public static function crtBuscarLeccionesPorSeccion($idSeccion)
     {
         return ModeloLecciones::mdlBuscarLeccionesPorSeccion($idSeccion, self::incluirBorradores());
@@ -136,6 +165,7 @@ class ControladorLecciones
         $contenidoLeccion = trim((string) ($_POST['contenidoLeccion'] ?? ''));
         $tipoLeccion = strtoupper(trim((string) $_POST['tipoLeccion']));
         $estadoLeccion = self::normalizarEstadoLeccion($_POST['estadoLeccion'] ?? 'PUBLICADA');
+        $fechaPublicacionLeccion = self::normalizarFechaPublicacion($_POST['fechaPublicacionLeccion'] ?? '');
         $idModulo = (int) $_POST['id_modulo'];
 
         if ($nombreLeccion === '' || $idModulo <= 0) {
@@ -158,6 +188,7 @@ class ControladorLecciones
             'tipoLeccion' => $tipoLeccion,
             'contenidoLeccion' => $contenidoLeccion,
             'estadoLeccion' => $estadoLeccion,
+            'fechaPublicacionLeccion' => $fechaPublicacionLeccion,
             'id_modulo' => $idModulo,
         ]);
 
@@ -169,16 +200,14 @@ class ControladorLecciones
                 $_SESSION['error_message'] = 'No se pudo guardar el recurso inicial.';
                 return 'error';
             }
-            if ($estadoLeccion === 'PUBLICADA') {
+            if (self::leccionDisponibleParaEstudiantes($estadoLeccion, $fechaPublicacionLeccion)) {
                 $seccion = self::crtBuscarSeccionPorId($idModulo);
                 $leccionNueva = self::crtBuscarLeccionPorId($idLeccionNueva);
                 if ($seccion && $leccionNueva) {
                     ControladorNotificaciones::crtNotificarLeccionPublicada($leccionNueva, $seccion);
                 }
             }
-            $_SESSION['success_message'] = $estadoLeccion === 'BORRADOR'
-                ? 'Leccion guardada como borrador.'
-                : 'Leccion publicada correctamente.';
+            $_SESSION['success_message'] = self::mensajeEstadoLeccion($estadoLeccion, $fechaPublicacionLeccion);
         } else {
             $_SESSION['error_message'] = 'No se pudo crear la leccion.';
         }
@@ -203,7 +232,9 @@ class ControladorLecciones
         $tipoLeccion = strtoupper(trim((string) $_POST['tipoLeccion']));
         $leccion = self::crtBuscarLeccionPorId($idLeccion);
         $estadoActual = strtoupper((string) ($leccion['estadoLeccion'] ?? 'PUBLICADA'));
+        $fechaActual = (string) ($leccion['fechaPublicacionLeccion'] ?? '');
         $estadoLeccion = self::normalizarEstadoLeccion($_POST['estadoLeccion'] ?? $estadoActual, $estadoActual ?: 'PUBLICADA');
+        $fechaPublicacionLeccion = self::normalizarFechaPublicacion($_POST['fechaPublicacionLeccion'] ?? '');
 
         if ($idLeccion <= 0 || $nombreLeccion === '' || !$leccion) {
             $_SESSION['error_message'] = 'No se pudo actualizar la leccion.';
@@ -226,24 +257,38 @@ class ControladorLecciones
             'tipoLeccion' => $tipoLeccion,
             'contenidoLeccion' => $contenidoLeccion,
             'estadoLeccion' => $estadoLeccion,
+            'fechaPublicacionLeccion' => $fechaPublicacionLeccion,
         ]);
 
         if ($respuesta === 'ok') {
-            if ($estadoActual !== 'PUBLICADA' && $estadoLeccion === 'PUBLICADA') {
+            $estabaDisponible = self::leccionDisponibleParaEstudiantes($estadoActual, $fechaActual);
+            $quedaDisponible = self::leccionDisponibleParaEstudiantes($estadoLeccion, $fechaPublicacionLeccion);
+            if (!$estabaDisponible && $quedaDisponible) {
                 $seccion = self::crtBuscarSeccionPorId((int) ($leccion['id_modulo'] ?? 0));
                 $leccionActualizada = self::crtBuscarLeccionPorId($idLeccion);
                 if ($seccion && $leccionActualizada) {
                     ControladorNotificaciones::crtNotificarLeccionPublicada($leccionActualizada, $seccion);
                 }
             }
-            $_SESSION['success_message'] = $estadoLeccion === 'BORRADOR'
-                ? 'Leccion guardada como borrador.'
-                : 'Leccion publicada correctamente.';
+            $_SESSION['success_message'] = self::mensajeEstadoLeccion($estadoLeccion, $fechaPublicacionLeccion);
         } else {
             $_SESSION['error_message'] = 'No se pudo actualizar la leccion.';
         }
 
         return $respuesta;
+    }
+
+    private static function mensajeEstadoLeccion($estadoLeccion, $fechaPublicacionLeccion)
+    {
+        if ($estadoLeccion === 'BORRADOR') {
+            return 'Leccion guardada como borrador.';
+        }
+
+        if ($fechaPublicacionLeccion && strtotime((string) $fechaPublicacionLeccion) > time()) {
+            return 'Leccion programada correctamente.';
+        }
+
+        return 'Leccion publicada correctamente.';
     }
 
     public static function crtEliminarLeccion()

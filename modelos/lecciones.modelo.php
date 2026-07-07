@@ -19,6 +19,11 @@ class ModeloLecciones
                 $pdo->exec("ALTER TABLE lecciones ADD COLUMN estadoLeccion varchar(12) NOT NULL DEFAULT 'PUBLICADA' AFTER contenidoLeccion");
             }
 
+            $stmt = $pdo->query("SHOW COLUMNS FROM lecciones LIKE 'fechaPublicacionLeccion'");
+            if (!$stmt || !$stmt->fetch(PDO::FETCH_ASSOC)) {
+                $pdo->exec("ALTER TABLE lecciones ADD COLUMN fechaPublicacionLeccion datetime NULL AFTER estadoLeccion");
+            }
+
             $pdo->exec('ALTER TABLE lecciones MODIFY contenidoLeccion longtext NOT NULL');
         } catch (Exception $e) {
             // Mantiene compatibilidad si la base ya fue actualizada o el usuario no tiene permisos de ALTER.
@@ -76,9 +81,9 @@ class ModeloLecciones
     {
         self::prepararTablaLecciones();
 
-        $filtroEstado = $incluirBorradores ? '' : ' AND l.estadoLeccion = "PUBLICADA"';
+        $filtroEstado = $incluirBorradores ? '' : ' AND l.estadoLeccion = "PUBLICADA" AND (l.fechaPublicacionLeccion IS NULL OR l.fechaPublicacionLeccion <= NOW())';
         $stmt = Conexion::conectar()->prepare(
-            'SELECT l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.id_modulo,
+            'SELECT l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.fechaPublicacionLeccion, l.id_modulo,
                     COUNT(DISTINCT r.idRecursoLeccion) AS totalRecursos,
                     COUNT(DISTINCT e.idEntregaLeccion) AS totalEntregas,
                     COUNT(DISTINCT p.idPosteo) AS totalPosts
@@ -88,7 +93,7 @@ class ModeloLecciones
              LEFT JOIN posteos p ON p.id_leccion = l.idLeccion
              WHERE l.id_modulo = :idSeccion
              ' . $filtroEstado . '
-             GROUP BY l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.id_modulo
+             GROUP BY l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.fechaPublicacionLeccion, l.id_modulo
              ORDER BY l.idLeccion ASC'
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -100,8 +105,8 @@ class ModeloLecciones
     {
         self::prepararTablaLecciones();
 
-        $filtroEstado = $incluirBorradores ? '' : ' AND estadoLeccion = "PUBLICADA"';
-        $filtroEstadoAlias = $incluirBorradores ? '' : ' AND l.estadoLeccion = "PUBLICADA"';
+        $filtroEstado = $incluirBorradores ? '' : ' AND estadoLeccion = "PUBLICADA" AND (fechaPublicacionLeccion IS NULL OR fechaPublicacionLeccion <= NOW())';
+        $filtroEstadoAlias = $incluirBorradores ? '' : ' AND l.estadoLeccion = "PUBLICADA" AND (l.fechaPublicacionLeccion IS NULL OR l.fechaPublicacionLeccion <= NOW())';
         $stmt = Conexion::conectar()->prepare(
             'SELECT
                 COUNT(*) AS totalLecciones,
@@ -109,7 +114,8 @@ class ModeloLecciones
                 SUM(CASE WHEN tipoLeccion = "TAREA" THEN 1 ELSE 0 END) AS totalTareas,
                 SUM(CASE WHEN tipoLeccion = "PREGUNTA" THEN 1 ELSE 0 END) AS totalPreguntas,
                 SUM(CASE WHEN estadoLeccion = "BORRADOR" THEN 1 ELSE 0 END) AS totalBorradores,
-                SUM(CASE WHEN estadoLeccion = "PUBLICADA" THEN 1 ELSE 0 END) AS totalPublicadas
+                SUM(CASE WHEN estadoLeccion = "PUBLICADA" AND (fechaPublicacionLeccion IS NULL OR fechaPublicacionLeccion <= NOW()) THEN 1 ELSE 0 END) AS totalPublicadas,
+                SUM(CASE WHEN estadoLeccion = "PUBLICADA" AND fechaPublicacionLeccion > NOW() THEN 1 ELSE 0 END) AS totalProgramadas
              FROM lecciones
              WHERE id_modulo = :idSeccion' . $filtroEstado
         );
@@ -195,7 +201,10 @@ class ModeloLecciones
             'SELECT COUNT(*) AS totalPosts
              FROM posteos
              WHERE id_leccion IN (
-                SELECT idLeccion FROM lecciones WHERE id_modulo = :idSeccion AND estadoLeccion = "PUBLICADA"
+                SELECT idLeccion FROM lecciones
+                WHERE id_modulo = :idSeccion
+                  AND estadoLeccion = "PUBLICADA"
+                  AND (fechaPublicacionLeccion IS NULL OR fechaPublicacionLeccion <= NOW())
              )
                AND id_autor = :idEstudiante'
         );
@@ -307,18 +316,42 @@ class ModeloLecciones
         return (int) (($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0)) > 0;
     }
 
+    public static function mdlBuscarLeccionesProgramadasVencidas($idSeccion = 0)
+    {
+        self::prepararTablaLecciones();
+
+        $filtroSeccion = (int) $idSeccion > 0 ? ' AND l.id_modulo = :idSeccion' : '';
+        $stmt = Conexion::conectar()->prepare(
+            'SELECT l.*, s.idSeccion, s.tituloSeccion, s.id_curso, c.nombreCurso
+             FROM lecciones l
+             INNER JOIN secciones s ON s.idSeccion = l.id_modulo
+             INNER JOIN cursos c ON c.idCurso = s.id_curso
+             WHERE l.estadoLeccion = "PUBLICADA"
+               AND l.fechaPublicacionLeccion IS NOT NULL
+               AND l.fechaPublicacionLeccion <= NOW()' . $filtroSeccion
+        );
+
+        if ((int) $idSeccion > 0) {
+            $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public static function mdlGuardarLeccion($tabla, $datos)
     {
         self::prepararTablaLecciones();
 
         $stmt = Conexion::conectar()->prepare(
-            "INSERT INTO $tabla (nombreLeccion, tipoLeccion, contenidoLeccion, estadoLeccion, id_modulo)
-             VALUES (:nombreLeccion, :tipoLeccion, :contenidoLeccion, :estadoLeccion, :id_modulo)"
+            "INSERT INTO $tabla (nombreLeccion, tipoLeccion, contenidoLeccion, estadoLeccion, fechaPublicacionLeccion, id_modulo)
+             VALUES (:nombreLeccion, :tipoLeccion, :contenidoLeccion, :estadoLeccion, :fechaPublicacionLeccion, :id_modulo)"
         );
         $stmt->bindValue(':nombreLeccion', $datos['nombreLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':tipoLeccion', $datos['tipoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':contenidoLeccion', $datos['contenidoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':estadoLeccion', $datos['estadoLeccion'], PDO::PARAM_STR);
+        $stmt->bindValue(':fechaPublicacionLeccion', $datos['fechaPublicacionLeccion'] ?: null, $datos['fechaPublicacionLeccion'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->bindValue(':id_modulo', (int) $datos['id_modulo'], PDO::PARAM_INT);
         return $stmt->execute() ? 'ok' : 'error';
     }
@@ -332,7 +365,8 @@ class ModeloLecciones
              SET nombreLeccion = :nombreLeccion,
                  tipoLeccion = :tipoLeccion,
                  contenidoLeccion = :contenidoLeccion,
-                 estadoLeccion = :estadoLeccion
+                 estadoLeccion = :estadoLeccion,
+                 fechaPublicacionLeccion = :fechaPublicacionLeccion
              WHERE idLeccion = :idLeccion"
         );
         $stmt->bindValue(':idLeccion', (int) $datos['idLeccion'], PDO::PARAM_INT);
@@ -340,6 +374,7 @@ class ModeloLecciones
         $stmt->bindValue(':tipoLeccion', $datos['tipoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':contenidoLeccion', $datos['contenidoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':estadoLeccion', $datos['estadoLeccion'], PDO::PARAM_STR);
+        $stmt->bindValue(':fechaPublicacionLeccion', $datos['fechaPublicacionLeccion'] ?: null, $datos['fechaPublicacionLeccion'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
         return $stmt->execute() ? 'ok' : 'error';
     }
 
