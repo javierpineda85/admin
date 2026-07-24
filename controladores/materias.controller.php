@@ -160,4 +160,9 @@ class ControladorMaterias
     {
         return ModeloMaterias::mdlBuscarMateriasPorDocente((int) $idDocente);
     }
+
+    static public function crtListarMateriasGestion()
+    {
+        return ModeloMaterias::mdlListarMateriasGestion();
+    }
 }

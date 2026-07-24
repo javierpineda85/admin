@@ -91,18 +91,40 @@ class ModeloMaterias
 
     static public function mdlBuscarMateriasPorDocente($idDocente)
     {
+        return self::mdlListarMateriasGestion((int) $idDocente);
+    }
+
+    static public function mdlListarMateriasGestion($idDocente = 0)
+    {
+        $filtroDocente = (int) $idDocente > 0
+            ? ' WHERE s.docente = :idDocente OR s.tutor = :idDocente'
+            : '';
+
         $stmt = Conexion::conectar()->prepare("
             SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
                    s.bannerSeccion, s.colorInicioBanner, s.colorFinBanner,
-                   c.nombreCurso, u.nombreUsuario, u.apellidoUsuario
+                   c.nombreCurso,
+                   u.nombreUsuario, u.apellidoUsuario,
+                   tutor.nombreUsuario AS nombreTutor, tutor.apellidoUsuario AS apellidoTutor,
+                   COUNT(DISTINCT l.idLeccion) AS totalLecciones,
+                   COUNT(DISTINCT CASE WHEN l.tipoLeccion = 'TAREA' THEN l.idLeccion END) AS totalTareas
             FROM secciones s
             INNER JOIN cursos c ON s.id_curso = c.idCurso
             INNER JOIN usuarios u ON s.docente = u.idUsuario
-            WHERE s.docente = :idDocente
-               OR s.tutor = :idDocente
+            LEFT JOIN usuarios tutor ON tutor.idUsuario = s.tutor
+            LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
+            " . $filtroDocente . "
+            GROUP BY s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
+                     s.bannerSeccion, s.colorInicioBanner, s.colorFinBanner,
+                     c.nombreCurso, u.nombreUsuario, u.apellidoUsuario,
+                     tutor.nombreUsuario, tutor.apellidoUsuario
             ORDER BY c.nombreCurso ASC, s.tituloSeccion ASC
         ");
-        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+
+        if ((int) $idDocente > 0) {
+            $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        }
+
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

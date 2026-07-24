@@ -792,6 +792,274 @@ body.classroom-app .student-class-card__footer {
   font-size: 0.88rem;
 }
 
+body.classroom-app .management-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+body.classroom-app .management-list-actions,
+body.classroom-app .management-card-actions,
+body.classroom-app .management-card-metrics {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+body.classroom-app .management-search {
+  position: relative;
+  display: block;
+  width: min(280px, 100%);
+}
+
+body.classroom-app .management-search i {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 0.85rem;
+  color: #94a3b8;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+body.classroom-app .management-search .form-control {
+  min-height: 38px;
+  padding-left: 2.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+body.classroom-app .management-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+
+body.classroom-app .management-entity-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 365px;
+  flex-direction: column;
+  overflow: visible;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: var(--soft-shadow);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+body.classroom-app .management-entity-card:hover,
+body.classroom-app .management-entity-card.is-menu-open {
+  z-index: 30;
+  border-color: rgba(89, 36, 155, 0.28);
+  box-shadow: 0 20px 38px rgba(15, 23, 42, 0.13);
+  transform: translateY(-3px);
+}
+
+body.classroom-app .management-entity-card__top {
+  min-height: 124px;
+  padding: 1.05rem;
+  overflow: hidden;
+  border-radius: 17px 17px 0 0;
+  color: #fff;
+  background:
+    radial-gradient(circle at 80% 14%, rgba(255, 255, 255, 0.25), transparent 25%),
+    linear-gradient(135deg, #1e1b4b 0%, #59249b 58%, #6d28d9 100%);
+}
+
+body.classroom-app .management-entity-card.theme-1 .management-entity-card__top {
+  background:
+    radial-gradient(circle at 80% 14%, rgba(255, 255, 255, 0.23), transparent 25%),
+    linear-gradient(135deg, #1d4ed8, #2563eb);
+}
+
+body.classroom-app .management-entity-card.theme-2 .management-entity-card__top {
+  background:
+    radial-gradient(circle at 80% 14%, rgba(255, 255, 255, 0.2), transparent 25%),
+    linear-gradient(135deg, #0f172a, #475569);
+}
+
+body.classroom-app .management-entity-card.theme-3 .management-entity-card__top {
+  background:
+    radial-gradient(circle at 80% 14%, rgba(255, 255, 255, 0.24), transparent 25%),
+    linear-gradient(135deg, #b45309, #f59e0b);
+}
+
+body.classroom-app .management-entity-card--custom .management-entity-card__top {
+  background:
+    radial-gradient(circle at 80% 14%, rgba(255, 255, 255, 0.24), transparent 25%),
+    linear-gradient(135deg, var(--management-card-start, #1e1b4b), var(--management-card-end, #59249b));
+}
+
+body.classroom-app .management-entity-card__eyebrow {
+  display: inline-flex;
+  margin-bottom: 0.55rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.classroom-app .management-entity-card__heading h2 {
+  margin: 0 0 0.42rem;
+  color: #fff;
+  font-size: 1.28rem;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+body.classroom-app .management-entity-card__heading p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.82rem;
+}
+
+body.classroom-app .management-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  background: #86efac;
+  box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.16);
+}
+
+body.classroom-app .management-entity-card__body {
+  flex: 1 1 auto;
+  padding: 1rem;
+}
+
+body.classroom-app .management-entity-card__description {
+  display: -webkit-box;
+  min-height: 3.75rem;
+  margin: 0 0 0.9rem;
+  overflow: hidden;
+  color: #64748b;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+body.classroom-app .management-detail-grid,
+body.classroom-app .management-detail-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+body.classroom-app .management-detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.classroom-app .management-detail-grid > div,
+body.classroom-app .management-detail-list > div {
+  min-width: 0;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #e8edf4;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+body.classroom-app .management-detail-grid span,
+body.classroom-app .management-detail-list span,
+body.classroom-app .management-detail-grid strong,
+body.classroom-app .management-detail-list strong {
+  display: block;
+}
+
+body.classroom-app .management-detail-grid span,
+body.classroom-app .management-detail-list span {
+  margin-bottom: 0.2rem;
+  color: #94a3b8;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+body.classroom-app .management-detail-grid strong,
+body.classroom-app .management-detail-list strong {
+  overflow: hidden;
+  color: #334155;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.classroom-app .management-entity-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 17px 17px;
+  background: #f8fafc;
+}
+
+body.classroom-app .management-card-metrics {
+  min-width: 0;
+  flex-wrap: wrap;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+body.classroom-app .management-card-metrics span {
+  white-space: nowrap;
+}
+
+body.classroom-app .management-card-metrics i {
+  margin-right: 0.28rem;
+  color: var(--primary);
+}
+
+body.classroom-app .management-card-actions {
+  flex: 0 0 auto;
+}
+
+body.classroom-app .management-card-actions .dropdown {
+  position: relative;
+}
+
+body.classroom-app .management-card-actions .dropdown-menu {
+  z-index: 1080;
+}
+
+body.classroom-app .management-menu-button {
+  min-width: 34px;
+}
+
+@media (max-width: 767.98px) {
+  body.classroom-app .management-list-header,
+  body.classroom-app .management-list-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  body.classroom-app .management-search {
+    width: 100%;
+  }
+
+  body.classroom-app .management-entity-card__footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  body.classroom-app .management-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
 body.classroom-app .student-course-hero {
   position: relative;
   overflow: hidden;

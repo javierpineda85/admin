@@ -252,6 +252,49 @@ if (!empty($flashToasts)) {
         });
       }
 
+      $('[data-management-list]').each(function () {
+        var $lista = $(this);
+        var $buscador = $lista.find('[data-management-search]').first();
+        var $tarjetas = $lista.find('[data-management-card]');
+        var $contador = $lista.find('[data-management-count]').first();
+        var $vacio = $lista.find('[data-management-empty]').first();
+
+        if (!$buscador.length || !$tarjetas.length) {
+          return;
+        }
+
+        function normalizarBusqueda(valor) {
+          var texto = String(valor || '').toLocaleLowerCase();
+          return typeof texto.normalize === 'function'
+            ? texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            : texto;
+        }
+
+        $buscador.on('input', function () {
+          var consulta = normalizarBusqueda($buscador.val()).trim();
+          var visibles = 0;
+
+          $tarjetas.each(function () {
+            var $tarjeta = $(this);
+            var contenido = normalizarBusqueda($tarjeta.attr('data-search'));
+            var mostrar = consulta === '' || contenido.indexOf(consulta) !== -1;
+            $tarjeta.toggleClass('d-none', !mostrar);
+            visibles += mostrar ? 1 : 0;
+          });
+
+          $contador.text(visibles);
+          $vacio.toggleClass('d-none', visibles !== 0);
+        });
+
+        $lista.find('.management-card-actions .dropdown')
+          .on('show.bs.dropdown', function () {
+            $(this).closest('.management-entity-card').addClass('is-menu-open');
+          })
+          .on('hidden.bs.dropdown', function () {
+            $(this).closest('.management-entity-card').removeClass('is-menu-open');
+          });
+      });
+
       $(document).on('change', '.classroom-file__input, .profile-upload__input, .profile-file-input', function () {
         actualizarNombreArchivo($(this));
       });

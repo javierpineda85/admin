@@ -22,11 +22,17 @@ class ModeloCursos
     static public function mdlListarCursos()
     {
         $stmt = Conexion::conectar()->prepare("
-            SELECT *,
-                   DATE_FORMAT(fechaInicioCurso, '%d/%m/%Y') AS fInicio,
-                   DATE_FORMAT(fechaFinCurso, '%d/%m/%Y') AS fFin
-            FROM cursos
-            ORDER BY nombreCurso ASC
+            SELECT c.*,
+                   DATE_FORMAT(c.fechaInicioCurso, '%d/%m/%Y') AS fInicio,
+                   DATE_FORMAT(c.fechaFinCurso, '%d/%m/%Y') AS fFin,
+                   COUNT(DISTINCT s.idSeccion) AS totalSecciones,
+                   COUNT(DISTINCT l.idLeccion) AS totalLecciones
+            FROM cursos c
+            LEFT JOIN secciones s ON s.id_curso = c.idCurso
+            LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
+            GROUP BY c.idCurso, c.nombreCurso, c.contenidoCurso, c.estado,
+                     c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso
+            ORDER BY c.nombreCurso ASC
         ");
         $stmt->execute();
 
