@@ -85,7 +85,14 @@ class ControladorLecciones
 
     public static function crtBuscarEntregasPorLeccion($idLeccion)
     {
-        return ModeloLecciones::mdlBuscarEntregasPorLeccion($idLeccion);
+        $entregas = ModeloLecciones::mdlBuscarEntregasPorLeccion($idLeccion);
+
+        foreach ($entregas as &$entrega) {
+            $entrega = self::completarAdjuntosEntrega($entrega);
+        }
+        unset($entrega);
+
+        return $entregas;
     }
 
     public static function crtBuscarEstudiantesCurso($idCurso)
@@ -115,7 +122,8 @@ class ControladorLecciones
 
     public static function crtBuscarEntregaPorLeccionEstudiante($idLeccion, $idEstudiante)
     {
-        return ModeloLecciones::mdlBuscarEntregaPorIdLeccionYEstudiante($idLeccion, $idEstudiante);
+        $entrega = ModeloLecciones::mdlBuscarEntregaPorIdLeccionYEstudiante($idLeccion, $idEstudiante);
+        return $entrega ? self::completarAdjuntosEntrega($entrega) : null;
     }
 
     public static function crtProcesarAcciones()
@@ -558,25 +566,41 @@ class ControladorLecciones
         $entregaAnterior = self::crtBuscarEntregaPorLeccionEstudiante((int) $_POST['id_leccion'], $idEstudiante);
         $urlArchivo = (string) ($entregaAnterior['urlArchivo'] ?? '');
 
-        if (!empty($_FILES['archivoEntrega']['name']) && ($_FILES['archivoEntrega']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-            $nuevoArchivo = self::subirArchivo($_FILES['archivoEntrega']);
-            if ($nuevoArchivo === '') {
-                $_SESSION['error_message'] = 'No se pudo guardar la entrega.';
+        $archivosSeleccionados = self::normalizarArchivos('archivoEntrega');
+        $adjuntosNuevos = [];
+
+        foreach ($archivosSeleccionados as $archivo) {
+            if (($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                self::eliminarAdjuntosLocales($adjuntosNuevos);
+                $_SESSION['error_message'] = 'Uno de los archivos no se pudo cargar. La entrega no fue modificada.';
                 return 'error';
             }
 
-            if ($urlArchivo !== '') {
-                self::eliminarArchivoLocal($urlArchivo);
+            $rutaArchivo = self::subirArchivo($archivo);
+            if ($rutaArchivo === '') {
+                self::eliminarAdjuntosLocales($adjuntosNuevos);
+                $_SESSION['error_message'] = 'Uno de los archivos no tiene un formato valido. La entrega no fue modificada.';
+                return 'error';
             }
-            $urlArchivo = $nuevoArchivo;
+
+            $adjuntosNuevos[] = [
+                'nombreOriginal' => basename((string) ($archivo['name'] ?? 'Archivo')),
+                'rutaArchivo' => $rutaArchivo,
+                'mimeType' => trim((string) ($archivo['type'] ?? '')),
+                'tamanoArchivo' => (int) ($archivo['size'] ?? 0),
+            ];
+        }
+
+        if (!empty($adjuntosNuevos)) {
+            $urlArchivo = (string) $adjuntosNuevos[0]['rutaArchivo'];
         }
 
         if ($urlArchivo === '') {
-            $_SESSION['error_message'] = 'Subi un archivo valido para entregar la tarea.';
+            $_SESSION['error_message'] = 'Subi al menos un archivo valido para entregar la tarea.';
             return 'error';
         }
 
-        $respuesta = ModeloLecciones::mdlGuardarEntregaLeccion([
+        $idEntregaGuardada = ModeloLecciones::mdlGuardarEntregaConAdjuntos([
             'id_leccion' => (int) $_POST['id_leccion'],
             'id_seccion' => (int) $_POST['id_seccion'],
             'id_curso' => (int) $_POST['id_curso'],
@@ -585,15 +609,24 @@ class ControladorLecciones
             'comentarioEntrega' => trim((string) ($_POST['comentarioEntrega'] ?? '')),
             'fechaEntrega' => date('Y-m-d H:i:s'),
             'estadoEntrega' => 'ENTREGADA',
-        ]);
+        ], $adjuntosNuevos, !empty($archivosSeleccionados));
 
-        if ($respuesta === 'ok') {
-            $_SESSION['success_message'] = 'Entrega enviada correctamente.';
+        if ($idEntregaGuardada !== false) {
+            if (!empty($adjuntosNuevos) && $entregaAnterior) {
+                self::eliminarArchivosEntrega($entregaAnterior);
+            }
+
+            $cantidadArchivos = !empty($adjuntosNuevos)
+                ? count($adjuntosNuevos)
+                : count((array) ($entregaAnterior['adjuntos'] ?? []));
+            $_SESSION['success_message'] = 'Entrega enviada correctamente con ' . $cantidadArchivos . ' archivo' . ($cantidadArchivos === 1 ? '.' : 's.');
+            return 'ok';
         } else {
+            self::eliminarAdjuntosLocales($adjuntosNuevos);
             $_SESSION['error_message'] = 'No se pudo registrar la entrega.';
         }
 
-        return $respuesta;
+        return 'error';
     }
 
     public static function crtCancelarEntregaLeccion()
@@ -623,16 +656,56 @@ class ControladorLecciones
             return 'error';
         }
 
-        self::eliminarArchivoLocal((string) ($entrega['urlArchivo'] ?? ''));
         $respuesta = ModeloLecciones::mdlEliminarEntregaLeccion((int) $entrega['idEntregaLeccion']);
 
         if ($respuesta === 'ok') {
+            self::eliminarArchivosEntrega($entrega);
             $_SESSION['success_message'] = 'Entrega cancelada correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudo cancelar la entrega.';
         }
 
         return $respuesta;
+    }
+
+    private static function completarAdjuntosEntrega(array $entrega)
+    {
+        $adjuntos = ModeloLecciones::mdlBuscarAdjuntosPorEntrega((int) ($entrega['idEntregaLeccion'] ?? 0));
+
+        if (empty($adjuntos) && !empty($entrega['urlArchivo'])) {
+            $adjuntos[] = [
+                'idAdjuntoEntrega' => 0,
+                'id_entrega' => (int) ($entrega['idEntregaLeccion'] ?? 0),
+                'nombreOriginal' => 'Archivo entregado',
+                'rutaArchivo' => (string) $entrega['urlArchivo'],
+                'mimeType' => null,
+                'tamanoArchivo' => null,
+                'fechaAdjunto' => $entrega['fechaEntrega'] ?? null,
+            ];
+        }
+
+        $entrega['adjuntos'] = $adjuntos;
+        return $entrega;
+    }
+
+    private static function eliminarAdjuntosLocales(array $adjuntos)
+    {
+        foreach ($adjuntos as $adjunto) {
+            self::eliminarArchivoLocal((string) ($adjunto['rutaArchivo'] ?? ''));
+        }
+    }
+
+    private static function eliminarArchivosEntrega(array $entrega)
+    {
+        $rutas = [(string) ($entrega['urlArchivo'] ?? '')];
+
+        foreach ((array) ($entrega['adjuntos'] ?? []) as $adjunto) {
+            $rutas[] = (string) ($adjunto['rutaArchivo'] ?? '');
+        }
+
+        foreach (array_unique(array_filter($rutas)) as $ruta) {
+            self::eliminarArchivoLocal($ruta);
+        }
     }
 
     private static function subirArchivo(array $archivo)

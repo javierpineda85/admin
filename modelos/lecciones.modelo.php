@@ -4,6 +4,7 @@ require_once('conexion.php');
 class ModeloLecciones
 {
     private static $tablaLeccionesPreparada = false;
+    private static $tablaAdjuntosEntregasPreparada = false;
 
     private static function prepararTablaLecciones()
     {
@@ -30,6 +31,62 @@ class ModeloLecciones
         }
 
         self::$tablaLeccionesPreparada = true;
+    }
+
+    private static function prepararTablaAdjuntosEntregas()
+    {
+        if (self::$tablaAdjuntosEntregasPreparada) {
+            return;
+        }
+
+        $pdo = Conexion::conectar();
+
+        try {
+            $estadoTabla = $pdo->query("SHOW TABLE STATUS LIKE 'entregaslecciones'");
+            $datosTabla = $estadoTabla ? $estadoTabla->fetch(PDO::FETCH_ASSOC) : null;
+            if ($datosTabla && strtoupper((string) ($datosTabla['Engine'] ?? '')) !== 'INNODB') {
+                $pdo->exec('ALTER TABLE entregaslecciones ENGINE=InnoDB');
+            }
+
+            $pdo->exec(
+                'CREATE TABLE IF NOT EXISTS entregaslecciones_adjuntos (
+                    idAdjuntoEntrega INT NOT NULL AUTO_INCREMENT,
+                    id_entrega INT NOT NULL,
+                    nombreOriginal VARCHAR(255) NOT NULL,
+                    rutaArchivo VARCHAR(255) NOT NULL,
+                    mimeType VARCHAR(100) DEFAULT NULL,
+                    tamanoArchivo INT DEFAULT NULL,
+                    fechaAdjunto TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (idAdjuntoEntrega),
+                    KEY idx_entrega (id_entrega)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+            );
+        } catch (Exception $e) {
+            // La migracion SQL permite preparar la tabla cuando el usuario web no tiene permisos DDL.
+        }
+
+        self::$tablaAdjuntosEntregasPreparada = true;
+    }
+
+    private static function tablaAdjuntosEntregasDisponible(PDO $pdo)
+    {
+        try {
+            $tablaAdjuntos = $pdo->query("SHOW TABLES LIKE 'entregaslecciones_adjuntos'");
+            return $tablaAdjuntos && $tablaAdjuntos->fetchColumn() !== false;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    private static function entregasSoportanTransacciones(PDO $pdo)
+    {
+        try {
+            $estadoTabla = $pdo->query("SHOW TABLE STATUS LIKE 'entregaslecciones'");
+            $datosTabla = $estadoTabla ? $estadoTabla->fetch(PDO::FETCH_ASSOC) : null;
+            return $datosTabla && strtoupper((string) ($datosTabla['Engine'] ?? '')) === 'INNODB';
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     public static function mdlBuscarSeccionPorId($idSeccion)
@@ -287,6 +344,25 @@ class ModeloLecciones
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public static function mdlBuscarAdjuntosPorEntrega($idEntregaLeccion)
+    {
+        self::prepararTablaAdjuntosEntregas();
+
+        try {
+            $stmt = Conexion::conectar()->prepare(
+                'SELECT idAdjuntoEntrega, id_entrega, nombreOriginal, rutaArchivo, mimeType, tamanoArchivo, fechaAdjunto
+                 FROM entregaslecciones_adjuntos
+                 WHERE id_entrega = :idEntregaLeccion
+                 ORDER BY idAdjuntoEntrega ASC'
+            );
+            $stmt->bindValue(':idEntregaLeccion', (int) $idEntregaLeccion, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
     public static function mdlBuscarEstudiantesCurso($idCurso)
     {
         $stmt = Conexion::conectar()->prepare(
@@ -381,8 +457,19 @@ class ModeloLecciones
     public static function mdlEliminarLeccion($idLeccion)
     {
         $pdo = Conexion::conectar();
+        self::prepararTablaAdjuntosEntregas();
         $pdo->prepare('DELETE FROM recursoslecciones WHERE id_leccion = :idLeccion')->execute([':idLeccion' => (int) $idLeccion]);
         $pdo->prepare('DELETE FROM posteos WHERE id_leccion = :idLeccion')->execute([':idLeccion' => (int) $idLeccion]);
+        try {
+            $pdo->prepare(
+                'DELETE a
+                 FROM entregaslecciones_adjuntos a
+                 INNER JOIN entregaslecciones e ON e.idEntregaLeccion = a.id_entrega
+                 WHERE e.id_leccion = :idLeccion'
+            )->execute([':idLeccion' => (int) $idLeccion]);
+        } catch (Exception $e) {
+            // Compatibilidad con instalaciones que todavia no ejecutaron la migracion de adjuntos.
+        }
         $pdo->prepare('DELETE FROM entregaslecciones WHERE id_leccion = :idLeccion')->execute([':idLeccion' => (int) $idLeccion]);
         $pdo->prepare('DELETE FROM calificaciones WHERE id_modulo = :idLeccion')->execute([':idLeccion' => (int) $idLeccion]);
 
@@ -470,6 +557,95 @@ class ModeloLecciones
         return $stmt->execute() ? 'ok' : 'error';
     }
 
+    public static function mdlGuardarEntregaConAdjuntos($datos, array $adjuntos, $reemplazarAdjuntos)
+    {
+        self::prepararTablaAdjuntosEntregas();
+        $pdo = Conexion::conectar();
+
+        if (
+            !self::tablaAdjuntosEntregasDisponible($pdo)
+            || !self::entregasSoportanTransacciones($pdo)
+        ) {
+            return false;
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            $stmt = $pdo->prepare(
+                'INSERT INTO entregaslecciones
+                    (id_leccion, id_seccion, id_curso, id_estudiante, urlArchivo, comentarioEntrega, fechaEntrega, estadoEntrega)
+                 VALUES
+                    (:id_leccion, :id_seccion, :id_curso, :id_estudiante, :urlArchivo, :comentarioEntrega, :fechaEntrega, :estadoEntrega)
+                 ON DUPLICATE KEY UPDATE
+                    id_seccion = VALUES(id_seccion),
+                    id_curso = VALUES(id_curso),
+                    urlArchivo = VALUES(urlArchivo),
+                    comentarioEntrega = VALUES(comentarioEntrega),
+                    fechaEntrega = VALUES(fechaEntrega),
+                    estadoEntrega = VALUES(estadoEntrega)'
+            );
+            $stmt->bindValue(':id_leccion', (int) $datos['id_leccion'], PDO::PARAM_INT);
+            $stmt->bindValue(':id_seccion', (int) $datos['id_seccion'], PDO::PARAM_INT);
+            $stmt->bindValue(':id_curso', (int) $datos['id_curso'], PDO::PARAM_INT);
+            $stmt->bindValue(':id_estudiante', (int) $datos['id_estudiante'], PDO::PARAM_INT);
+            $stmt->bindValue(':urlArchivo', $datos['urlArchivo'], PDO::PARAM_STR);
+            $stmt->bindValue(':comentarioEntrega', $datos['comentarioEntrega'], PDO::PARAM_STR);
+            $stmt->bindValue(':fechaEntrega', $datos['fechaEntrega'], PDO::PARAM_STR);
+            $stmt->bindValue(':estadoEntrega', $datos['estadoEntrega'], PDO::PARAM_STR);
+            $stmt->execute();
+
+            $buscarEntrega = $pdo->prepare(
+                'SELECT idEntregaLeccion
+                 FROM entregaslecciones
+                 WHERE id_leccion = :idLeccion
+                   AND id_estudiante = :idEstudiante
+                 LIMIT 1'
+            );
+            $buscarEntrega->bindValue(':idLeccion', (int) $datos['id_leccion'], PDO::PARAM_INT);
+            $buscarEntrega->bindValue(':idEstudiante', (int) $datos['id_estudiante'], PDO::PARAM_INT);
+            $buscarEntrega->execute();
+            $idEntregaLeccion = (int) ($buscarEntrega->fetchColumn() ?: 0);
+
+            if ($idEntregaLeccion <= 0) {
+                throw new RuntimeException('No se pudo recuperar la entrega guardada.');
+            }
+
+            if ($reemplazarAdjuntos) {
+                $eliminar = $pdo->prepare(
+                    'DELETE FROM entregaslecciones_adjuntos WHERE id_entrega = :idEntregaLeccion'
+                );
+                $eliminar->bindValue(':idEntregaLeccion', $idEntregaLeccion, PDO::PARAM_INT);
+                $eliminar->execute();
+
+                $insertar = $pdo->prepare(
+                    'INSERT INTO entregaslecciones_adjuntos
+                        (id_entrega, nombreOriginal, rutaArchivo, mimeType, tamanoArchivo)
+                     VALUES
+                        (:id_entrega, :nombreOriginal, :rutaArchivo, :mimeType, :tamanoArchivo)'
+                );
+
+                foreach ($adjuntos as $adjunto) {
+                    $insertar->bindValue(':id_entrega', $idEntregaLeccion, PDO::PARAM_INT);
+                    $insertar->bindValue(':nombreOriginal', $adjunto['nombreOriginal'], PDO::PARAM_STR);
+                    $insertar->bindValue(':rutaArchivo', $adjunto['rutaArchivo'], PDO::PARAM_STR);
+                    $insertar->bindValue(':mimeType', $adjunto['mimeType'] ?: null, $adjunto['mimeType'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                    $insertar->bindValue(':tamanoArchivo', (int) $adjunto['tamanoArchivo'], PDO::PARAM_INT);
+                    $insertar->execute();
+                }
+            }
+
+            $pdo->commit();
+            return $idEntregaLeccion;
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return false;
+        }
+    }
+
     public static function mdlBuscarEntregaPorIdLeccionYEstudiante($idLeccion, $idEstudiante)
     {
         $stmt = Conexion::conectar()->prepare(
@@ -487,10 +663,34 @@ class ModeloLecciones
 
     public static function mdlEliminarEntregaLeccion($idEntregaLeccion)
     {
-        $stmt = Conexion::conectar()->prepare(
-            'DELETE FROM entregaslecciones WHERE idEntregaLeccion = :idEntregaLeccion'
-        );
-        $stmt->bindValue(':idEntregaLeccion', (int) $idEntregaLeccion, PDO::PARAM_INT);
-        return $stmt->execute() ? 'ok' : 'error';
+        self::prepararTablaAdjuntosEntregas();
+        $pdo = Conexion::conectar();
+
+        try {
+            $pdo->beginTransaction();
+
+            if (self::tablaAdjuntosEntregasDisponible($pdo)) {
+                $stmt = $pdo->prepare(
+                    'DELETE FROM entregaslecciones_adjuntos WHERE id_entrega = :idEntregaLeccion'
+                );
+                $stmt->bindValue(':idEntregaLeccion', (int) $idEntregaLeccion, PDO::PARAM_INT);
+                $stmt->execute();
+            }
+
+            $stmt = $pdo->prepare(
+                'DELETE FROM entregaslecciones WHERE idEntregaLeccion = :idEntregaLeccion'
+            );
+            $stmt->bindValue(':idEntregaLeccion', (int) $idEntregaLeccion, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $pdo->commit();
+            return 'ok';
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return 'error';
+        }
     }
 }

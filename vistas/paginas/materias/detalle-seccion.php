@@ -288,12 +288,18 @@ if (ControladorPermisos::esEstudiante()) {
                           <div class="d-flex justify-content-between align-items-start flex-wrap">
                             <div>
                               <strong>Entregaste esta tarea.</strong>
-                              <div class="small mt-1">
-                                <a href="<?php echo $e($entrega['urlArchivo'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">Ver archivo</a>
-                                <?php if (!empty($entrega['comentarioEntrega'])): ?>
-                                  · <?php echo $e($entrega['comentarioEntrega']); ?>
-                                <?php endif; ?>
-                              </div>
+                              <ul class="list-unstyled small mt-1 mb-1">
+                                <?php foreach ((array) ($entrega['adjuntos'] ?? []) as $indiceAdjunto => $adjunto): ?>
+                                  <li>
+                                    <a href="<?php echo $e($adjunto['rutaArchivo'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">
+                                      <i class="fas fa-paperclip mr-1"></i><?php echo $e($adjunto['nombreOriginal'] ?? ('Archivo ' . ($indiceAdjunto + 1))); ?>
+                                    </a>
+                                  </li>
+                                <?php endforeach; ?>
+                              </ul>
+                              <?php if (!empty($entrega['comentarioEntrega'])): ?>
+                                <div class="small"><strong>Comentario:</strong> <?php echo $e($entrega['comentarioEntrega']); ?></div>
+                              <?php endif; ?>
                             </div>
                             <?php if ($notaEntrega): ?>
                               <span class="badge badge-primary">Nota: <?php echo (int) ($notaEntrega['calificacion'] ?? 0); ?></span>
@@ -314,14 +320,17 @@ if (ControladorPermisos::esEstudiante()) {
                           <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
                           <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
                           <div class="form-group col-md-5">
-                            <label class="small text-muted">Archivo</label>
+                            <label class="small text-muted">Archivos</label>
                             <div class="classroom-file">
-                              <input type="file" class="classroom-file__input" id="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega">
+                              <input type="file" class="classroom-file__input" id="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega[]" multiple <?php echo $entrega ? '' : 'required'; ?>>
                               <label class="classroom-file__button" for="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>">
-                                <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                                <i class="fas fa-paperclip mr-2"></i>Seleccionar archivos
                               </label>
                               <span class="classroom-file__name">Ningún archivo seleccionado</span>
                             </div>
+                            <?php if ($entrega): ?>
+                              <small class="form-text text-muted">Si elegís archivos nuevos, reemplazarán los actuales.</small>
+                            <?php endif; ?>
                           </div>
                           <div class="form-group col-md-7">
                             <label class="small text-muted">Comentario</label>
@@ -821,7 +830,7 @@ if (ControladorPermisos::esEstudiante()) {
 
                         <?php if (ControladorPermisos::esEstudiante()): ?>
                           <div class="alert alert-info">
-                            Subi tu entrega y, si queres, agrega un comentario corto. Si reenviás la tarea, se actualiza la entrega anterior.
+                            Subí uno o varios archivos y, si querés, agregá un comentario corto. Si reenviás la tarea, se actualiza la entrega anterior.
                           </div>
                           <form method="post" enctype="multipart/form-data" class="row">
                             <input type="hidden" name="accion" value="entregar_tarea">
@@ -829,14 +838,17 @@ if (ControladorPermisos::esEstudiante()) {
                             <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
                             <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
                             <div class="form-group col-md-5">
-                              <label class="small text-muted">Archivo</label>
+                              <label class="small text-muted">Archivos</label>
                               <div class="classroom-file">
-                                <input type="file" class="classroom-file__input" id="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega" required>
+                                <input type="file" class="classroom-file__input" id="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega[]" multiple <?php echo $entrega ? '' : 'required'; ?>>
                                 <label class="classroom-file__button" for="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>">
-                                  <i class="fas fa-paperclip mr-2"></i>Seleccionar archivo
+                                  <i class="fas fa-paperclip mr-2"></i>Seleccionar archivos
                                 </label>
                                 <span class="classroom-file__name">Ningún archivo seleccionado</span>
                               </div>
+                              <?php if ($entrega): ?>
+                                <small class="form-text text-muted">Si elegís archivos nuevos, reemplazarán los actuales.</small>
+                              <?php endif; ?>
                             </div>
                             <div class="form-group col-md-7">
                               <label class="small text-muted">Comentario</label>
@@ -852,7 +864,15 @@ if (ControladorPermisos::esEstudiante()) {
                           <?php if ($entrega): ?>
                             <div class="alert alert-light border mt-3 mb-0">
                               Ya entregaste esta tarea el <?php echo htmlspecialchars((string) $entrega['fechaEntrega'], ENT_QUOTES, 'UTF-8'); ?>.
-                              <a href="<?php echo htmlspecialchars($entrega['urlArchivo'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Ver archivo</a>
+                              <ul class="list-unstyled small mt-2 mb-0">
+                                <?php foreach ((array) ($entrega['adjuntos'] ?? []) as $indiceAdjunto => $adjunto): ?>
+                                  <li>
+                                    <a href="<?php echo htmlspecialchars((string) ($adjunto['rutaArchivo'] ?? '#'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
+                                      <i class="fas fa-paperclip mr-1"></i><?php echo htmlspecialchars((string) ($adjunto['nombreOriginal'] ?? ('Archivo ' . ($indiceAdjunto + 1))), ENT_QUOTES, 'UTF-8'); ?>
+                                    </a>
+                                  </li>
+                                <?php endforeach; ?>
+                              </ul>
                             </div>
                           <?php endif; ?>
                         <?php endif; ?>
@@ -864,7 +884,8 @@ if (ControladorPermisos::esEstudiante()) {
                               <thead>
                                 <tr>
                                   <th>Estudiante</th>
-                                  <th>Entrega</th>
+                                  <th>Archivos</th>
+                                  <th>Comentario</th>
                                   <th>Nota</th>
                                 </tr>
                               </thead>
@@ -874,8 +895,17 @@ if (ControladorPermisos::esEstudiante()) {
                                   <tr>
                                     <td><?php echo htmlspecialchars($entregaDoc['apellidoUsuario'] . ' ' . $entregaDoc['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td>
-                                      <a href="<?php echo htmlspecialchars($entregaDoc['urlArchivo'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Abrir archivo</a>
+                                      <ul class="list-unstyled mb-0">
+                                        <?php foreach ((array) ($entregaDoc['adjuntos'] ?? []) as $indiceAdjunto => $adjunto): ?>
+                                          <li>
+                                            <a href="<?php echo htmlspecialchars((string) ($adjunto['rutaArchivo'] ?? '#'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
+                                              <i class="fas fa-paperclip mr-1"></i><?php echo htmlspecialchars((string) ($adjunto['nombreOriginal'] ?? ('Archivo ' . ($indiceAdjunto + 1))), ENT_QUOTES, 'UTF-8'); ?>
+                                            </a>
+                                          </li>
+                                        <?php endforeach; ?>
+                                      </ul>
                                     </td>
+                                    <td><?php echo nl2br(htmlspecialchars((string) ($entregaDoc['comentarioEntrega'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></td>
                                     <td>
                                       <form method="post" class="form-inline grade-form">
                                         <input type="hidden" name="accion" value="guardar_calificacion">
@@ -893,7 +923,7 @@ if (ControladorPermisos::esEstudiante()) {
                                 <?php endforeach; ?>
                                 <?php if (empty($entregas)): ?>
                                   <tr>
-                                    <td colspan="3" class="text-center text-muted">Todavia no hay entregas registradas.</td>
+                                    <td colspan="4" class="text-center text-muted">Todavia no hay entregas registradas.</td>
                                   </tr>
                                 <?php endif; ?>
                               </tbody>
