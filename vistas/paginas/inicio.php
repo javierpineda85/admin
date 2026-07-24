@@ -8,6 +8,8 @@ $apellidoUsuario = trim((string) ($_SESSION['usuario']['apellido'] ?? ''));
 $nombreCompleto = trim($nombreUsuario . ' ' . $apellidoUsuario);
 $nombreCompleto = $nombreCompleto !== '' ? $nombreCompleto : 'Usuario';
 $resumen = ControladorPanel::crtResumenDashboard();
+$entregasPendientesDashboard = (array) ($resumen['pendientes'] ?? []);
+$puedeGestionarPendientes = ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente();
 
 $db = new Conexion;
 $sql = "SELECT idCurso, nombreCurso FROM cursos ORDER BY idCurso ASC LIMIT 1";
@@ -151,7 +153,7 @@ $rutasTarjetasDashboard = [
   'Secciones a cargo' => 'index.php?r=listado-materias',
   'Lecciones' => $rutaAulaDashboard,
   'Entregas' => $rutaAulaDashboard,
-  'Pendientes' => $rutaCalificacionesDashboard,
+  'Pendientes' => $puedeGestionarPendientes ? 'index.php#entregas-pendientes' : $rutaCalificacionesDashboard,
   'Mensajes' => 'index.php?r=bandeja-entrada',
   'Promedio' => $rutaCalificacionesDashboard,
 ];
@@ -196,6 +198,81 @@ $rutasTarjetasDashboard = [
       </div>
     </div>
   </div>
+
+  <?php if ($puedeGestionarPendientes): ?>
+    <div class="card glass-card mb-4 pending-deliveries-card" id="entregas-pendientes">
+      <div class="card-header bg-white border-0">
+        <div class="d-flex flex-wrap align-items-center justify-content-between" style="gap: .75rem;">
+          <div>
+            <div class="section-title">Entregas pendientes</div>
+            <div class="section-subtitle">Trabajos enviados que todavía no tienen calificación</div>
+          </div>
+          <span class="badge badge-warning px-3 py-2">
+            <?php echo count($entregasPendientesDashboard); ?> por corregir
+          </span>
+        </div>
+      </div>
+      <div class="card-body">
+        <?php if (empty($entregasPendientesDashboard)): ?>
+          <div class="pending-deliveries-empty">
+            <span><i class="fas fa-check"></i></span>
+            <div>
+              <strong>Estás al día</strong>
+              <p class="mb-0">No hay entregas esperando corrección.</p>
+            </div>
+          </div>
+        <?php else: ?>
+          <div class="pending-deliveries-list">
+            <?php foreach ($entregasPendientesDashboard as $entregaPendiente): ?>
+              <?php
+              $nombreEstudiantePendiente = trim((string) (($entregaPendiente['apellidoUsuario'] ?? '') . ' ' . ($entregaPendiente['nombreUsuario'] ?? '')));
+              $fechaEntregaPendiente = strtotime((string) ($entregaPendiente['fechaEntrega'] ?? ''));
+              $rutaEntregaPendiente = 'index.php?r=detalle-seccion&idSeccion='
+                . (int) ($entregaPendiente['id_seccion'] ?? 0)
+                . '&abrirLeccion='
+                . (int) ($entregaPendiente['id_leccion'] ?? 0)
+                . '#leccion-docente-'
+                . (int) ($entregaPendiente['id_leccion'] ?? 0);
+              ?>
+              <article class="pending-delivery-item">
+                <div class="pending-delivery-icon">
+                  <i class="fas fa-file-upload"></i>
+                </div>
+                <div class="pending-delivery-copy">
+                  <div class="pending-delivery-heading">
+                    <div>
+                      <strong><?php echo htmlspecialchars($nombreEstudiantePendiente !== '' ? $nombreEstudiantePendiente : 'Estudiante', ENT_QUOTES, 'UTF-8'); ?></strong>
+                      <span><?php echo htmlspecialchars((string) ($entregaPendiente['nombreLeccion'] ?? 'Tarea'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                    <time datetime="<?php echo htmlspecialchars((string) ($entregaPendiente['fechaEntrega'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                      <?php echo $fechaEntregaPendiente ? date('d/m/Y H:i', $fechaEntregaPendiente) : 'Sin fecha'; ?>
+                    </time>
+                  </div>
+                  <div class="pending-delivery-meta">
+                    <span><i class="fas fa-layer-group"></i><?php echo htmlspecialchars((string) ($entregaPendiente['nombreCurso'] ?? 'Curso'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span><i class="fas fa-book-open"></i><?php echo htmlspecialchars((string) ($entregaPendiente['tituloSeccion'] ?? 'Sección'), ENT_QUOTES, 'UTF-8'); ?></span>
+                  </div>
+                  <?php if (!empty($entregaPendiente['comentarioEntrega'])): ?>
+                    <p class="pending-delivery-comment mb-0"><?php echo htmlspecialchars((string) $entregaPendiente['comentarioEntrega'], ENT_QUOTES, 'UTF-8'); ?></p>
+                  <?php endif; ?>
+                </div>
+                <div class="pending-delivery-actions">
+                  <?php if (!empty($entregaPendiente['urlArchivo'])): ?>
+                    <a href="<?php echo htmlspecialchars((string) $entregaPendiente['urlArchivo'], ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-light border btn-sm" target="_blank" rel="noopener noreferrer">
+                      <i class="fas fa-paperclip mr-1"></i>Archivo
+                    </a>
+                  <?php endif; ?>
+                  <a href="<?php echo htmlspecialchars($rutaEntregaPendiente, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary btn-sm">
+                    <i class="fas fa-check-circle mr-1"></i>Corregir
+                  </a>
+                </div>
+              </article>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  <?php endif; ?>
 
   <div class="row">
     <?php foreach (($resumen['tarjetas'] ?? []) as $tarjeta): ?>

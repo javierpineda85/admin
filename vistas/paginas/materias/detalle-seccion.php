@@ -19,10 +19,21 @@ $esDocente = ControladorPermisos::esDocente();
 $puedeGestionar = $esAdmin || $esDocente;
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $lecciones = array_values(array_reverse($lecciones));
+$leccionSolicitada = max(0, (int) ($_GET['abrirLeccion'] ?? 0));
 $paginaLecciones = max(1, (int) ($_GET['paginaLecciones'] ?? 1));
 $leccionesPorPaginaGestion = 8;
 $totalLeccionesGestion = count($lecciones);
 $totalPaginasLecciones = max(1, (int) ceil($totalLeccionesGestion / $leccionesPorPaginaGestion));
+
+if ($puedeGestionar && $leccionSolicitada > 0) {
+  foreach ($lecciones as $indiceLeccion => $leccionPaginada) {
+    if ((int) ($leccionPaginada['idLeccion'] ?? 0) === $leccionSolicitada) {
+      $paginaLecciones = (int) floor($indiceLeccion / $leccionesPorPaginaGestion) + 1;
+      break;
+    }
+  }
+}
+
 if ($paginaLecciones > $totalPaginasLecciones) {
   $paginaLecciones = $totalPaginasLecciones;
 }
@@ -618,6 +629,7 @@ if (ControladorPermisos::esEstudiante()) {
                 : null;
               ?>
               <?php $collapseIdDocente = 'leccion-docente-' . (int) $leccion['idLeccion']; ?>
+              <?php $abrirLeccionDocente = $leccionSolicitada === (int) $leccion['idLeccion']; ?>
               <div class="card card-light shadow-none border mb-3 lesson-item-card">
                 <div class="card-header bg-white border-bottom-0 pb-0">
                   <div class="d-flex align-items-center justify-content-between flex-wrap">
@@ -629,8 +641,8 @@ if (ControladorPermisos::esEstudiante()) {
 	                      <span class="badge badge-<?php echo $estadoLeccion === 'BORRADOR' || $estaProgramada ? 'warning' : 'success'; ?> mr-2">
 	                        <?php echo $estadoLeccion === 'BORRADOR' ? 'Borrador' : ($estaProgramada ? 'Programada' : 'Publicada'); ?>
 	                      </span>
-                      <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#<?php echo $collapseIdDocente; ?>" aria-expanded="false">
-                        <i class="fas fa-chevron-right"></i>
+                      <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#<?php echo $collapseIdDocente; ?>" aria-expanded="<?php echo $abrirLeccionDocente ? 'true' : 'false'; ?>">
+                        <i class="fas <?php echo $abrirLeccionDocente ? 'fa-chevron-down' : 'fa-chevron-right'; ?>"></i>
                       </button>
                     </div>
                   </div>
@@ -643,7 +655,7 @@ if (ControladorPermisos::esEstudiante()) {
 	                    <?php endif; ?>
                   </small>
                 </div>
-                <div id="<?php echo $collapseIdDocente; ?>" class="collapse">
+                <div id="<?php echo $collapseIdDocente; ?>" class="collapse<?php echo $abrirLeccionDocente ? ' show' : ''; ?>">
                   <div class="card-body pt-3">
                     <div class="classwork-rich-content text-muted mb-3">
                       <?php echo $renderContenidoLeccion($leccion['contenidoLeccion'] ?? ''); ?>

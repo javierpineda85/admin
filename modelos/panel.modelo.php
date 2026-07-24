@@ -384,6 +384,40 @@ class ModeloPanel
         );
     }
 
+    private static function entregasPendientes($idUsuario, $rol)
+    {
+        $rol = self::normalizarRol($rol);
+
+        if (!in_array($rol, ['ADMINISTRADOR', 'DOCENTE'], true)) {
+            return [];
+        }
+
+        $filtroDocente = $rol === 'DOCENTE'
+            ? ' AND (s.docente = :idUsuario OR s.tutor = :idUsuario)'
+            : '';
+        $params = $rol === 'DOCENTE' ? [':idUsuario' => (int) $idUsuario] : [];
+
+        return self::listar(
+            'SELECT e.idEntregaLeccion, e.id_leccion, e.id_seccion, e.id_curso,
+                    e.id_estudiante, e.urlArchivo, e.comentarioEntrega, e.fechaEntrega,
+                    l.nombreLeccion, s.tituloSeccion, cursos.nombreCurso,
+                    u.nombreUsuario, u.apellidoUsuario
+             FROM entregaslecciones e
+             INNER JOIN lecciones l ON l.idLeccion = e.id_leccion
+             INNER JOIN secciones s ON s.idSeccion = e.id_seccion
+             INNER JOIN cursos ON cursos.idCurso = e.id_curso
+             INNER JOIN usuarios u ON u.idUsuario = e.id_estudiante
+             LEFT JOIN calificaciones c
+               ON c.id_estudiante = e.id_estudiante
+              AND c.id_seccion = e.id_seccion
+              AND c.id_modulo = e.id_leccion
+             WHERE e.estadoEntrega = "ENTREGADA"
+               AND c.idCalificacion IS NULL' . $filtroDocente . '
+             ORDER BY e.fechaEntrega ASC, s.tituloSeccion ASC, u.apellidoUsuario ASC',
+            $params
+        );
+    }
+
     private static function actividadCalificaciones($idUsuario, $rol, $limite = 2)
     {
         $rol = self::normalizarRol($rol);
@@ -585,6 +619,7 @@ class ModeloPanel
     public static function mdlResumenDashboard($idUsuario, $rol)
     {
         $idUsuario = (int) $idUsuario;
+        $rol = self::normalizarRol($rol);
         $tarjetas = self::tarjetasPorRol($rol, $idUsuario);
         $actividad = [];
 
@@ -654,7 +689,8 @@ class ModeloPanel
         return [
             'tarjetas' => $tarjetas,
             'actividad' => array_slice($actividad, 0, 5),
-            'rol' => self::normalizarRol($rol),
+            'pendientes' => self::entregasPendientes($idUsuario, $rol),
+            'rol' => $rol,
         ];
     }
 

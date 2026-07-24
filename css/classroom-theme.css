@@ -307,6 +307,146 @@ body.classroom-app .dashboard-context-note {
   font-size: 0.92rem;
 }
 
+body.classroom-app .pending-deliveries-card {
+  scroll-margin-top: 1rem;
+}
+
+body.classroom-app .pending-deliveries-list {
+  display: grid;
+  max-height: 560px;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+body.classroom-app .pending-delivery-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.95rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: #fff;
+}
+
+body.classroom-app .pending-delivery-icon,
+body.classroom-app .pending-deliveries-empty > span {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 14px;
+}
+
+body.classroom-app .pending-delivery-icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+body.classroom-app .pending-delivery-copy {
+  min-width: 0;
+}
+
+body.classroom-app .pending-delivery-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+body.classroom-app .pending-delivery-heading strong,
+body.classroom-app .pending-delivery-heading span {
+  display: block;
+}
+
+body.classroom-app .pending-delivery-heading strong {
+  color: #0f172a;
+}
+
+body.classroom-app .pending-delivery-heading span {
+  color: #475569;
+  font-size: 0.88rem;
+}
+
+body.classroom-app .pending-delivery-heading time {
+  color: #94a3b8;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+body.classroom-app .pending-delivery-meta,
+body.classroom-app .pending-delivery-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+body.classroom-app .pending-delivery-meta {
+  margin-top: 0.4rem;
+}
+
+body.classroom-app .pending-delivery-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #64748b;
+  font-size: 0.76rem;
+}
+
+body.classroom-app .pending-delivery-comment {
+  display: -webkit-box;
+  margin-top: 0.45rem;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 0.82rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body.classroom-app .pending-delivery-actions {
+  justify-content: flex-end;
+}
+
+body.classroom-app .pending-deliveries-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid rgba(34, 197, 94, 0.18);
+  border-radius: 16px;
+  background: rgba(240, 253, 244, 0.72);
+  color: #166534;
+}
+
+body.classroom-app .pending-deliveries-empty > span {
+  background: rgba(34, 197, 94, 0.14);
+}
+
+body.classroom-app .pending-deliveries-empty p {
+  color: #4b7460;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 767.98px) {
+  body.classroom-app .pending-delivery-item {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: flex-start;
+  }
+
+  body.classroom-app .pending-delivery-actions {
+    grid-column: 1 / -1;
+  }
+
+  body.classroom-app .pending-delivery-heading {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+}
+
 body.classroom-app .quick-action {
   display: flex;
   align-items: center;
