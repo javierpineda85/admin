@@ -808,6 +808,37 @@ class ControladorLecciones
         return parse_url($url, PHP_URL_HOST) ?: 'Enlace de la leccion';
     }
 
+    private static function tituloRecursoParaCarga($tituloBase, $tituloAutomatico, $totalRecursos, array &$titulosUsados)
+    {
+        $tituloBase = trim((string) $tituloBase);
+        $tituloAutomatico = trim((string) $tituloAutomatico);
+
+        if ($tituloAutomatico === '') {
+            $tituloAutomatico = 'Recurso';
+        }
+
+        if ($tituloBase === '') {
+            $titulo = $tituloAutomatico;
+        } elseif ((int) $totalRecursos === 1) {
+            $titulo = $tituloBase;
+        } else {
+            $titulo = $tituloBase . ' - ' . $tituloAutomatico;
+        }
+
+        $tituloOriginal = $titulo;
+        $numero = 2;
+        $clave = strtolower($titulo);
+
+        while (isset($titulosUsados[$clave])) {
+            $titulo = $tituloOriginal . ' (' . $numero . ')';
+            $clave = strtolower($titulo);
+            $numero++;
+        }
+
+        $titulosUsados[$clave] = true;
+        return $titulo;
+    }
+
     private static function guardarRecursoLeccion($idLeccion, $tipo, $titulo, $url)
     {
         return ModeloLecciones::mdlGuardarRecursoLeccion('recursoslecciones', [
@@ -822,9 +853,13 @@ class ControladorLecciones
     private static function procesarRecursosFormulario($idLeccion, array $campos)
     {
         $tituloBase = trim((string) ($_POST[$campos['titulo']] ?? ''));
+        $archivos = self::normalizarArchivos($campos['archivo']);
+        $urls = self::normalizarUrls($campos['url'], $campos['urls'] ?? '');
+        $totalRecursos = count($archivos) + count($urls);
         $recursosGuardados = [];
+        $titulosUsados = [];
 
-        foreach (self::normalizarArchivos($campos['archivo']) as $archivo) {
+        foreach ($archivos as $archivo) {
             if (($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
                 return false;
             }
@@ -834,9 +869,8 @@ class ControladorLecciones
                 return false;
             }
 
-            $titulo = $tituloBase !== ''
-                ? $tituloBase
-                : pathinfo((string) ($archivo['name'] ?? 'Recurso adjunto'), PATHINFO_FILENAME);
+            $tituloAutomatico = pathinfo((string) ($archivo['name'] ?? 'Recurso adjunto'), PATHINFO_FILENAME);
+            $titulo = self::tituloRecursoParaCarga($tituloBase, $tituloAutomatico, $totalRecursos, $titulosUsados);
 
             $respuesta = self::guardarRecursoLeccion($idLeccion, 'ARCHIVO', $titulo, $urlRecurso);
             if ($respuesta !== 'ok') {
@@ -847,13 +881,18 @@ class ControladorLecciones
             $recursosGuardados[] = $urlRecurso;
         }
 
-        foreach (self::normalizarUrls($campos['url'], $campos['urls'] ?? '') as $url) {
+        foreach ($urls as $url) {
             $urlRecurso = self::normalizarUrlRecurso($url);
             if ($urlRecurso === '') {
                 return false;
             }
 
-            $titulo = $tituloBase !== '' ? $tituloBase : self::tituloDesdeUrl($urlRecurso);
+            $titulo = self::tituloRecursoParaCarga(
+                $tituloBase,
+                self::tituloDesdeUrl($urlRecurso),
+                $totalRecursos,
+                $titulosUsados
+            );
             $respuesta = self::guardarRecursoLeccion($idLeccion, 'ENLACE', $titulo, $urlRecurso);
             if ($respuesta !== 'ok') {
                 return false;

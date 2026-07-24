@@ -528,7 +528,7 @@ if (ControladorPermisos::esEstudiante()) {
                       <div class="text-uppercase small font-weight-bold">Adjuntar recursos</div>
                       <div class="small text-muted">Agrega varios archivos y enlaces antes de guardar la leccion.</div>
                     </div>
-                    <input type="text" name="tituloRecursoInicial" class="form-control form-control-sm lesson-resource-title" placeholder="Titulo comun opcional">
+                    <input type="text" name="tituloRecursoInicial" class="form-control form-control-sm lesson-resource-title" placeholder="Prefijo opcional, ej. Unidad 1">
                   </div>
                   <div class="resource-attachment-list d-none" data-attachment-list></div>
                   <input type="file" class="resource-file-input d-none" id="archivoRecursoInicialMultiple<?php echo (int) $idSeccion; ?>" name="archivoRecursoInicial[]" multiple data-file-input>
@@ -784,8 +784,8 @@ if (ControladorPermisos::esEstudiante()) {
                             </select>
                           </div>
                           <div class="form-group col-md-4">
-                            <label class="small text-muted">Titulo</label>
-                            <input type="text" name="tituloRecurso" class="form-control form-control-sm" placeholder="Opcional, se completa con el archivo o enlace">
+                            <label class="small text-muted">Título o prefijo</label>
+                            <input type="text" name="tituloRecurso" class="form-control form-control-sm" placeholder="Con varios recursos se combina con cada nombre">
                           </div>
                           <div class="form-group col-md-8">
                             <div class="resource-attachment-list d-none" data-attachment-list></div>
