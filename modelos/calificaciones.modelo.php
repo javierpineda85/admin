@@ -63,6 +63,38 @@ class ModeloCalificaciones
         return $stmt->execute() ? 'ok' : 'error';
     }
 
+    public static function mdlGuardarCalificaciones(array $calificaciones)
+    {
+        if (empty($calificaciones)) {
+            return 'error';
+        }
+
+        $valores = [];
+        $params = [];
+
+        foreach (array_values($calificaciones) as $indice => $calificacion) {
+            $valores[] = "(:id_estudiante_{$indice}, :id_seccion_{$indice}, :id_modulo_{$indice}, :id_curso_{$indice}, :calificacion_{$indice}, :devolucion_{$indice})";
+            $params[":id_estudiante_{$indice}"] = (int) $calificacion['id_estudiante'];
+            $params[":id_seccion_{$indice}"] = (int) $calificacion['id_seccion'];
+            $params[":id_modulo_{$indice}"] = (int) $calificacion['id_modulo'];
+            $params[":id_curso_{$indice}"] = (int) $calificacion['id_curso'];
+            $params[":calificacion_{$indice}"] = (int) $calificacion['calificacion'];
+            $params[":devolucion_{$indice}"] = (string) ($calificacion['devolucion'] ?? '');
+        }
+
+        $stmt = Conexion::conectar()->prepare(
+            'INSERT INTO calificaciones
+                (id_estudiante, id_seccion, id_modulo, id_curso, calificacion, devolucion)
+             VALUES ' . implode(', ', $valores) . '
+             ON DUPLICATE KEY UPDATE
+                id_curso = VALUES(id_curso),
+                calificacion = VALUES(calificacion),
+                devolucion = VALUES(devolucion)'
+        );
+
+        return $stmt->execute($params) ? 'ok' : 'error';
+    }
+
     public static function mdlCalificacionesPorSeccion($idSeccion)
     {
         $stmt = Conexion::conectar()->prepare(

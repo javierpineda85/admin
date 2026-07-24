@@ -10,6 +10,10 @@ class ControladorCalificaciones
             return self::crtGuardarCalificacion();
         }
 
+        if ($accion === 'guardar_calificaciones_entregas') {
+            return self::crtGuardarCalificacionesEntregas();
+        }
+
         if ($accion === 'crear_evaluacion') {
             return self::crtCrearEvaluacion();
         }
@@ -116,6 +120,88 @@ class ControladorCalificaciones
             $_SESSION['success_message'] = 'Calificaciones guardadas correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudieron guardar las calificaciones.';
+        }
+
+        return $respuesta;
+    }
+
+    public static function crtGuardarCalificacionesEntregas()
+    {
+        $idSeccion = (int) ($_POST['id_seccion'] ?? 0);
+        $idLeccion = (int) ($_POST['id_modulo'] ?? 0);
+        $idCurso = (int) ($_POST['id_curso'] ?? 0);
+        $seccion = $idSeccion > 0 ? ControladorLecciones::crtBuscarSeccionPorId($idSeccion) : null;
+        $leccion = $idLeccion > 0 ? ControladorLecciones::crtBuscarLeccionPorId($idLeccion) : null;
+
+        if (
+            !$seccion
+            || !$leccion
+            || !self::puedeGestionarSeccion($idSeccion)
+            || (int) ($seccion['id_curso'] ?? 0) !== $idCurso
+            || (int) ($leccion['id_modulo'] ?? 0) !== $idSeccion
+            || strtoupper((string) ($leccion['tipoLeccion'] ?? '')) !== 'TAREA'
+        ) {
+            $_SESSION['error_message'] = 'No tenes permisos para corregir estas entregas.';
+            return 'denied';
+        }
+
+        $notas = (array) ($_POST['calificaciones'] ?? []);
+        $devoluciones = (array) ($_POST['devoluciones'] ?? []);
+        $entregas = ControladorLecciones::crtBuscarEntregasPorLeccion($idLeccion);
+        $estudiantesPermitidos = [];
+
+        foreach ($entregas as $entrega) {
+            if (
+                (int) ($entrega['id_seccion'] ?? 0) === $idSeccion
+                && (int) ($entrega['id_curso'] ?? 0) === $idCurso
+            ) {
+                $estudiantesPermitidos[(int) $entrega['id_estudiante']] = true;
+            }
+        }
+
+        $calificaciones = [];
+        foreach ($notas as $idEstudiante => $nota) {
+            $idEstudiante = (int) $idEstudiante;
+            $nota = trim((string) $nota);
+
+            if ($nota === '') {
+                continue;
+            }
+
+            if (!isset($estudiantesPermitidos[$idEstudiante]) || !preg_match('/^\d{1,3}$/', $nota)) {
+                $_SESSION['error_message'] = 'Revisa las calificaciones ingresadas.';
+                return 'error';
+            }
+
+            $notaNumerica = (int) $nota;
+            if ($notaNumerica < 0 || $notaNumerica > 100) {
+                $_SESSION['error_message'] = 'Todas las calificaciones deben estar entre 0 y 100.';
+                return 'error';
+            }
+
+            $calificaciones[] = [
+                'id_estudiante' => $idEstudiante,
+                'id_seccion' => $idSeccion,
+                'id_modulo' => $idLeccion,
+                'id_curso' => $idCurso,
+                'calificacion' => $notaNumerica,
+                'devolucion' => trim((string) ($devoluciones[$idEstudiante] ?? '')),
+            ];
+        }
+
+        if (empty($calificaciones)) {
+            $_SESSION['error_message'] = 'Carga al menos una calificacion antes de guardar.';
+            return 'error';
+        }
+
+        $respuesta = ModeloCalificaciones::mdlGuardarCalificaciones($calificaciones);
+        if ($respuesta === 'ok') {
+            $cantidad = count($calificaciones);
+            $_SESSION['success_message'] = $cantidad === 1
+                ? 'La correccion se guardo correctamente.'
+                : 'Se guardaron ' . $cantidad . ' correcciones correctamente.';
+        } else {
+            $_SESSION['error_message'] = 'No se pudieron guardar las correcciones.';
         }
 
         return $respuesta;

@@ -891,56 +891,98 @@ if (ControladorPermisos::esEstudiante()) {
 
                         <?php if ($puedeGestionar): ?>
                           <?php $entregas = ControladorLecciones::crtBuscarEntregasPorLeccion((int) $leccion['idLeccion']); ?>
-                          <div class="table-responsive mt-3">
-                            <table class="table table-sm table-bordered mb-0">
-                              <thead>
-                                <tr>
-                                  <th>Estudiante</th>
-                                  <th>Archivos</th>
-                                  <th>Comentario</th>
-                                  <th>Nota</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <?php foreach ($entregas as $entregaDoc): ?>
-                                  <?php $notaActual = $buscarCalificacion($calificacionesSeccion, (int) $leccion['idLeccion'], (int) $entregaDoc['id_estudiante']); ?>
+                          <form
+                            method="post"
+                            class="batch-grading-form mt-3"
+                            action="index.php?r=detalle-seccion&amp;idSeccion=<?php echo (int) $seccion['idSeccion']; ?>&amp;abrirLeccion=<?php echo (int) $leccion['idLeccion']; ?>#leccion-docente-<?php echo (int) $leccion['idLeccion']; ?>"
+                          >
+                            <input type="hidden" name="accion" value="guardar_calificaciones_entregas">
+                            <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
+                            <input type="hidden" name="id_modulo" value="<?php echo (int) $leccion['idLeccion']; ?>">
+                            <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
+
+                            <div class="batch-grading-heading">
+                              <div>
+                                <strong>Corrección conjunta</strong>
+                                <small>Completá una o varias notas y guardalas todas de una vez.</small>
+                              </div>
+                              <span class="badge badge-light border"><?php echo count($entregas); ?> entregas</span>
+                            </div>
+
+                            <div class="table-responsive">
+                              <table class="table table-sm table-bordered mb-0 batch-grading-table">
+                                <thead>
                                   <tr>
-                                    <td><?php echo htmlspecialchars($entregaDoc['apellidoUsuario'] . ' ' . $entregaDoc['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td>
-                                      <ul class="list-unstyled mb-0">
-                                        <?php foreach ((array) ($entregaDoc['adjuntos'] ?? []) as $indiceAdjunto => $adjunto): ?>
-                                          <li>
-                                            <a href="<?php echo htmlspecialchars((string) ($adjunto['rutaArchivo'] ?? '#'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
-                                              <i class="fas fa-paperclip mr-1"></i><?php echo htmlspecialchars((string) ($adjunto['nombreOriginal'] ?? ('Archivo ' . ($indiceAdjunto + 1))), ENT_QUOTES, 'UTF-8'); ?>
-                                            </a>
-                                          </li>
-                                        <?php endforeach; ?>
-                                      </ul>
-                                    </td>
-                                    <td><?php echo nl2br(htmlspecialchars((string) ($entregaDoc['comentarioEntrega'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></td>
-                                    <td>
-                                      <form method="post" class="form-inline grade-form">
-                                        <input type="hidden" name="accion" value="guardar_calificacion">
-                                        <input type="hidden" name="id_estudiante" value="<?php echo (int) $entregaDoc['id_estudiante']; ?>">
-                                        <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
-                                        <input type="hidden" name="id_modulo" value="<?php echo (int) $leccion['idLeccion']; ?>">
-                                        <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                                        <input type="number" name="calificacion" class="form-control form-control-sm mr-2 grade-input" min="0" max="100" value="<?php echo (int) ($notaActual['calificacion'] ?? 0); ?>" readonly>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm mr-2 grade-toggle">Editar nota</button>
-                                        <input type="text" name="devolucion" class="form-control form-control-sm mr-2" placeholder="Devolución" value="<?php echo htmlspecialchars((string) ($notaActual['devolucion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        <button type="submit" class="btn btn-success btn-sm">Guardar</button>
-                                      </form>
-                                    </td>
+                                    <th>Estudiante</th>
+                                    <th>Archivos</th>
+                                    <th>Comentario</th>
+                                    <th>Nota y devolución</th>
                                   </tr>
-                                <?php endforeach; ?>
-                                <?php if (empty($entregas)): ?>
-                                  <tr>
-                                    <td colspan="4" class="text-center text-muted">Todavia no hay entregas registradas.</td>
-                                  </tr>
-                                <?php endif; ?>
-                              </tbody>
-                            </table>
-                          </div>
+                                </thead>
+                                <tbody>
+                                  <?php foreach ($entregas as $entregaDoc): ?>
+                                    <?php $notaActual = $buscarCalificacion($calificacionesSeccion, (int) $leccion['idLeccion'], (int) $entregaDoc['id_estudiante']); ?>
+                                    <tr>
+                                      <td>
+                                        <strong><?php echo htmlspecialchars($entregaDoc['apellidoUsuario'] . ' ' . $entregaDoc['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        <small class="d-block text-muted">
+                                          <?php echo $notaActual ? 'Corrección guardada' : 'Pendiente de corrección'; ?>
+                                        </small>
+                                      </td>
+                                      <td>
+                                        <ul class="list-unstyled mb-0">
+                                          <?php foreach ((array) ($entregaDoc['adjuntos'] ?? []) as $indiceAdjunto => $adjunto): ?>
+                                            <li>
+                                              <a href="<?php echo htmlspecialchars((string) ($adjunto['rutaArchivo'] ?? '#'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
+                                                <i class="fas fa-paperclip mr-1"></i><?php echo htmlspecialchars((string) ($adjunto['nombreOriginal'] ?? ('Archivo ' . ($indiceAdjunto + 1))), ENT_QUOTES, 'UTF-8'); ?>
+                                              </a>
+                                            </li>
+                                          <?php endforeach; ?>
+                                        </ul>
+                                      </td>
+                                      <td><?php echo nl2br(htmlspecialchars((string) ($entregaDoc['comentarioEntrega'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></td>
+                                      <td>
+                                        <div class="batch-grading-fields">
+                                          <input
+                                            type="number"
+                                            name="calificaciones[<?php echo (int) $entregaDoc['id_estudiante']; ?>]"
+                                            class="form-control form-control-sm batch-grade-input"
+                                            min="0"
+                                            max="100"
+                                            placeholder="Nota"
+                                            aria-label="Nota de <?php echo htmlspecialchars($entregaDoc['apellidoUsuario'] . ' ' . $entregaDoc['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?>"
+                                            value="<?php echo $notaActual ? (int) $notaActual['calificacion'] : ''; ?>"
+                                          >
+                                          <input
+                                            type="text"
+                                            name="devoluciones[<?php echo (int) $entregaDoc['id_estudiante']; ?>]"
+                                            class="form-control form-control-sm"
+                                            placeholder="Devolución opcional"
+                                            aria-label="Devolución para <?php echo htmlspecialchars($entregaDoc['apellidoUsuario'] . ' ' . $entregaDoc['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?>"
+                                            value="<?php echo htmlspecialchars((string) ($notaActual['devolucion'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                          >
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  <?php endforeach; ?>
+                                  <?php if (empty($entregas)): ?>
+                                    <tr>
+                                      <td colspan="4" class="text-center text-muted">Todavia no hay entregas registradas.</td>
+                                    </tr>
+                                  <?php endif; ?>
+                                </tbody>
+                              </table>
+                            </div>
+
+                            <?php if (!empty($entregas)): ?>
+                              <div class="batch-grading-footer">
+                                <small><i class="fas fa-info-circle mr-1"></i>Las filas sin nota no se modifican.</small>
+                                <button type="submit" class="btn btn-success btn-sm">
+                                  <i class="fas fa-check-double mr-1"></i>Guardar todas las correcciones
+                                </button>
+                              </div>
+                            <?php endif; ?>
+                          </form>
                         <?php endif; ?>
                       </div>
                     <?php endif; ?>
@@ -1144,19 +1186,6 @@ if (ControladorPermisos::esEstudiante()) {
 </section>
 
 <script>
-  document.querySelectorAll('.grade-form').forEach(function(form) {
-    var toggle = form.querySelector('.grade-toggle');
-    var input = form.querySelector('.grade-input');
-    if (!toggle || !input) {
-      return;
-    }
-    toggle.addEventListener('click', function() {
-      input.removeAttribute('readonly');
-      input.focus();
-      input.select();
-    });
-  });
-
   document.querySelectorAll('[data-resource-uploader]').forEach(function(uploader) {
     var fileInput = uploader.querySelector('[data-file-input]');
     var fileList = uploader.querySelector('[data-attachment-list]');
