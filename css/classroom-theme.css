@@ -544,6 +544,90 @@ body.classroom-app .evaluation-grades-footer {
   background: #f8fafc;
 }
 
+body.classroom-app .student-preview-selector,
+body.classroom-app .student-preview-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(14, 116, 144, 0.18);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(236, 254, 255, 0.94), rgba(240, 249, 255, 0.96));
+  box-shadow: 0 12px 30px rgba(14, 116, 144, 0.08);
+}
+
+body.classroom-app .student-preview-selector__copy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+body.classroom-app .student-preview-selector__copy > div,
+body.classroom-app .student-preview-context > div {
+  display: block;
+  min-width: 0;
+}
+
+body.classroom-app .student-preview-selector__copy strong,
+body.classroom-app .student-preview-selector__copy small,
+body.classroom-app .student-preview-context strong,
+body.classroom-app .student-preview-context span {
+  display: block;
+}
+
+body.classroom-app .student-preview-selector__copy strong,
+body.classroom-app .student-preview-context strong {
+  color: #164e63;
+}
+
+body.classroom-app .student-preview-selector__copy small,
+body.classroom-app .student-preview-context span {
+  color: #52707b;
+  font-size: 0.84rem;
+}
+
+body.classroom-app .student-preview-selector__icon,
+body.classroom-app .student-preview-context > i {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background: rgba(8, 145, 178, 0.12);
+  color: #0e7490;
+}
+
+body.classroom-app .student-preview-selector__form {
+  display: grid;
+  min-width: min(100%, 440px);
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 0.65rem;
+}
+
+body.classroom-app .student-grades-group h4 {
+  margin-bottom: 0.75rem;
+  color: #334155;
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body.classroom-app .student-grade-value {
+  display: inline-flex;
+  min-width: 42px;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+}
+
 @media (max-width: 767.98px) {
   body.classroom-app .pending-delivery-item {
     grid-template-columns: auto minmax(0, 1fr);
@@ -576,6 +660,17 @@ body.classroom-app .evaluation-grades-footer {
   body.classroom-app .evaluation-management-actions {
     align-items: flex-end;
     flex-direction: column-reverse;
+  }
+
+  body.classroom-app .student-preview-selector,
+  body.classroom-app .student-preview-context {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  body.classroom-app .student-preview-selector__form {
+    min-width: 0;
+    grid-template-columns: 1fr;
   }
 }
 

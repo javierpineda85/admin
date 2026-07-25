@@ -10,8 +10,12 @@ class ControladorPanel
 
     public static function crtResumenDashboard()
     {
+        $idUsuarioResumen = ControladorPermisos::esEstudiante()
+            ? ControladorPermisos::idEstudianteContexto()
+            : self::idUsuarioActual();
+
         return ModeloPanel::mdlResumenDashboard(
-            self::idUsuarioActual(),
+            $idUsuarioResumen,
             ControladorPermisos::rolActual()
         );
     }

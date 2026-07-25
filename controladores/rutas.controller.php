@@ -107,7 +107,34 @@ class RutasController
         }
 
         $estado = trim((string) ($_GET['estado'] ?? '1'));
-        ControladorPermisos::activarVistaEstudiante(in_array($estado, ['1', 'true', 'on', 'si'], true));
+        $activar = in_array($estado, ['1', 'true', 'on', 'si'], true);
+        $idEstudiante = max(0, (int) ($_GET['idEstudiante'] ?? 0));
+
+        if ($activar && $idEstudiante > 0) {
+            $estudiante = ModeloUsuarios::mdlObtenerUsuarioPorId($idEstudiante);
+            $rolReal = ControladorPermisos::rolReal();
+            $idUsuarioReal = (int) ($_SESSION['usuario']['id'] ?? 0);
+            $puedePrevisualizar = $estudiante
+                && strtoupper((string) ($estudiante['rol'] ?? '')) === 'ESTUDIANTE'
+                && (int) ($estudiante['activo'] ?? 0) === 1;
+
+            if ($puedePrevisualizar && $rolReal === 'DOCENTE') {
+                $puedePrevisualizar = false;
+                foreach (ControladorCursos::crtCursosPorDocente($idUsuarioReal) as $cursoDocente) {
+                    if (ControladorCursos::crtEstudianteInscriptoCurso($idEstudiante, (int) ($cursoDocente['idCurso'] ?? 0))) {
+                        $puedePrevisualizar = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$puedePrevisualizar) {
+                $idEstudiante = 0;
+                $_SESSION['error_message'] = 'No podes previsualizar el campus con ese estudiante.';
+            }
+        }
+
+        ControladorPermisos::activarVistaEstudiante($activar, $idEstudiante);
 
         $redirigir = self::redireccionSegura($_GET['redir'] ?? 'index.php');
         $rutaRedirigir = self::rutaDestinoDesdeUrl($redirigir);

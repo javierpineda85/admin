@@ -3,6 +3,9 @@ $rolActual = ControladorPermisos::rolActual();
 $rolReal = ControladorPermisos::rolReal();
 $vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$idEstudianteContexto = ControladorPermisos::esEstudiante()
+  ? ControladorPermisos::idEstudianteContexto()
+  : 0;
 $nombreUsuario = trim((string) ($_SESSION['usuario']['nombre'] ?? 'Usuario'));
 $apellidoUsuario = trim((string) ($_SESSION['usuario']['apellido'] ?? ''));
 $nombreCompleto = trim($nombreUsuario . ' ' . $apellidoUsuario);
@@ -131,7 +134,7 @@ if (ControladorPermisos::esAdministrador()) {
     SELECT s.idSeccion
     FROM secciones s
     INNER JOIN asignacioncursos a ON a.id_seccion = s.id_curso
-    WHERE a.id_estudiante = {$idUsuarioActual}
+    WHERE a.id_estudiante = {$idEstudianteContexto}
     ORDER BY s.idSeccion ASC
     LIMIT 1
   ");

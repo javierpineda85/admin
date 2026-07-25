@@ -42,6 +42,15 @@ class ControladorPermisos
         return self::rolActual() === 'ESTUDIANTE';
     }
 
+    public static function idEstudianteContexto()
+    {
+        if (!self::vistaEstudianteActiva()) {
+            return (int) ($_SESSION['usuario']['id'] ?? 0);
+        }
+
+        return max(0, (int) ($_SESSION['vista_estudiante_id'] ?? 0));
+    }
+
     public static function puedeAccederRuta($ruta)
     {
         $ruta = trim((string) $ruta);
@@ -133,13 +142,21 @@ class ControladorPermisos
         return in_array(self::rolReal(), ['ADMINISTRADOR', 'DOCENTE'], true);
     }
 
-    public static function activarVistaEstudiante($activa)
+    public static function activarVistaEstudiante($activa, $idEstudiante = 0)
     {
         if (!self::puedeActivarVistaEstudiante()) {
             return false;
         }
 
         $_SESSION['vista_estudiante'] = (bool) $activa;
+        $idEstudiante = max(0, (int) $idEstudiante);
+
+        if (!$activa || $idEstudiante <= 0) {
+            unset($_SESSION['vista_estudiante_id']);
+        } else {
+            $_SESSION['vista_estudiante_id'] = $idEstudiante;
+        }
+
         return true;
     }
 }

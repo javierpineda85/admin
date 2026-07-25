@@ -7,14 +7,64 @@ $esAdmin = ControladorPermisos::esAdministrador();
 $esDocenteReal = $rolReal === 'DOCENTE';
 $esAdminReal = $rolReal === 'ADMINISTRADOR';
 $vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
+$idEstudianteContexto = ControladorPermisos::idEstudianteContexto();
+$estudiantesSimulacion = [];
+$estudianteSimulado = null;
 
 if ($vistaEstudianteSimulada) {
-    $cursos = $esDocenteReal
+    $cursosDisponiblesSimulacion = $esDocenteReal
         ? ControladorCursos::crtCursosPorDocente($idUsuarioActual)
         : ControladorCursos::crtListarCursos();
 
-    if (empty($cursos)) {
-        $cursos = ControladorCursos::crtListarCursos();
+    if ($esAdminReal) {
+        $estudiantesSimulacion = array_values(array_filter(
+            (array) ControladorUsuarios::crtSeleccionarUsuario('rol', 'ESTUDIANTE'),
+            static function ($usuario) {
+                return (int) ($usuario['activo'] ?? 0) === 1;
+            }
+        ));
+    } else {
+        $estudiantesPorId = [];
+        foreach ($cursosDisponiblesSimulacion as $cursoDocente) {
+            foreach (ControladorLecciones::crtBuscarEstudiantesCurso((int) ($cursoDocente['idCurso'] ?? 0)) as $estudianteCurso) {
+                $estudiantesPorId[(int) $estudianteCurso['idUsuario']] = $estudianteCurso;
+            }
+        }
+        $estudiantesSimulacion = array_values($estudiantesPorId);
+    }
+
+    usort($estudiantesSimulacion, static function ($primero, $segundo) {
+        $nombrePrimero = trim(($primero['apellidoUsuario'] ?? '') . ' ' . ($primero['nombreUsuario'] ?? ''));
+        $nombreSegundo = trim(($segundo['apellidoUsuario'] ?? '') . ' ' . ($segundo['nombreUsuario'] ?? ''));
+        return strcasecmp($nombrePrimero, $nombreSegundo);
+    });
+
+    foreach ($estudiantesSimulacion as $estudianteDisponible) {
+        if ((int) ($estudianteDisponible['idUsuario'] ?? 0) === $idEstudianteContexto) {
+            $estudianteSimulado = $estudianteDisponible;
+            break;
+        }
+    }
+
+    if ($estudianteSimulado) {
+        $cursosEstudiante = ControladorCursos::crtCursosPorEstudiante($idEstudianteContexto);
+
+        if ($esDocenteReal) {
+            $idsCursosDocente = array_fill_keys(
+                array_map('intval', array_column($cursosDisponiblesSimulacion, 'idCurso')),
+                true
+            );
+            $cursosEstudiante = array_values(array_filter(
+                $cursosEstudiante,
+                static function ($curso) use ($idsCursosDocente) {
+                    return isset($idsCursosDocente[(int) ($curso['idCurso'] ?? 0)]);
+                }
+            ));
+        }
+
+        $cursos = $cursosEstudiante;
+    } else {
+        $cursos = $cursosDisponiblesSimulacion;
     }
 } elseif ($esEstudiante) {
     $cursos = ControladorCursos::crtCursosPorEstudiante($idUsuarioActual);
@@ -35,15 +85,49 @@ $e = static function ($valor) {
         <div class="entity-hero__content">
           <span class="entity-kicker mb-3">Vista estudiante</span>
           <h1 class="entity-title mb-2">Explorá el campus como estudiante</h1>
-          <p class="entity-lead mb-0">Elegí un curso para entrar al recorrido completo sin usar tu rol real de administración o docencia.</p>
+          <p class="entity-lead mb-0">Elegí un estudiante para comprobar exactamente qué cursos, entregas y calificaciones puede ver.</p>
         </div>
+      </div>
+
+      <div class="student-preview-selector mb-4">
+        <div class="student-preview-selector__copy">
+          <span class="student-preview-selector__icon"><i class="fas fa-user-graduate"></i></span>
+          <div>
+            <strong><?php echo $estudianteSimulado
+              ? 'Previsualizando como ' . $e(trim(($estudianteSimulado['nombreUsuario'] ?? '') . ' ' . ($estudianteSimulado['apellidoUsuario'] ?? '')))
+              : 'Vista general del campus'; ?></strong>
+            <small><?php echo $estudianteSimulado
+              ? 'Los datos académicos corresponden al estudiante seleccionado.'
+              : 'Seleccioná un estudiante para visualizar información personal como entregas y notas.'; ?></small>
+          </div>
+        </div>
+        <form method="get" action="index.php" class="student-preview-selector__form">
+          <input type="hidden" name="r" value="vista-estudiante">
+          <input type="hidden" name="estado" value="1">
+          <input type="hidden" name="redir" value="index.php?r=listado-cursos">
+          <label class="sr-only" for="estudianteVistaSimulada">Estudiante</label>
+          <select name="idEstudiante" id="estudianteVistaSimulada" class="form-control">
+            <option value="0">Vista general, sin datos personales</option>
+            <?php foreach ($estudiantesSimulacion as $estudianteDisponible): ?>
+              <?php $idEstudianteDisponible = (int) ($estudianteDisponible['idUsuario'] ?? 0); ?>
+              <option value="<?php echo $idEstudianteDisponible; ?>" <?php echo $idEstudianteDisponible === $idEstudianteContexto ? 'selected' : ''; ?>>
+                <?php echo $e(trim(($estudianteDisponible['apellidoUsuario'] ?? '') . ' ' . ($estudianteDisponible['nombreUsuario'] ?? ''))); ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-eye mr-1"></i>Aplicar vista
+          </button>
+        </form>
       </div>
 
       <?php if (empty($cursos)): ?>
         <div class="empty-state">
           <i class="fas fa-layer-group"></i>
-          <h4>Todavía no hay cursos para previsualizar</h4>
-          <p class="mb-0">Cuando existan cursos cargados, vas a poder abrirlos desde esta vista.</p>
+          <h4><?php echo $estudianteSimulado ? 'Este estudiante no tiene cursos asignados' : 'Todavía no hay cursos para previsualizar'; ?></h4>
+          <p class="mb-0"><?php echo $estudianteSimulado
+            ? 'Podés seleccionar otro estudiante o revisar sus asignaciones.'
+            : 'Cuando existan cursos cargados, vas a poder abrirlos desde esta vista.'; ?></p>
         </div>
       <?php else: ?>
         <div class="student-class-grid">

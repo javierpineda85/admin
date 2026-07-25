@@ -2,10 +2,17 @@
 $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
 $seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$rolReal = ControladorPermisos::rolReal();
+$vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva()
+    && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
 $esEstudiante = ControladorPermisos::esEstudiante();
 $esDocente = ControladorPermisos::esDocente();
 $esAdmin = ControladorPermisos::esAdministrador();
 $puedeGestionar = $esAdmin || $esDocente;
+$idEstudianteContexto = $esEstudiante ? ControladorPermisos::idEstudianteContexto() : 0;
+$estudianteContexto = $vistaEstudianteSimulada && $idEstudianteContexto > 0
+    ? ControladorUsuarios::crtUsuarioCompleto($idEstudianteContexto)
+    : null;
 
 ControladorCalificaciones::crtProcesarAcciones();
 
@@ -25,8 +32,13 @@ if (!$seccion) {
 
 $tieneAcceso = true;
 if ($esEstudiante) {
-    $tieneAcceso = !empty($seccion['id_curso'])
-        && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, (int) $seccion['id_curso']);
+    if ($vistaEstudianteSimulada) {
+        $tieneAcceso = $rolReal === 'ADMINISTRADOR'
+            || ($rolReal === 'DOCENTE' && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual));
+    } else {
+        $tieneAcceso = !empty($seccion['id_curso'])
+            && ControladorCursos::crtEstudianteInscriptoCurso($idEstudianteContexto, (int) $seccion['id_curso']);
+    }
 } elseif ($esDocente && !$esAdmin) {
     $tieneAcceso = ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual);
 }
@@ -48,11 +60,13 @@ if (!$tieneAcceso) {
 }
 
 $calificaciones = $esEstudiante
-    ? ControladorCalificaciones::crtCalificacionesPorEstudiante($idSeccion, $idUsuarioActual)
+    ? ($idEstudianteContexto > 0
+        ? ControladorCalificaciones::crtCalificacionesPorEstudiante($idSeccion, $idEstudianteContexto)
+        : [])
     : ControladorCalificaciones::crtCalificacionesPorSeccion($idSeccion);
 $evaluaciones = $puedeGestionar ? ControladorCalificaciones::crtEvaluacionesPorSeccion($idSeccion) : [];
-$evaluacionesEstudiante = $esEstudiante
-    ? ControladorCalificaciones::crtEvaluacionesPorEstudiante($idSeccion, $idUsuarioActual)
+$evaluacionesEstudiante = $esEstudiante && $idEstudianteContexto > 0
+    ? ControladorCalificaciones::crtEvaluacionesPorEstudiante($idSeccion, $idEstudianteContexto)
     : [];
 $estudiantesEvaluacion = $puedeGestionar
     ? ControladorCalificaciones::crtEstudiantesPorCurso((int) ($seccion['id_curso'] ?? 0))
@@ -76,6 +90,22 @@ if (!empty($seccion['bannerSeccion'])) {
         <p class="entity-lead mb-0">Notas de actividades y evaluaciones independientes en un solo lugar.</p>
       </div>
     </div>
+
+    <?php if ($vistaEstudianteSimulada): ?>
+      <div class="student-preview-context mb-4">
+        <i class="fas fa-eye"></i>
+        <div>
+          <?php if ($estudianteContexto): ?>
+            <strong>Calificaciones de <?php echo $e(trim(($estudianteContexto['nombreUsuario'] ?? '') . ' ' . ($estudianteContexto['apellidoUsuario'] ?? ''))); ?></strong>
+            <span>Esta previsualización usa la información académica real del estudiante seleccionado.</span>
+          <?php else: ?>
+            <strong>No hay un estudiante seleccionado</strong>
+            <span>Elegí un estudiante para visualizar sus notas y devoluciones.</span>
+          <?php endif; ?>
+        </div>
+        <a href="index.php?r=listado-cursos" class="btn btn-light border btn-sm">Cambiar estudiante</a>
+      </div>
+    <?php endif; ?>
 
     <?php if ($puedeGestionar): ?>
       <div class="card glass-card mb-4">
