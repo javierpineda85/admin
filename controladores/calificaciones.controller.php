@@ -18,6 +18,14 @@ class ControladorCalificaciones
             return self::crtCrearEvaluacion();
         }
 
+        if ($accion === 'editar_evaluacion') {
+            return self::crtEditarEvaluacion();
+        }
+
+        if ($accion === 'eliminar_evaluacion') {
+            return self::crtEliminarEvaluacion();
+        }
+
         if ($accion === 'guardar_calificaciones_evaluacion') {
             return self::crtGuardarCalificacionesEvaluacion();
         }
@@ -73,6 +81,62 @@ class ControladorCalificaciones
         return 'error';
     }
 
+    public static function crtEditarEvaluacion()
+    {
+        $idEvaluacion = (int) ($_POST['id_evaluacion'] ?? 0);
+        $tema = trim((string) ($_POST['temaEvaluacion'] ?? ''));
+        $fecha = trim((string) ($_POST['fechaEvaluacion'] ?? ''));
+        $evaluacion = $idEvaluacion > 0 ? ModeloCalificaciones::mdlEvaluacionPorId($idEvaluacion) : null;
+
+        if (!$evaluacion || !self::puedeGestionarSeccion((int) $evaluacion['id_seccion'])) {
+            $_SESSION['error_message'] = 'No tenes permisos para editar esta evaluacion.';
+            return 'denied';
+        }
+
+        $fechaObjeto = DateTime::createFromFormat('Y-m-d', $fecha);
+        $fechaValida = $fechaObjeto instanceof DateTime
+            && $fechaObjeto->format('Y-m-d') === $fecha;
+
+        if ($tema === '' || strlen($tema) > 180 || !$fechaValida) {
+            $_SESSION['error_message'] = 'Completa un tema de hasta 180 caracteres y una fecha valida.';
+            return 'error';
+        }
+
+        $respuesta = ModeloCalificaciones::mdlActualizarEvaluacion([
+            'idEvaluacion' => $idEvaluacion,
+            'temaEvaluacion' => $tema,
+            'fechaEvaluacion' => $fecha,
+        ]);
+
+        if ($respuesta === 'ok') {
+            $_SESSION['success_message'] = 'Evaluacion actualizada correctamente.';
+        } else {
+            $_SESSION['error_message'] = 'No se pudo actualizar la evaluacion.';
+        }
+
+        return $respuesta;
+    }
+
+    public static function crtEliminarEvaluacion()
+    {
+        $idEvaluacion = (int) ($_POST['id_evaluacion'] ?? 0);
+        $evaluacion = $idEvaluacion > 0 ? ModeloCalificaciones::mdlEvaluacionPorId($idEvaluacion) : null;
+
+        if (!$evaluacion || !self::puedeGestionarSeccion((int) $evaluacion['id_seccion'])) {
+            $_SESSION['error_message'] = 'No tenes permisos para eliminar esta evaluacion.';
+            return 'denied';
+        }
+
+        $respuesta = ModeloCalificaciones::mdlEliminarEvaluacion($idEvaluacion);
+        if ($respuesta === 'ok') {
+            $_SESSION['success_message'] = 'Evaluacion y calificaciones eliminadas correctamente.';
+        } else {
+            $_SESSION['error_message'] = 'No se pudo eliminar la evaluacion.';
+        }
+
+        return $respuesta;
+    }
+
     public static function crtGuardarCalificacionesEvaluacion()
     {
         $idEvaluacion = (int) ($_POST['id_evaluacion'] ?? 0);
@@ -97,7 +161,13 @@ class ControladorCalificaciones
                 continue;
             }
 
-            $notaNumerica = (float) str_replace(',', '.', $nota);
+            $notaNormalizada = str_replace(',', '.', $nota);
+            if (!is_numeric($notaNormalizada)) {
+                $_SESSION['error_message'] = 'Revisa las calificaciones ingresadas.';
+                return 'error';
+            }
+
+            $notaNumerica = (float) $notaNormalizada;
             if ($notaNumerica < 0 || $notaNumerica > 100) {
                 $_SESSION['error_message'] = 'Todas las calificaciones deben estar entre 0 y 100.';
                 return 'error';

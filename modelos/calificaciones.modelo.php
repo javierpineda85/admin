@@ -189,6 +189,38 @@ class ModeloCalificaciones
         return (int) $pdo->lastInsertId();
     }
 
+    public static function mdlActualizarEvaluacion(array $datos)
+    {
+        self::prepararTablasEvaluaciones();
+
+        $stmt = Conexion::conectar()->prepare('
+            UPDATE evaluaciones
+            SET temaEvaluacion = :temaEvaluacion,
+                fechaEvaluacion = :fechaEvaluacion
+            WHERE idEvaluacion = :idEvaluacion
+        ');
+        $stmt->bindValue(':temaEvaluacion', (string) $datos['temaEvaluacion'], PDO::PARAM_STR);
+        $stmt->bindValue(':fechaEvaluacion', (string) $datos['fechaEvaluacion'], PDO::PARAM_STR);
+        $stmt->bindValue(':idEvaluacion', (int) $datos['idEvaluacion'], PDO::PARAM_INT);
+
+        return $stmt->execute() ? 'ok' : 'error';
+    }
+
+    public static function mdlEliminarEvaluacion($idEvaluacion)
+    {
+        self::prepararTablasEvaluaciones();
+
+        $stmt = Conexion::conectar()->prepare('
+            DELETE e, ec
+            FROM evaluaciones e
+            LEFT JOIN evaluaciones_calificaciones ec ON ec.id_evaluacion = e.idEvaluacion
+            WHERE e.idEvaluacion = :idEvaluacion
+        ');
+        $stmt->bindValue(':idEvaluacion', (int) $idEvaluacion, PDO::PARAM_INT);
+
+        return $stmt->execute() ? 'ok' : 'error';
+    }
+
     public static function mdlEvaluacionPorId($idEvaluacion)
     {
         self::prepararTablasEvaluaciones();

@@ -122,24 +122,94 @@ if (!empty($seccion['bannerSeccion'])) {
           <?php else: ?>
             <?php foreach ($evaluaciones as $evaluacion): ?>
               <?php
+                $idEvaluacionActual = (int) $evaluacion['idEvaluacion'];
                 $notasActuales = ControladorCalificaciones::crtCalificacionesEvaluacion((int) $evaluacion['idEvaluacion']);
                 $mapaNotas = [];
                 foreach ($notasActuales as $notaActual) {
                     $mapaNotas[(int) $notaActual['id_estudiante']] = $notaActual;
                 }
               ?>
-              <section class="border rounded mb-4 overflow-hidden">
-                <div class="bg-light border-bottom px-3 py-3 d-flex flex-wrap justify-content-between align-items-center">
+              <section class="evaluation-management-card mb-4">
+                <div class="evaluation-management-header">
                   <div>
                     <h4 class="mb-1"><?php echo $e($evaluacion['temaEvaluacion']); ?></h4>
                     <small class="text-muted"><i class="far fa-calendar mr-1"></i><?php echo $e($evaluacion['fechaEvaluacion']); ?></small>
                   </div>
-                  <div class="text-right">
-                    <span class="badge badge-primary"><?php echo (int) ($evaluacion['totalCalificados'] ?? 0); ?> calificados</span>
-                    <?php if ($evaluacion['promedio'] !== null): ?>
-                      <span class="badge badge-light border">Promedio: <?php echo $e($evaluacion['promedio']); ?></span>
-                    <?php endif; ?>
+                  <div class="evaluation-management-actions">
+                    <div class="text-right">
+                      <span class="badge badge-primary"><?php echo (int) ($evaluacion['totalCalificados'] ?? 0); ?> calificados</span>
+                      <?php if ($evaluacion['promedio'] !== null): ?>
+                        <span class="badge badge-light border">Promedio: <?php echo $e($evaluacion['promedio']); ?></span>
+                      <?php endif; ?>
+                    </div>
+                    <div class="dropdown">
+                      <button type="button" class="btn btn-light border btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Más opciones para <?php echo $e($evaluacion['temaEvaluacion']); ?>">
+                        <i class="fas fa-ellipsis-v"></i>
+                      </button>
+                      <div class="dropdown-menu dropdown-menu-right shadow-sm">
+                        <button
+                          type="button"
+                          class="dropdown-item"
+                          data-toggle="collapse"
+                          data-target="#editar-evaluacion-<?php echo $idEvaluacionActual; ?>"
+                          aria-controls="editar-evaluacion-<?php echo $idEvaluacionActual; ?>"
+                        >
+                          <i class="fas fa-edit mr-2"></i>Editar evaluación
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button
+                          type="button"
+                          class="dropdown-item text-danger"
+                          data-toggle="modal"
+                          data-target="#eliminarEvaluacionModal"
+                          data-id-evaluacion="<?php echo $idEvaluacionActual; ?>"
+                          data-tema-evaluacion="<?php echo $e($evaluacion['temaEvaluacion']); ?>"
+                          data-total-calificados="<?php echo (int) ($evaluacion['totalCalificados'] ?? 0); ?>"
+                        >
+                          <i class="fas fa-trash mr-2"></i>Eliminar evaluación
+                        </button>
+                      </div>
+                    </div>
                   </div>
+                </div>
+
+                <div class="collapse evaluation-edit-panel" id="editar-evaluacion-<?php echo $idEvaluacionActual; ?>">
+                  <form method="post">
+                    <input type="hidden" name="accion" value="editar_evaluacion">
+                    <input type="hidden" name="id_evaluacion" value="<?php echo $idEvaluacionActual; ?>">
+                    <div class="row align-items-end">
+                      <div class="col-md-7">
+                        <div class="form-group mb-md-0">
+                          <label for="temaEvaluacion<?php echo $idEvaluacionActual; ?>">Tema</label>
+                          <input
+                            type="text"
+                            id="temaEvaluacion<?php echo $idEvaluacionActual; ?>"
+                            name="temaEvaluacion"
+                            class="form-control"
+                            maxlength="180"
+                            value="<?php echo $e($evaluacion['temaEvaluacion']); ?>"
+                            required
+                          >
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="form-group mb-md-0">
+                          <label for="fechaEvaluacion<?php echo $idEvaluacionActual; ?>">Fecha</label>
+                          <input
+                            type="date"
+                            id="fechaEvaluacion<?php echo $idEvaluacionActual; ?>"
+                            name="fechaEvaluacion"
+                            class="form-control"
+                            value="<?php echo $e($evaluacion['fechaEvaluacion']); ?>"
+                            required
+                          >
+                        </div>
+                      </div>
+                      <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-block">Guardar cambios</button>
+                      </div>
+                    </div>
+                  </form>
                 </div>
 
                 <?php if (empty($estudiantesEvaluacion)): ?>
@@ -148,6 +218,10 @@ if (!empty($seccion['bannerSeccion'])) {
                   <form method="post">
                     <input type="hidden" name="accion" value="guardar_calificaciones_evaluacion">
                     <input type="hidden" name="id_evaluacion" value="<?php echo (int) $evaluacion['idEvaluacion']; ?>">
+                    <div class="evaluation-grades-hint">
+                      <i class="fas fa-pen"></i>
+                      <span>Podés cargar nuevas notas o corregir las existentes. Los campos vacíos no se modifican.</span>
+                    </div>
                     <div class="table-responsive">
                       <table class="table table-hover mb-0">
                         <thead>
@@ -173,8 +247,10 @@ if (!empty($seccion['bannerSeccion'])) {
                         </tbody>
                       </table>
                     </div>
-                    <div class="border-top p-3 text-right">
-                      <button type="submit" class="btn btn-primary btn-sm">Guardar calificaciones</button>
+                    <div class="evaluation-grades-footer">
+                      <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-save mr-1"></i>Guardar cambios de notas
+                      </button>
                     </div>
                   </form>
                 <?php endif; ?>
@@ -257,3 +333,57 @@ if (!empty($seccion['bannerSeccion'])) {
     </div>
   </div>
 </section>
+
+<?php if ($puedeGestionar): ?>
+  <div class="modal fade" id="eliminarEvaluacionModal" tabindex="-1" role="dialog" aria-labelledby="eliminarEvaluacionTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <form method="post">
+          <input type="hidden" name="accion" value="eliminar_evaluacion">
+          <input type="hidden" name="id_evaluacion" value="" data-delete-evaluation-id>
+          <div class="modal-header">
+            <h5 class="modal-title" id="eliminarEvaluacionTitulo">Eliminar evaluación</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>Vas a eliminar <strong data-delete-evaluation-title>esta evaluación</strong>.</p>
+            <div class="alert alert-warning mb-0">
+              <i class="fas fa-exclamation-triangle mr-1"></i>
+              También se eliminarán <strong data-delete-evaluation-count>0</strong> calificaciones asociadas. Esta acción no se puede deshacer.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-trash mr-1"></i>Eliminar definitivamente
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('click', function(event) {
+      var trigger = event.target.closest('[data-target="#eliminarEvaluacionModal"]');
+      if (!trigger) {
+        return;
+      }
+
+      var modal = document.getElementById('eliminarEvaluacionModal');
+      if (!modal) {
+        return;
+      }
+
+      var idInput = modal.querySelector('[data-delete-evaluation-id]');
+      var title = modal.querySelector('[data-delete-evaluation-title]');
+      var count = modal.querySelector('[data-delete-evaluation-count]');
+
+      idInput.value = trigger.getAttribute('data-id-evaluacion') || '';
+      title.textContent = trigger.getAttribute('data-tema-evaluacion') || 'esta evaluación';
+      count.textContent = trigger.getAttribute('data-total-calificados') || '0';
+    });
+  </script>
+<?php endif; ?>

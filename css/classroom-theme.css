@@ -486,6 +486,64 @@ body.classroom-app .batch-grading-footer {
   background: #f8fafc;
 }
 
+body.classroom-app .evaluation-management-card {
+  overflow: visible;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+body.classroom-app .evaluation-management-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(135deg, #f8fafc, rgba(219, 234, 254, 0.5));
+}
+
+body.classroom-app .evaluation-management-header h4 {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+body.classroom-app .evaluation-management-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+body.classroom-app .evaluation-edit-panel {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(37, 99, 235, 0.12);
+  background: rgba(239, 246, 255, 0.55);
+}
+
+body.classroom-app .evaluation-grades-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+body.classroom-app .evaluation-grades-hint i {
+  color: #2563eb;
+}
+
+body.classroom-app .evaluation-grades-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.9rem 1rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+}
+
 @media (max-width: 767.98px) {
   body.classroom-app .pending-delivery-item {
     grid-template-columns: auto minmax(0, 1fr);
@@ -509,6 +567,15 @@ body.classroom-app .batch-grading-footer {
 
   body.classroom-app .batch-grading-fields {
     grid-template-columns: 72px minmax(170px, 1fr);
+  }
+
+  body.classroom-app .evaluation-management-header {
+    align-items: flex-start;
+  }
+
+  body.classroom-app .evaluation-management-actions {
+    align-items: flex-end;
+    flex-direction: column-reverse;
   }
 }
 
