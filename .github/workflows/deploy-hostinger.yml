@@ -1,0 +1,108 @@
+name: Deploy changed files to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Sync changed application files
+    if: ${{ vars.HOSTINGER_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build deployment file list
+        id: files
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          changed_files="$(mktemp)"
+          deploy_files="$(mktemp)"
+
+          if [[ -z "${BASE_SHA}" || "${BASE_SHA}" =~ ^0+$ ]] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            git ls-files -z > "${changed_files}"
+          else
+            git diff --name-only --diff-filter=ACMRTUXB -z "${BASE_SHA}" "${GITHUB_SHA}" > "${changed_files}"
+          fi
+
+          while IFS= read -r -d '' file; do
+            case "${file}" in
+              .github/*|docs/*|README*|.gitignore|config.local.php|logs/*|img/secciones/*|img/usuarios/*)
+                continue
+                ;;
+              uploads/lecciones/.htaccess|uploads/mensajes/.htaccess)
+                ;;
+              uploads/*)
+                continue
+                ;;
+            esac
+
+            printf '%s\0' "${file}" >> "${deploy_files}"
+          done < "${changed_files}"
+
+          if [[ ! -s "${deploy_files}" ]]; then
+            echo "has_files=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          mv "${deploy_files}" /tmp/hostinger-deploy-files
+          echo "has_files=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Configure SSH
+        if: steps.files.outputs.has_files == 'true'
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${SSH_PRIVATE_KEY:?Missing HOSTINGER_SSH_PRIVATE_KEY secret}"
+          : "${SSH_KNOWN_HOSTS:?Missing HOSTINGER_SSH_KNOWN_HOSTS secret}"
+
+          install -m 700 -d "${HOME}/.ssh"
+          printf '%s\n' "${SSH_PRIVATE_KEY}" > "${HOME}/.ssh/id_ed25519"
+          printf '%s\n' "${SSH_KNOWN_HOSTS}" > "${HOME}/.ssh/known_hosts"
+          chmod 600 "${HOME}/.ssh/id_ed25519" "${HOME}/.ssh/known_hosts"
+
+      - name: Upload changed files
+        if: steps.files.outputs.has_files == 'true'
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          DEPLOY_PATH: ${{ vars.HOSTINGER_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          : "${SSH_HOST:?Missing HOSTINGER_SSH_HOST secret}"
+          : "${SSH_PORT:?Missing HOSTINGER_SSH_PORT secret}"
+          : "${SSH_USER:?Missing HOSTINGER_SSH_USER secret}"
+          : "${DEPLOY_PATH:?Missing HOSTINGER_DEPLOY_PATH variable}"
+
+          rsync \
+            --archive \
+            --compress \
+            --relative \
+            --from0 \
+            --files-from=/tmp/hostinger-deploy-files \
+            --itemize-changes \
+            -e "ssh -i ${HOME}/.ssh/id_ed25519 -p ${SSH_PORT} -o BatchMode=yes -o StrictHostKeyChecking=yes" \
+            ./ \
+            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH%/}/"

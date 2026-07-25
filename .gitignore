@@ -1,5 +1,21 @@
 config.local.php
-config.php
-logs/auth-debug.log
-img/*
+
+# Runtime logs
+logs/*.log
+
+# User-generated images
+img/secciones/*
+!img/secciones/.gitkeep
+img/usuarios/*
+!img/usuarios/.gitkeep
+
+# User uploads. Keep directory placeholders and access rules in Git.
 uploads/*
+!uploads/lecciones/
+!uploads/mensajes/
+uploads/lecciones/*
+!uploads/lecciones/.gitkeep
+!uploads/lecciones/.htaccess
+uploads/mensajes/*
+!uploads/mensajes/.gitkeep
+!uploads/mensajes/.htaccess
