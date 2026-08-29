@@ -301,6 +301,7 @@ class ModeloUsuarios
                    p.domicilioPerfil,
                    p.provinciaPerfil,
                    p.contenidoPerfil,
+                   DATE_FORMAT(p.fnacPerfil, '%d/%m/%Y') AS fnacFormateada,
                    DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
                    DATE_FORMAT(u.ultimaConexion, '%d/%m/%Y %H:%i') AS ultimaConexionFmt,
                    DATE_FORMAT(u.fechaBaja, '%d/%m/%Y %H:%i') AS fechaBajaFmt,
@@ -328,8 +329,8 @@ class ModeloUsuarios
                        s.tituloSeccion,
                        'ESTUDIANTE' AS origen
                 FROM asignacioncursos a
-                INNER JOIN secciones s ON s.idSeccion = a.id_seccion
-                INNER JOIN cursos c ON c.idCurso = s.id_curso
+                INNER JOIN cursos c ON c.idCurso = a.id_seccion
+                LEFT JOIN secciones s ON s.id_curso = c.idCurso
                 WHERE a.id_estudiante = :idEstudiante
 
                 UNION
@@ -342,6 +343,7 @@ class ModeloUsuarios
                 FROM secciones s
                 INNER JOIN cursos c ON c.idCurso = s.id_curso
                 WHERE s.docente = :idDocente
+                   OR s.tutor = :idDocente
             ) AS relaciones
             ORDER BY nombreCurso ASC, tituloSeccion ASC
         ");

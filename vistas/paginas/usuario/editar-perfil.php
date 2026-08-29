@@ -1,7 +1,7 @@
 <?php
+$registro = ControladorPerfiles::crtEditarPerfil();
 $perfilActual = ControladorUsuarios::crtUsuarioActual();
 $perfilDatos = $perfilActual ? ModeloPerfiles::mdlObtenerPerfilPorUsuario((int) ($_SESSION['usuario']['id'] ?? 0)) : [];
-$registro = ControladorPerfiles::crtEditarPerfil();
 $nombreCompleto = trim((string) (($perfilActual['nombreUsuario'] ?? '') . ' ' . ($perfilActual['apellidoUsuario'] ?? '')));
 $puedeCambiarClave = (int) ($_SESSION['usuario']['id'] ?? 0) > 0
   && (int) ($_SESSION['usuario']['id'] ?? 0) === (int) ($perfilActual['idUsuario'] ?? 0);

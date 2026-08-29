@@ -1,12 +1,11 @@
 <?php
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
-$usuarioBase = ControladorUsuarios::crtUsuarioCompleto($idUsuarioActual) ?: [];
-$perfilBase = ModeloPerfiles::mdlObtenerPerfilPorUsuario($idUsuarioActual) ?: [];
-$usuario = array_merge($usuarioBase, $perfilBase);
+$usuario = ControladorUsuarios::crtUsuarioCompleto($idUsuarioActual) ?: [];
 $relacionesAcademicas = $idUsuarioActual > 0 ? ControladorUsuarios::crtRelacionesAcademicas($idUsuarioActual) : [];
 $historialCambios = $idUsuarioActual > 0 ? ControladorUsuarios::crtHistorialUsuario($idUsuarioActual) : [];
 $nombreCompleto = trim((string) (($usuario['nombreUsuario'] ?? '') . ' ' . ($usuario['apellidoUsuario'] ?? '')));
 $imagenUsuario = ControladorUsuarios::rutaImagenUsuario($usuario['imgUsuario'] ?? '', 'user2-160x160.jpg');
+$sobreMi = trim((string) ($usuario['contenidoPerfil'] ?? ''));
 $estaActivo = (int) ($usuario['activo'] ?? 0) === 1;
 $verUltimaConexion = ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente();
 $e = static function ($valor) {
@@ -119,7 +118,11 @@ $e = static function ($valor) {
             <div class="mt-3">
               <h4 class="section-title mb-2">Sobre mí</h4>
               <div class="profile-about">
-                <?php echo nl2br($e($usuario['contenidoPerfil'] ?? 'Todavía no completaste este espacio.')); ?>
+                <?php if ($sobreMi !== ''): ?>
+                  <?php echo nl2br($e($sobreMi)); ?>
+                <?php else: ?>
+                  <span class="text-muted">Todavía no completaste este espacio.</span>
+                <?php endif; ?>
               </div>
             </div>
           </div>
