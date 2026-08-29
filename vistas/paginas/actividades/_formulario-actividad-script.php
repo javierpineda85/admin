@@ -12,6 +12,8 @@
     var preguntasContainer = document.getElementById('preguntasContainer');
     var agregarPregunta = document.getElementById('agregarPregunta');
     var preguntaTemplate = document.getElementById('preguntaTemplate');
+    var formularioActividad = document.querySelector('[data-actividad-form]');
+    var preguntasPayload = document.getElementById('preguntasPayload');
 
     function renumerarPreguntas() {
       var cards = preguntasContainer.querySelectorAll('.actividad-pregunta-card');
@@ -120,6 +122,66 @@
         el.querySelectorAll('input, select, textarea').forEach(function (input) {
           input.disabled = valor !== 'codigo';
         });
+      });
+    }
+
+    function valorCampoActivo(card, prefijoNombre) {
+      var campos = card.querySelectorAll('[name^="' + prefijoNombre + '["]');
+      for (var indice = 0; indice < campos.length; indice += 1) {
+        if (!campos[indice].disabled) {
+          return campos[indice].value;
+        }
+      }
+      return '';
+    }
+
+    function serializarPreguntas() {
+      if (tipo.value === 'externa') {
+        return [];
+      }
+
+      return Array.prototype.map.call(
+        preguntasContainer.querySelectorAll('.actividad-pregunta-card'),
+        function (card) {
+          var opciones = Array.prototype.map.call(
+            card.querySelectorAll('[name^="opciones["]:not([disabled])'),
+            function (campo) {
+              return campo.value;
+            }
+          );
+          var opcionCorrecta = card.querySelector('[name^="opcionCorrecta["]:checked:not([disabled])');
+
+          return {
+            textoPregunta: valorCampoActivo(card, 'preguntaTexto'),
+            respuestaCorrecta: valorCampoActivo(card, 'respuestaCorrecta'),
+            puntaje: valorCampoActivo(card, 'puntajePregunta'),
+            pista: valorCampoActivo(card, 'pistaPregunta'),
+            explicacionError: valorCampoActivo(card, 'explicacionError'),
+            codigoBase: valorCampoActivo(card, 'codigoBase'),
+            lenguajeCodigo: valorCampoActivo(card, 'lenguajeCodigo'),
+            variantesCodigo: valorCampoActivo(card, 'variantesCodigo'),
+            opciones: opciones,
+            opcionCorrecta: opcionCorrecta ? opcionCorrecta.value : 0
+          };
+        }
+      );
+    }
+
+    if (formularioActividad && preguntasPayload) {
+      formularioActividad.addEventListener('submit', function () {
+        preguntasPayload.value = JSON.stringify(serializarPreguntas());
+
+        var camposPreguntas = preguntasContainer.querySelectorAll('[name]');
+        camposPreguntas.forEach(function (campo) {
+          campo.disabled = true;
+        });
+
+        window.setTimeout(function () {
+          camposPreguntas.forEach(function (campo) {
+            campo.disabled = false;
+          });
+          actualizarFormulario();
+        }, 0);
       });
     }
 

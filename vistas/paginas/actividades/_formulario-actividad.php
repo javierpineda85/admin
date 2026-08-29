@@ -31,9 +31,10 @@ include __DIR__ . '/_formulario-actividad-config.php';
 
     <div class="card glass-card">
       <div class="card-body">
-        <form method="post">
+        <form method="post" data-actividad-form>
           <input type="hidden" name="accion_actividad" value="guardar_actividad">
           <input type="hidden" name="idActividad" value="<?php echo (int) ($actividad['idActividad'] ?? 0); ?>">
+          <input type="hidden" name="preguntasPayload" id="preguntasPayload" value="">
 
           <div class="row">
             <div class="col-lg-8">

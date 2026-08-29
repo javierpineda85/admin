@@ -741,16 +741,47 @@ class ControladorActividades
             return [];
         }
 
-        $textos = $_POST['preguntaTexto'] ?? [];
-        $respuestas = $_POST['respuestaCorrecta'] ?? [];
-        $puntajes = $_POST['puntajePregunta'] ?? [];
-        $pistas = $_POST['pistaPregunta'] ?? [];
-        $explicaciones = $_POST['explicacionError'] ?? [];
-        $codigos = $_POST['codigoBase'] ?? [];
-        $lenguajesCodigo = $_POST['lenguajeCodigo'] ?? [];
-        $variantesCodigo = $_POST['variantesCodigo'] ?? [];
-        $opciones = $_POST['opciones'] ?? [];
-        $correctas = $_POST['opcionCorrecta'] ?? [];
+        $payload = json_decode((string) ($_POST['preguntasPayload'] ?? ''), true, 64);
+        if (is_array($payload)) {
+            $textos = [];
+            $respuestas = [];
+            $puntajes = [];
+            $pistas = [];
+            $explicaciones = [];
+            $codigos = [];
+            $lenguajesCodigo = [];
+            $variantesCodigo = [];
+            $opciones = [];
+            $correctas = [];
+
+            foreach ($payload as $indice => $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+
+                $textos[$indice] = $item['textoPregunta'] ?? '';
+                $respuestas[$indice] = $item['respuestaCorrecta'] ?? '';
+                $puntajes[$indice] = $item['puntaje'] ?? 1;
+                $pistas[$indice] = $item['pista'] ?? '';
+                $explicaciones[$indice] = $item['explicacionError'] ?? '';
+                $codigos[$indice] = $item['codigoBase'] ?? '';
+                $lenguajesCodigo[$indice] = $item['lenguajeCodigo'] ?? 'plaintext';
+                $variantesCodigo[$indice] = $item['variantesCodigo'] ?? '';
+                $opciones[$indice] = is_array($item['opciones'] ?? null) ? $item['opciones'] : [];
+                $correctas[$indice] = $item['opcionCorrecta'] ?? 0;
+            }
+        } else {
+            $textos = $_POST['preguntaTexto'] ?? [];
+            $respuestas = $_POST['respuestaCorrecta'] ?? [];
+            $puntajes = $_POST['puntajePregunta'] ?? [];
+            $pistas = $_POST['pistaPregunta'] ?? [];
+            $explicaciones = $_POST['explicacionError'] ?? [];
+            $codigos = $_POST['codigoBase'] ?? [];
+            $lenguajesCodigo = $_POST['lenguajeCodigo'] ?? [];
+            $variantesCodigo = $_POST['variantesCodigo'] ?? [];
+            $opciones = $_POST['opciones'] ?? [];
+            $correctas = $_POST['opcionCorrecta'] ?? [];
+        }
         $preguntas = [];
 
         foreach ($textos as $indice => $texto) {
