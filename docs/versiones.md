@@ -4,13 +4,53 @@ Este registro resume las versiones estables del sistema y el criterio usado para
 
 ## Criterio de versionado
 
-- `5.xx.xxxx`: numero principal para cambios sustanciales realizados sobre el sistema.
-- `x.06.xxxx`: mes del cambio, expresado con dos digitos.
-- `x.xx.2126`: dia y anio del cambio, expresados como `DDAA`.
+Desde la version `5.2026.08.29`, el formato canonico es:
 
-Ejemplo: `5.06.2126` identifica una version principal 5 realizada en junio, el dia 21 del ano 2026. Este orden evita que una version de julio resulte numericamente menor que una version de junio.
+`<major>.<YYYY>.<MM>.<DD>`
 
-Este es un esquema de versionado calendario, no SemVer. Las versiones anteriores mantienen su numeracion historica; `5.06.2126` es la primera que aplica el nuevo criterio y no debe compararse segmento por segmento con `5.16.0626`.
+- `major` representa la version mayor del sistema.
+- `YYYY` representa el ano con cuatro digitos.
+- `MM` representa el mes con dos digitos, desde `01` hasta `12`.
+- `DD` representa el dia con dos digitos, desde `01` hasta `31`.
+
+Por ejemplo, una entrega de la version mayor 5 publicada el 29 de agosto de 2026 se identifica como `5.2026.08.29`.
+
+Este es un esquema de versionado calendario, no SemVer. El orden `ano.mes.dia` fue elegido deliberadamente para que las versiones de una misma version mayor sean naturalmente ordenables de izquierda a derecha y mantengan el mismo orden que sus fechas de publicacion.
+
+### Motivo del cambio
+
+El formato anterior era `mayor.mes.dia-ano`. Aunque expresaba la fecha, no conservaba el orden cronologico al cambiar de ano porque comparaba el mes antes que el ano. Por ejemplo:
+
+- 29/08/2026 se representaba como `5.08.2926`.
+- 30/01/2027 se representaba como `5.01.3027`.
+
+La segunda fecha es posterior, pero una comparacion numerica o de izquierda a derecha puede interpretar `5.01.3027` como anterior a `5.08.2926`, dado que `01` es menor que `08`. Esto produce una regresion aparente de version al comenzar un nuevo ano.
+
+Con el nuevo formato, las mismas fechas se representan asi:
+
+- 29/08/2026: `5.2026.08.29`.
+- 30/01/2027: `5.2027.01.30`.
+
+Por lo tanto, el orden natural coincide con el cronologico: `5.2026.08.29 < 5.2027.01.30`.
+
+Todas las versiones nuevas deben usar el formato `<major>.<YYYY>.<MM>.<DD>`. Las versiones historicas ya publicadas conservan sus identificadores originales y no deben renumerarse, salvo que exista una razon tecnica explicita y documentada para hacerlo.
+
+## 5.2026.08.29 - Nuevo esquema cronologico
+
+### Cambios principales
+
+- Adopcion del formato `mayor.ano.mes.dia` para las nuevas versiones.
+- Orden natural de versiones alineado con el orden cronologico, incluso al cambiar de ano.
+- Conservacion de los identificadores de todas las versiones historicas.
+
+### Estado
+
+- Version actual publicada en `main`.
+- Footer del sistema: `Version 5.2026.08.29`.
+
+## Historial anterior al nuevo esquema
+
+Las siguientes versiones conservan el formato con el que fueron publicadas. Sus identificadores son referencias historicas y no deben usarse como modelo para nuevas versiones.
 
 ## 5.06.2126 - Seguridad y mejoras operativas
 
@@ -53,8 +93,8 @@ Version generada el 17/06/2026.
 
 ### Estado
 
-- Version actual publicada en `main`.
-- Footer del sistema: `Version 5.16.0626`.
+- Version publicada historicamente en `main`.
+- Footer de esa release: `Version 5.16.0626`.
 
 ### Observaciones
 
@@ -78,8 +118,8 @@ Version generada el 15/06/2026.
 
 ### Estado
 
-- Version actual publicada en `main`.
-- Footer del sistema: `Version 4.15.0626`.
+- Version publicada historicamente en `main`.
+- Footer de esa release: `Version 4.15.0626`.
 
 ### Observaciones
 
