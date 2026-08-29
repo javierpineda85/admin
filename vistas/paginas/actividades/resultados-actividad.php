@@ -74,8 +74,15 @@ $personaIntento = static function ($intento) use ($e) {
   .attempt-card__head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; padding: 1rem 1.1rem; border-bottom: 1px solid rgba(226, 232, 240, .9); }
   .attempt-card__title { font-size: 1rem; font-weight: 700; color: #0f172a; margin-bottom: .25rem; }
   .attempt-card__meta { color: #64748b; font-size: .92rem; }
+  .attempt-card__summary { display: flex; align-items: center; justify-content: flex-end; gap: .85rem; }
   .attempt-card__score { text-align: right; min-width: 160px; }
   .attempt-card__score strong { display: block; font-size: 1.15rem; color: #0f172a; }
+  .attempt-card__toggle { white-space: nowrap; }
+  .attempt-card__toggle .toggle-expanded { display: none; }
+  .attempt-card__toggle i { transition: transform .2s ease; }
+  .attempt-card__toggle[aria-expanded="true"] .toggle-collapsed { display: none; }
+  .attempt-card__toggle[aria-expanded="true"] .toggle-expanded { display: inline; }
+  .attempt-card__toggle[aria-expanded="true"] i { transform: rotate(180deg); }
   .attempt-card__body { padding: 1rem 1.1rem; background: #fbfdff; }
   .attempt-response { border: 1px solid rgba(226, 232, 240, .95); border-radius: 12px; padding: .9rem 1rem; background: #fff; }
   .attempt-response + .attempt-response { margin-top: .75rem; }
@@ -91,6 +98,7 @@ $personaIntento = static function ($intento) use ($e) {
   @media (max-width: 768px) {
     .results-grid, .results-questions { grid-template-columns: 1fr; }
     .attempt-card__head { flex-direction: column; }
+    .attempt-card__summary { width: 100%; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; }
     .attempt-card__score { text-align: left; min-width: 0; }
   }
 </style>
@@ -204,13 +212,14 @@ $personaIntento = static function ($intento) use ($e) {
     <div class="card glass-card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">Intentos detallados</h3>
-        <span class="text-muted small">Vista por estudiante o visitante</span>
+        <span class="text-muted small">Abrí un intento para ver el proceso completo</span>
       </div>
       <div class="card-body">
         <?php if (empty($intentos)): ?>
           <div class="empty-mini">Todavia no se registraron intentos en esta actividad.</div>
         <?php else: ?>
           <?php foreach ($intentos as $intento): ?>
+            <?php $idDetalleIntento = 'detalle-intento-' . (int) ($intento['idIntento'] ?? 0); ?>
             <article class="attempt-card">
               <div class="attempt-card__head">
                 <div>
@@ -224,34 +233,50 @@ $personaIntento = static function ($intento) use ($e) {
                     Estado: <?php echo $e($intento['estadoIntento'] ?? ''); ?>
                   </div>
                 </div>
-                <div class="attempt-card__score">
-                  <strong><?php echo (float) ($intento['puntaje'] ?? 0); ?> / <?php echo $puntajeMaximo; ?></strong>
-                  <span class="text-muted"><?php echo $porcentajePuntaje($intento['puntaje'] ?? 0, $puntajeMaximo); ?>% del puntaje</span>
+                <div class="attempt-card__summary">
+                  <div class="attempt-card__score">
+                    <strong><?php echo (float) ($intento['puntaje'] ?? 0); ?> / <?php echo $puntajeMaximo; ?></strong>
+                    <span class="text-muted"><?php echo $porcentajePuntaje($intento['puntaje'] ?? 0, $puntajeMaximo); ?>% del puntaje</span>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm attempt-card__toggle"
+                    data-toggle="collapse"
+                    data-target="#<?php echo $idDetalleIntento; ?>"
+                    aria-expanded="false"
+                    aria-controls="<?php echo $idDetalleIntento; ?>"
+                  >
+                    <i class="fas fa-chevron-down mr-1"></i>
+                    <span class="toggle-collapsed">Ver proceso</span>
+                    <span class="toggle-expanded">Ocultar proceso</span>
+                  </button>
                 </div>
               </div>
-              <div class="attempt-card__body">
-                <?php if (empty($intento['respuestas'])): ?>
-                  <div class="empty-mini">Este intento no tiene respuestas visibles.</div>
-                <?php else: ?>
-                  <?php foreach ($intento['respuestas'] as $indexRespuesta => $respuesta): ?>
-                    <div class="attempt-response">
-                      <div class="attempt-response__top">
-                        <div class="attempt-response__question"><?php echo (int) ($indexRespuesta + 1); ?>. <?php echo $e($respuesta['pregunta'] ?? ''); ?></div>
-                        <span class="badge badge-<?php echo !empty($respuesta['esCorrecta']) ? 'success' : 'danger'; ?>">
-                          <?php echo !empty($respuesta['esCorrecta']) ? 'Correcta' : 'Incorrecta'; ?>
-                        </span>
+              <div id="<?php echo $idDetalleIntento; ?>" class="collapse">
+                <div class="attempt-card__body">
+                  <?php if (empty($intento['respuestas'])): ?>
+                    <div class="empty-mini">Este intento no tiene respuestas visibles.</div>
+                  <?php else: ?>
+                    <?php foreach ($intento['respuestas'] as $indexRespuesta => $respuesta): ?>
+                      <div class="attempt-response">
+                        <div class="attempt-response__top">
+                          <div class="attempt-response__question"><?php echo (int) ($indexRespuesta + 1); ?>. <?php echo $e($respuesta['pregunta'] ?? ''); ?></div>
+                          <span class="badge badge-<?php echo !empty($respuesta['esCorrecta']) ? 'success' : 'danger'; ?>">
+                            <?php echo !empty($respuesta['esCorrecta']) ? 'Correcta' : 'Incorrecta'; ?>
+                          </span>
+                        </div>
+                        <div class="attempt-response__answer"><?php echo $e($respuesta['textoRespuesta'] !== '' ? $respuesta['textoRespuesta'] : 'Sin respuesta escrita'); ?></div>
+                        <div class="attempt-response__expected">
+                          <strong>Esperado:</strong> <?php echo $e($respuesta['respuestaCorrecta'] ?? ''); ?> ·
+                          <strong>Puntaje:</strong> <?php echo (float) ($respuesta['puntajeObtenido'] ?? 0); ?> / <?php echo (float) ($respuesta['puntajePregunta'] ?? 0); ?>
+                        </div>
+                        <?php if (empty($respuesta['esCorrecta']) && !empty($respuesta['explicacionError'])): ?>
+                          <div class="attempt-response__feedback"><?php echo $e($respuesta['explicacionError']); ?></div>
+                        <?php endif; ?>
                       </div>
-                      <div class="attempt-response__answer"><?php echo $e($respuesta['textoRespuesta'] !== '' ? $respuesta['textoRespuesta'] : 'Sin respuesta escrita'); ?></div>
-                      <div class="attempt-response__expected">
-                        <strong>Esperado:</strong> <?php echo $e($respuesta['respuestaCorrecta'] ?? ''); ?> ·
-                        <strong>Puntaje:</strong> <?php echo (float) ($respuesta['puntajeObtenido'] ?? 0); ?> / <?php echo (float) ($respuesta['puntajePregunta'] ?? 0); ?>
-                      </div>
-                      <?php if (empty($respuesta['esCorrecta']) && !empty($respuesta['explicacionError'])): ?>
-                        <div class="attempt-response__feedback"><?php echo $e($respuesta['explicacionError']); ?></div>
-                      <?php endif; ?>
-                    </div>
-                  <?php endforeach; ?>
-                <?php endif; ?>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                </div>
               </div>
             </article>
           <?php endforeach; ?>
