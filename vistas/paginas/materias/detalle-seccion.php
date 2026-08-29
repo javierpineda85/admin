@@ -599,7 +599,7 @@ if (ControladorPermisos::esEstudiante()) {
                       <div class="text-uppercase small font-weight-bold">Adjuntar recursos</div>
                       <div class="small text-muted">Agrega varios archivos y enlaces antes de guardar la leccion.</div>
                     </div>
-                    <input type="text" name="tituloRecursoInicial" class="form-control form-control-sm lesson-resource-title" placeholder="Prefijo opcional, ej. Unidad 1">
+                    <input type="text" name="tituloRecursoInicial" class="form-control form-control-sm lesson-resource-title" aria-label="Prefijo general opcional" placeholder="Prefijo general opcional, ej. Unidad 1">
                   </div>
                   <div class="resource-attachment-list d-none" data-attachment-list></div>
                   <input type="file" class="resource-file-input d-none" id="archivoRecursoInicialMultiple<?php echo (int) $idSeccion; ?>" name="archivoRecursoInicial[]" multiple data-file-input>
@@ -856,8 +856,8 @@ if (ControladorPermisos::esEstudiante()) {
                             </select>
                           </div>
                           <div class="form-group col-md-4">
-                            <label class="small text-muted">Título o prefijo</label>
-                            <input type="text" name="tituloRecurso" class="form-control form-control-sm" placeholder="Con varios recursos se combina con cada nombre">
+                            <label class="small text-muted">Prefijo general opcional</label>
+                            <input type="text" name="tituloRecurso" class="form-control form-control-sm" placeholder="Ej. Unidad 1">
                           </div>
                           <div class="form-group col-md-8">
                             <div class="resource-attachment-list d-none" data-attachment-list></div>
@@ -1256,7 +1256,16 @@ if (ControladorPermisos::esEstudiante()) {
     var linkList = uploader.querySelector('[data-link-list]');
     var triggerFile = uploader.querySelector('[data-trigger-file]');
     var addLink = uploader.querySelector('[data-add-link]');
-    var fileStore = window.DataTransfer ? new DataTransfer() : null;
+    var fileStore = null;
+    var fileTitleStore = Object.create(null);
+
+    if (typeof window.DataTransfer === 'function') {
+      try {
+        fileStore = new window.DataTransfer();
+      } catch (error) {
+        fileStore = null;
+      }
+    }
 
     function formatSize(bytes) {
       if (!bytes) {
@@ -1284,18 +1293,29 @@ if (ControladorPermisos::esEstudiante()) {
       fileList.classList.toggle('d-none', files.length === 0);
 
       files.forEach(function(file, index) {
+        var fileKey = [file.name, file.size, file.lastModified].join(':');
         var item = document.createElement('div');
         item.className = 'resource-attachment-item';
         item.innerHTML =
           '<span class="resource-attachment-icon"><i class="fas fa-file-alt"></i></span>' +
-          '<span class="resource-attachment-body"><strong></strong><small></small></span>' +
+          '<span class="resource-attachment-body"><strong></strong><small></small><input type="text" class="form-control form-control-sm mt-2" aria-label="Título del archivo"></span>' +
           '<button type="button" class="resource-remove-button" aria-label="Quitar archivo"><i class="fas fa-times"></i></button>';
 
         item.querySelector('strong').textContent = file.name;
         item.querySelector('small').textContent = formatSize(file.size);
+        var titleInput = item.querySelector('input');
+        if (!Object.prototype.hasOwnProperty.call(fileTitleStore, fileKey)) {
+          fileTitleStore[fileKey] = file.name;
+        }
+        titleInput.name = resolveFileTitleInputName();
+        titleInput.value = fileTitleStore[fileKey];
+        titleInput.placeholder = 'Título del recurso';
+        titleInput.addEventListener('input', function() {
+          fileTitleStore[fileKey] = titleInput.value;
+        });
         item.querySelector('button').addEventListener('click', function() {
           if (fileStore) {
-            var nextStore = new DataTransfer();
+            var nextStore = new window.DataTransfer();
             Array.from(fileStore.files).forEach(function(currentFile, currentIndex) {
               if (currentIndex !== index) {
                 nextStore.items.add(currentFile);
@@ -1319,6 +1339,22 @@ if (ControladorPermisos::esEstudiante()) {
       return action && action.value === 'crear_leccion' ? 'urlsRecursoInicial[]' : 'urlsRecurso[]';
     }
 
+    function resolveFileTitleInputName() {
+      var form = uploader.closest('form');
+      var action = form ? form.querySelector('input[name="accion"]') : null;
+      return action && action.value === 'crear_leccion'
+        ? 'titulosRecursoInicialArchivo[]'
+        : 'titulosRecursoArchivo[]';
+    }
+
+    function resolveLinkTitleInputName() {
+      var form = uploader.closest('form');
+      var action = form ? form.querySelector('input[name="accion"]') : null;
+      return action && action.value === 'crear_leccion'
+        ? 'titulosRecursoInicialUrl[]'
+        : 'titulosRecursoUrl[]';
+    }
+
     function createLinkField() {
       if (!linkList) {
         return;
@@ -1328,10 +1364,13 @@ if (ControladorPermisos::esEstudiante()) {
       item.className = 'resource-link-item';
       item.innerHTML =
         '<span class="resource-attachment-icon"><i class="fas fa-link"></i></span>' +
-        '<input type="url" class="form-control form-control-sm" placeholder="https://..." required>' +
+        '<span class="resource-attachment-body"><input type="url" class="form-control form-control-sm" placeholder="https://..." required>' +
+        '<input type="text" class="form-control form-control-sm mt-2" placeholder="Título del enlace (opcional)" aria-label="Título del enlace"></span>' +
         '<button type="button" class="resource-remove-button" aria-label="Quitar enlace"><i class="fas fa-times"></i></button>';
 
-      item.querySelector('input').setAttribute('name', resolveUrlInputName());
+      var inputs = item.querySelectorAll('input');
+      inputs[0].setAttribute('name', resolveUrlInputName());
+      inputs[1].setAttribute('name', resolveLinkTitleInputName());
       item.querySelector('button').addEventListener('click', function() {
         item.remove();
       });
@@ -1348,10 +1387,14 @@ if (ControladorPermisos::esEstudiante()) {
     if (fileInput) {
       fileInput.addEventListener('change', function() {
         if (fileStore) {
-          Array.from(fileInput.files || []).forEach(function(file) {
-            fileStore.items.add(file);
-          });
-          syncInputFiles();
+          try {
+            Array.from(fileInput.files || []).forEach(function(file) {
+              fileStore.items.add(file);
+            });
+            syncInputFiles();
+          } catch (error) {
+            fileStore = null;
+          }
         }
         renderFiles();
       });

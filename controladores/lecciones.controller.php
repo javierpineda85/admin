@@ -372,8 +372,10 @@ class ControladorLecciones
         $respuesta = self::procesarRecursosFormulario($idLeccion, [
             'titulo' => 'tituloRecurso',
             'archivo' => 'archivoRecurso',
+            'titulosArchivos' => 'titulosRecursoArchivo',
             'url' => 'urlRecurso',
             'urls' => 'urlsRecurso',
+            'titulosUrls' => 'titulosRecursoUrl',
         ]);
 
         if ($respuesta === false) {
@@ -813,7 +815,7 @@ class ControladorLecciones
         return parse_url($url, PHP_URL_HOST) ?: 'Enlace de la leccion';
     }
 
-    private static function tituloRecursoParaCarga($tituloBase, $tituloAutomatico, $totalRecursos, array &$titulosUsados)
+    private static function tituloRecursoParaCarga($tituloBase, $tituloAutomatico, array &$titulosUsados)
     {
         $tituloBase = trim((string) $tituloBase);
         $tituloAutomatico = trim((string) $tituloAutomatico);
@@ -824,8 +826,6 @@ class ControladorLecciones
 
         if ($tituloBase === '') {
             $titulo = $tituloAutomatico;
-        } elseif ((int) $totalRecursos === 1) {
-            $titulo = $tituloBase;
         } else {
             $titulo = $tituloBase . ' - ' . $tituloAutomatico;
         }
@@ -860,11 +860,16 @@ class ControladorLecciones
         $tituloBase = trim((string) ($_POST[$campos['titulo']] ?? ''));
         $archivos = self::normalizarArchivos($campos['archivo']);
         $urls = self::normalizarUrls($campos['url'], $campos['urls'] ?? '');
-        $totalRecursos = count($archivos) + count($urls);
+        $titulosArchivos = isset($campos['titulosArchivos'], $_POST[$campos['titulosArchivos']])
+            ? (array) $_POST[$campos['titulosArchivos']]
+            : [];
+        $titulosUrls = isset($campos['titulosUrls'], $_POST[$campos['titulosUrls']])
+            ? (array) $_POST[$campos['titulosUrls']]
+            : [];
         $recursosGuardados = [];
         $titulosUsados = [];
 
-        foreach ($archivos as $archivo) {
+        foreach ($archivos as $indiceArchivo => $archivo) {
             if (($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
                 return false;
             }
@@ -874,8 +879,13 @@ class ControladorLecciones
                 return false;
             }
 
-            $tituloAutomatico = pathinfo((string) ($archivo['name'] ?? 'Recurso adjunto'), PATHINFO_FILENAME);
-            $titulo = self::tituloRecursoParaCarga($tituloBase, $tituloAutomatico, $totalRecursos, $titulosUsados);
+            $nombreOriginal = basename((string) ($archivo['name'] ?? 'Recurso adjunto'));
+            $tituloIndividual = trim((string) ($titulosArchivos[$indiceArchivo] ?? ''));
+            $titulo = self::tituloRecursoParaCarga(
+                $tituloBase,
+                $tituloIndividual !== '' ? $tituloIndividual : $nombreOriginal,
+                $titulosUsados
+            );
 
             $respuesta = self::guardarRecursoLeccion($idLeccion, 'ARCHIVO', $titulo, $urlRecurso);
             if ($respuesta !== 'ok') {
@@ -886,7 +896,7 @@ class ControladorLecciones
             $recursosGuardados[] = $urlRecurso;
         }
 
-        foreach ($urls as $url) {
+        foreach ($urls as $indiceUrl => $url) {
             $urlRecurso = self::normalizarUrlRecurso($url);
             if ($urlRecurso === '') {
                 return false;
@@ -894,8 +904,7 @@ class ControladorLecciones
 
             $titulo = self::tituloRecursoParaCarga(
                 $tituloBase,
-                self::tituloDesdeUrl($urlRecurso),
-                $totalRecursos,
+                trim((string) ($titulosUrls[$indiceUrl] ?? '')) ?: self::tituloDesdeUrl($urlRecurso),
                 $titulosUsados
             );
             $respuesta = self::guardarRecursoLeccion($idLeccion, 'ENLACE', $titulo, $urlRecurso);
@@ -914,8 +923,10 @@ class ControladorLecciones
         return self::procesarRecursosFormulario($idLeccion, [
             'titulo' => 'tituloRecursoInicial',
             'archivo' => 'archivoRecursoInicial',
+            'titulosArchivos' => 'titulosRecursoInicialArchivo',
             'url' => 'urlRecursoInicial',
             'urls' => 'urlsRecursoInicial',
+            'titulosUrls' => 'titulosRecursoInicialUrl',
         ]);
     }
 
