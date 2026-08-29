@@ -18,11 +18,13 @@ class ControladorNotificaciones
             'referenciaId' => $idLeccion,
             'tituloNotificacion' => 'Nueva leccion publicada',
             'detalleNotificacion' => (string) ($leccion['nombreLeccion'] ?? 'Nueva leccion') . ' en ' . (string) ($seccion['tituloSeccion'] ?? 'tu curso'),
-            'urlNotificacion' => 'index.php?r=detalle-seccion&idSeccion=' . (int) ($seccion['idSeccion'] ?? 0),
+            'urlNotificacion' => 'index.php?r=detalle-seccion&idSeccion=' . (int) ($seccion['idSeccion'] ?? 0)
+                . '&abrirLeccion=' . $idLeccion . '#leccion-estudiante-' . $idLeccion,
             'asuntoEmail' => 'Nueva leccion publicada',
             'tituloEmail' => (string) ($leccion['nombreLeccion'] ?? 'Nueva leccion'),
             'contextoEmail' => (string) ($seccion['nombreCurso'] ?? 'Curso') . ' - ' . (string) ($seccion['tituloSeccion'] ?? 'Materia'),
-            'urlEmail' => APP_BASE_URL . '/index.php?r=detalle-seccion&idSeccion=' . (int) ($seccion['idSeccion'] ?? 0),
+            'urlEmail' => APP_BASE_URL . '/index.php?r=detalle-seccion&idSeccion=' . (int) ($seccion['idSeccion'] ?? 0)
+                . '&abrirLeccion=' . $idLeccion . '#leccion-estudiante-' . $idLeccion,
         ], $idCurso);
     }
 

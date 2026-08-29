@@ -109,35 +109,46 @@ $resumirTexto = static function ($texto, $longitud) {
         <i class="far fa-bell"></i>
         <span class="badge badge-warning navbar-badge"><?php echo (int) ($cabecera['notificaciones'] ?? 0); ?></span>
       </a>
-      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right dropdown-notifications-menu">
         <span class="dropdown-item dropdown-header">
           <?php echo (int) ($cabecera['notificaciones'] ?? 0); ?> notificaciones
         </span>
         <div class="dropdown-divider"></div>
         <?php if (!empty($notificacionesRecientes)): ?>
           <?php foreach ($notificacionesRecientes as $notificacion): ?>
-            <?php $notificacionLeida = !empty($notificacion['leida']); ?>
-            <div class="dropdown-item <?php echo $notificacionLeida ? 'text-muted' : ''; ?>">
-              <div class="d-flex align-items-start">
+            <?php
+            $notificacionLeida = !empty($notificacion['leida']);
+            $urlNotificacion = trim((string) ($notificacion['url'] ?? 'index.php'));
+            if (preg_match('/^index\.php(?:[?#]|$)/', $urlNotificacion) !== 1) {
+              $urlNotificacion = 'index.php';
+            }
+            ?>
+            <form method="post" action="" class="dropdown-item dropdown-notification-item <?php echo $notificacionLeida ? 'text-muted' : ''; ?>">
+              <input type="hidden" name="accion_notificacion" value="marcar_notificacion_leida">
+              <input type="hidden" name="clave_notificacion" value="<?php echo htmlspecialchars((string) ($notificacion['clave'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+              <button
+                type="submit"
+                class="btn btn-link btn-block p-0 text-left text-reset dropdown-notification-link"
+                formaction="<?php echo htmlspecialchars($urlNotificacion, ENT_QUOTES, 'UTF-8'); ?>"
+                title="Abrir <?php echo htmlspecialchars((string) ($notificacion['titulo'] ?? 'notificacion'), ENT_QUOTES, 'UTF-8'); ?>"
+              >
+              <span class="d-flex align-items-start">
                 <i class="<?php echo htmlspecialchars((string) ($notificacion['icon'] ?? 'fas fa-bell'), ENT_QUOTES, 'UTF-8'); ?> mr-2 mt-1"></i>
-                <div class="flex-grow-1">
-                  <div class="d-flex justify-content-between">
+                <span class="flex-grow-1 dropdown-notification-content">
+                  <span class="dropdown-notification-heading">
                     <strong class="text-sm"><?php echo htmlspecialchars($resumirTexto($notificacion['titulo'] ?? 'Actividad reciente', 36), ENT_QUOTES, 'UTF-8'); ?></strong>
                     <span class="text-muted text-sm"><?php echo htmlspecialchars($resumirTexto($notificacion['fecha'] ?? '', 16), ENT_QUOTES, 'UTF-8'); ?></span>
-                  </div>
-                  <div class="text-sm"><?php echo htmlspecialchars($resumirTexto($notificacion['detalle'] ?? '', 58), ENT_QUOTES, 'UTF-8'); ?></div>
-                  <?php if (!$notificacionLeida): ?>
-                    <form method="post" class="mt-1">
-                      <input type="hidden" name="accion_notificacion" value="marcar_notificacion_leida">
-                      <input type="hidden" name="clave_notificacion" value="<?php echo htmlspecialchars((string) ($notificacion['clave'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                      <button type="submit" class="btn btn-link btn-xs p-0">Marcar como leida</button>
-                    </form>
-                  <?php else: ?>
-                    <span class="badge badge-light border mt-1">Leida</span>
-                  <?php endif; ?>
-                </div>
-              </div>
-            </div>
+                  </span>
+                  <span class="text-sm dropdown-notification-detail"><?php echo htmlspecialchars($resumirTexto($notificacion['detalle'] ?? '', 58), ENT_QUOTES, 'UTF-8'); ?></span>
+                </span>
+              </span>
+              </button>
+              <?php if (!$notificacionLeida): ?>
+                <button type="submit" class="btn btn-link btn-xs p-0 mt-1">Marcar como leida</button>
+              <?php else: ?>
+                <span class="badge badge-light border mt-1">Leida</span>
+              <?php endif; ?>
+            </form>
             <div class="dropdown-divider"></div>
           <?php endforeach; ?>
         <?php else: ?>

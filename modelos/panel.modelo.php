@@ -293,8 +293,8 @@ class ModeloPanel
         $rol = self::normalizarRol($rol);
         if ($rol === 'ADMINISTRADOR') {
             return self::listar(
-                'SELECT p.idPosteo, p.contenidoPosteo, p.fechaPosteo, p.id_curso,
-                        l.nombreLeccion, s.tituloSeccion,
+                'SELECT p.idPosteo, p.contenidoPosteo, p.fechaPosteo, p.id_curso, p.id_leccion,
+                        l.nombreLeccion, s.idSeccion, s.tituloSeccion,
                         u.nombreUsuario, u.apellidoUsuario
                  FROM posteos p
                  INNER JOIN usuarios u ON u.idUsuario = p.id_autor
@@ -307,8 +307,8 @@ class ModeloPanel
 
         if ($rol === 'DOCENTE') {
             return self::listar(
-                'SELECT DISTINCT p.idPosteo, p.contenidoPosteo, p.fechaPosteo, p.id_curso,
-                        l.nombreLeccion, s.tituloSeccion,
+                'SELECT DISTINCT p.idPosteo, p.contenidoPosteo, p.fechaPosteo, p.id_curso, p.id_leccion,
+                        l.nombreLeccion, s.idSeccion, s.tituloSeccion,
                         u.nombreUsuario, u.apellidoUsuario
                  FROM posteos p
                  INNER JOIN usuarios u ON u.idUsuario = p.id_autor
@@ -322,14 +322,14 @@ class ModeloPanel
         }
 
         return self::listar(
-            'SELECT DISTINCT p.idPosteo, p.contenidoPosteo, p.fechaPosteo, p.id_curso,
-                    l.nombreLeccion, s.tituloSeccion,
+            'SELECT DISTINCT p.idPosteo, p.contenidoPosteo, p.fechaPosteo, p.id_curso, p.id_leccion,
+                    l.nombreLeccion, s.idSeccion, s.tituloSeccion,
                     u.nombreUsuario, u.apellidoUsuario
              FROM posteos p
              INNER JOIN usuarios u ON u.idUsuario = p.id_autor
              LEFT JOIN lecciones l ON l.idLeccion = p.id_leccion
              LEFT JOIN secciones s ON s.idSeccion = l.id_modulo
-             INNER JOIN asignacioncursos a ON a.id_seccion = s.idSeccion
+             INNER JOIN asignacioncursos a ON a.id_seccion = p.id_curso
              WHERE a.id_estudiante = :idUsuario
              ORDER BY p.fechaPosteo DESC
              LIMIT ' . (int) $limite,
@@ -343,7 +343,7 @@ class ModeloPanel
 
         if ($rol === 'ESTUDIANTE') {
             return self::listar(
-                'SELECT e.idEntregaLeccion, e.fechaEntrega, e.urlArchivo,
+                'SELECT e.idEntregaLeccion, e.id_leccion, e.id_seccion, e.id_curso, e.fechaEntrega, e.urlArchivo,
                         l.nombreLeccion, s.tituloSeccion
                  FROM entregaslecciones e
                  LEFT JOIN lecciones l ON l.idLeccion = e.id_leccion
@@ -357,7 +357,8 @@ class ModeloPanel
 
         if ($rol === 'DOCENTE') {
             return self::listar(
-                'SELECT e.idEntregaLeccion, e.id_estudiante, e.fechaEntrega, e.urlArchivo,
+                'SELECT e.idEntregaLeccion, e.id_leccion, e.id_seccion, e.id_curso,
+                        e.id_estudiante, e.fechaEntrega, e.urlArchivo,
                         l.nombreLeccion, s.tituloSeccion,
                         u.nombreUsuario, u.apellidoUsuario
                  FROM entregaslecciones e
@@ -372,7 +373,8 @@ class ModeloPanel
         }
 
         return self::listar(
-            'SELECT e.idEntregaLeccion, e.id_estudiante, e.fechaEntrega, e.urlArchivo,
+            'SELECT e.idEntregaLeccion, e.id_leccion, e.id_seccion, e.id_curso,
+                    e.id_estudiante, e.fechaEntrega, e.urlArchivo,
                     l.nombreLeccion, s.tituloSeccion,
                     u.nombreUsuario, u.apellidoUsuario
              FROM entregaslecciones e
@@ -515,7 +517,34 @@ class ModeloPanel
         }
     }
 
-    private static function actividadNormalizada(array $items, $idUsuario)
+    private static function urlLeccion($idSeccion, $idLeccion, $rol)
+    {
+        $idSeccion = (int) $idSeccion;
+        $idLeccion = (int) $idLeccion;
+
+        if ($idSeccion <= 0) {
+            return 'index.php';
+        }
+
+        $url = 'index.php?r=detalle-seccion&idSeccion=' . $idSeccion;
+        if ($idLeccion <= 0) {
+            return $url;
+        }
+
+        $prefijo = self::normalizarRol($rol) === 'ESTUDIANTE'
+            ? 'leccion-estudiante-'
+            : 'leccion-docente-';
+
+        return $url . '&abrirLeccion=' . $idLeccion . '#' . $prefijo . $idLeccion;
+    }
+
+    private static function urlNotificacionSegura($url)
+    {
+        $url = trim((string) $url);
+        return preg_match('/^index\.php(?:[?#]|$)/', $url) === 1 ? $url : 'index.php';
+    }
+
+    private static function actividadNormalizada(array $items, $idUsuario, $rol)
     {
         $actividad = [];
         $leidas = self::clavesLeidas($idUsuario);
@@ -531,6 +560,7 @@ class ModeloPanel
                     'fecha' => (string) $item['fechaEntrega'],
                     'icon' => 'fas fa-file-upload',
                     'class' => 'bg-warning',
+                    'url' => self::urlLeccion($item['id_seccion'] ?? 0, $item['id_leccion'] ?? 0, $rol),
                     'orden' => strtotime((string) $item['fechaEntrega']) ?: 0,
                 ];
             } elseif (isset($item['fechaPosteo'])) {
@@ -541,6 +571,7 @@ class ModeloPanel
                     'fecha' => (string) $item['fechaPosteo'],
                     'icon' => 'fas fa-comments',
                     'class' => 'bg-primary',
+                    'url' => self::urlLeccion($item['idSeccion'] ?? 0, $item['id_leccion'] ?? 0, $rol),
                     'orden' => strtotime((string) $item['fechaPosteo']) ?: 0,
                 ];
             } elseif (isset($item['idCalificacion'])) {
@@ -551,10 +582,21 @@ class ModeloPanel
                     'fecha' => 'Reciente',
                     'icon' => 'fas fa-star',
                     'class' => 'bg-success',
+                    'url' => self::urlLeccion($item['id_seccion'] ?? 0, $item['id_modulo'] ?? 0, $rol),
                     'orden' => (int) ($item['idCalificacion'] ?? 0),
                 ];
             } elseif (isset($item['idNotificacion'])) {
                 $tipo = (string) ($item['tipoNotificacion'] ?? '');
+                $url = self::urlNotificacionSegura($item['urlNotificacion'] ?? '');
+                if ($tipo === 'LECCION_PUBLICADA') {
+                    $parametrosUrl = [];
+                    parse_str((string) parse_url($url, PHP_URL_QUERY), $parametrosUrl);
+                    $url = self::urlLeccion(
+                        $parametrosUrl['idSeccion'] ?? 0,
+                        $item['referenciaId'] ?? 0,
+                        $rol
+                    );
+                }
                 $notificacion = [
                     'clave' => 'notificacion:' . (int) ($item['idNotificacion'] ?? 0),
                     'titulo' => (string) ($item['tituloNotificacion'] ?? 'Nueva publicacion'),
@@ -562,6 +604,7 @@ class ModeloPanel
                     'fecha' => (string) ($item['fechaNotificacion'] ?? 'Reciente'),
                     'icon' => $tipo === 'ACTIVIDAD_PUBLICADA' ? 'fas fa-tasks' : 'fas fa-book-open',
                     'class' => $tipo === 'ACTIVIDAD_PUBLICADA' ? 'bg-info' : 'bg-success',
+                    'url' => $url,
                     'orden' => strtotime((string) ($item['fechaNotificacion'] ?? '')) ?: (int) ($item['idNotificacion'] ?? 0),
                 ];
             }
@@ -766,7 +809,7 @@ class ModeloPanel
             self::actividadEntregas($idUsuario, $rol, 10),
             self::actividadPosteos($idUsuario, $rol, 10),
             self::actividadCalificaciones($idUsuario, $rol, 10)
-        ), $idUsuario), 0, 10);
+        ), $idUsuario, $rol), 0, 10);
         $notificaciones = count(array_filter($actividadReciente, static function ($notificacion) {
             return empty($notificacion['leida']);
         }));

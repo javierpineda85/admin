@@ -198,6 +198,8 @@ if (ControladorPermisos::esEstudiante()) {
       $proximasTareas[] = $leccionPendiente;
     }
   }
+
+  $abrirTrabajoClase = $leccionSolicitada > 0;
 ?>
 
   <section class="content page-fade">
@@ -236,10 +238,10 @@ if (ControladorPermisos::esEstudiante()) {
 
         <ul class="nav nav-tabs classroom-tabs mb-4" role="tablist">
           <li class="nav-item">
-            <a class="nav-link active" data-toggle="tab" href="#tablon" role="tab">Novedades</a>
+            <a class="nav-link<?php echo $abrirTrabajoClase ? '' : ' active'; ?>" data-toggle="tab" href="#tablon" role="tab">Novedades</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" data-toggle="tab" href="#trabajo-clase" role="tab">Trabajo de clase</a>
+            <a class="nav-link<?php echo $abrirTrabajoClase ? ' active' : ''; ?>" data-toggle="tab" href="#trabajo-clase" role="tab">Trabajo de clase</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" data-toggle="tab" href="#personas" role="tab">Personas</a>
@@ -250,7 +252,7 @@ if (ControladorPermisos::esEstudiante()) {
         </ul>
 
         <div class="tab-content">
-          <div class="tab-pane fade show active" id="tablon" role="tabpanel">
+          <div class="tab-pane fade<?php echo $abrirTrabajoClase ? '' : ' show active'; ?>" id="tablon" role="tabpanel">
             <div class="row">
               <div class="col-lg-3 mb-4">
                 <div class="classroom-sidebox">
@@ -284,7 +286,7 @@ if (ControladorPermisos::esEstudiante()) {
               </div>
             </div>
           </div>
-        <div class="tab-pane fade" id="trabajo-clase" role="tabpanel">
+        <div class="tab-pane fade<?php echo $abrirTrabajoClase ? ' show active' : ''; ?>" id="trabajo-clase" role="tabpanel">
           <?php if (empty($lecciones)): ?>
             <div class="empty-state">
               <i class="fas fa-tasks"></i>
@@ -308,9 +310,10 @@ if (ControladorPermisos::esEstudiante()) {
                 ? $buscarCalificacion($calificacionesSeccion, (int) $leccion['idLeccion'], $idEstudianteContexto)
                 : null;
               $collapseId = 'leccion-estudiante-' . (int) $leccion['idLeccion'];
+              $abrirLeccionEstudiante = $leccionSolicitada === (int) $leccion['idLeccion'];
               ?>
               <div class="classwork-item">
-                <button class="classwork-summary" type="button" data-toggle="collapse" data-target="#<?php echo $collapseId; ?>" aria-expanded="false">
+                <button class="classwork-summary" type="button" data-toggle="collapse" data-target="#<?php echo $collapseId; ?>" aria-expanded="<?php echo $abrirLeccionEstudiante ? 'true' : 'false'; ?>">
                   <span class="classroom-item-icon">
                     <i class="<?php echo $tipoLeccion === 'TAREA' ? 'fas fa-clipboard-list' : ($tipoLeccion === 'PREGUNTA' ? 'fas fa-comments' : 'fas fa-book-open'); ?>"></i>
                   </span>
@@ -328,7 +331,7 @@ if (ControladorPermisos::esEstudiante()) {
                     <?php endif; ?>
                   </span>
                 </button>
-                <div id="<?php echo $collapseId; ?>" class="collapse">
+                <div id="<?php echo $collapseId; ?>" class="collapse<?php echo $abrirLeccionEstudiante ? ' show' : ''; ?>">
                   <div class="classwork-detail">
                     <div class="classwork-rich-content"><?php echo $renderContenidoLeccion($leccion['contenidoLeccion'] ?? ''); ?></div>
 
