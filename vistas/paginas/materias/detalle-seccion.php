@@ -93,6 +93,28 @@ $renderContenidoLeccion = static function ($valor): string {
   return $html;
 };
 
+$renderComentarioEntrega = static function ($valor): string {
+  $texto = trim((string) $valor);
+  if ($texto === '') {
+    return '';
+  }
+
+  $partes = preg_split('~(https?://[^\s<>"\']+)~iu', $texto, -1, PREG_SPLIT_DELIM_CAPTURE);
+  $html = '';
+
+  foreach ($partes ?: [$texto] as $parte) {
+    if (preg_match('~^https?://[^\s<>"\']+$~iu', $parte) === 1 && filter_var($parte, FILTER_VALIDATE_URL)) {
+      $url = htmlspecialchars($parte, ENT_QUOTES, 'UTF-8');
+      $html .= '<a href="' . $url . '" target="_blank" rel="noopener noreferrer">' . $url . '</a>';
+      continue;
+    }
+
+    $html .= htmlspecialchars($parte, ENT_QUOTES, 'UTF-8');
+  }
+
+  return nl2br($html);
+};
+
 $claseBadgeTipoLeccion = static function ($tipo): string {
   $tipo = strtoupper(trim((string) $tipo));
 
@@ -151,6 +173,8 @@ if (!$seccion) {
     'idSeccion' => $idSeccion,
   ];
 }
+
+?><script src="js/delivery-uploader.js"></script><?php
 
 if (ControladorPermisos::esEstudiante()) {
   $estaInscripto = $vistaEstudianteSimulada || (!empty($seccion['id_curso'])
@@ -338,7 +362,7 @@ if (ControladorPermisos::esEstudiante()) {
                                 <?php endforeach; ?>
                               </ul>
                               <?php if (!empty($entrega['comentarioEntrega'])): ?>
-                                <div class="small"><strong>Comentario:</strong> <?php echo $e($entrega['comentarioEntrega']); ?></div>
+                                <div class="small"><strong>Comentario o enlace:</strong> <?php echo $renderComentarioEntrega($entrega['comentarioEntrega']); ?></div>
                               <?php endif; ?>
                             </div>
                             <?php if ($notaEntrega): ?>
@@ -354,27 +378,28 @@ if (ControladorPermisos::esEstudiante()) {
                         </div>
                       <?php endif; ?>
                       <?php if (!$notaEntrega && !$vistaEstudianteSimulada): ?>
-                        <form method="post" enctype="multipart/form-data" class="row">
+                        <form method="post" enctype="multipart/form-data" class="row" data-delivery-form data-has-existing-files="<?php echo !empty($entrega['adjuntos']) ? '1' : '0'; ?>">
                           <input type="hidden" name="accion" value="entregar_tarea">
                           <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
                           <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
                           <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                          <div class="form-group col-md-5">
-                            <label class="small text-muted">Archivos</label>
-                            <div class="classroom-file">
-                              <input type="file" class="classroom-file__input" id="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega[]" multiple <?php echo $entrega ? '' : 'required'; ?>>
-                              <label class="classroom-file__button" for="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>">
-                                <i class="fas fa-paperclip mr-2"></i>Seleccionar archivos
-                              </label>
-                              <span class="classroom-file__name">Ningún archivo seleccionado</span>
-                            </div>
+                          <div class="form-group col-md-5" data-delivery-uploader>
+                            <label class="small text-muted">Archivos opcionales</label>
+                            <div class="resource-attachment-list d-none" data-delivery-file-list></div>
+                            <input type="file" class="resource-file-input d-none" id="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega[]" multiple data-delivery-file-input>
+                            <label class="btn btn-outline-primary btn-sm btn-block mb-0" for="archivoEntregaLeccion<?php echo (int) $leccion['idLeccion']; ?>">
+                              <i class="fas fa-paperclip mr-1"></i>Agregar archivos
+                            </label>
                             <?php if ($entrega): ?>
                               <small class="form-text text-muted">Si elegís archivos nuevos, reemplazarán los actuales.</small>
+                            <?php else: ?>
+                              <small class="form-text text-muted">Podés seleccionarlos en una o varias tandas.</small>
                             <?php endif; ?>
                           </div>
                           <div class="form-group col-md-7">
-                            <label class="small text-muted">Comentario</label>
-                            <input type="text" name="comentarioEntrega" class="form-control form-control-sm" placeholder="Opcional" value="<?php echo $e((string) ($entrega['comentarioEntrega'] ?? '')); ?>">
+                            <label class="small text-muted">Comentario o enlace de entrega</label>
+                            <textarea name="comentarioEntrega" class="form-control form-control-sm" rows="3" placeholder="Escribí un comentario o pegá tu enlace aqui" data-delivery-comment><?php echo $e((string) ($entrega['comentarioEntrega'] ?? '')); ?></textarea>
+                            <small class="form-text text-muted">Adjuntá archivos, escribí un comentario o usá ambas opciones.</small>
                           </div>
                           <div class="form-group col-12 mb-0 text-right">
                             <button type="submit" class="btn btn-primary btn-sm"><?php echo $entrega ? 'Actualizar entrega' : 'Enviar entrega'; ?></button>
@@ -877,29 +902,30 @@ if (ControladorPermisos::esEstudiante()) {
 
                         <?php if (ControladorPermisos::esEstudiante()): ?>
                           <div class="alert alert-info">
-                            Subí uno o varios archivos y, si querés, agregá un comentario corto. Si reenviás la tarea, se actualiza la entrega anterior.
+                            Adjuntá uno o varios archivos, escribí un comentario o pegá un enlace de GitHub, Drive u otra plataforma. Si reenviás la tarea, se actualiza la entrega anterior.
                           </div>
-                          <form method="post" enctype="multipart/form-data" class="row">
+                          <form method="post" enctype="multipart/form-data" class="row" data-delivery-form data-has-existing-files="<?php echo !empty($entrega['adjuntos']) ? '1' : '0'; ?>">
                             <input type="hidden" name="accion" value="entregar_tarea">
                             <input type="hidden" name="id_leccion" value="<?php echo (int) $leccion['idLeccion']; ?>">
                             <input type="hidden" name="id_seccion" value="<?php echo (int) $seccion['idSeccion']; ?>">
                             <input type="hidden" name="id_curso" value="<?php echo (int) $seccion['id_curso']; ?>">
-                            <div class="form-group col-md-5">
-                              <label class="small text-muted">Archivos</label>
-                              <div class="classroom-file">
-                                <input type="file" class="classroom-file__input" id="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega[]" multiple <?php echo $entrega ? '' : 'required'; ?>>
-                                <label class="classroom-file__button" for="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>">
-                                  <i class="fas fa-paperclip mr-2"></i>Seleccionar archivos
-                                </label>
-                                <span class="classroom-file__name">Ningún archivo seleccionado</span>
-                              </div>
+                            <div class="form-group col-md-5" data-delivery-uploader>
+                              <label class="small text-muted">Archivos opcionales</label>
+                              <div class="resource-attachment-list d-none" data-delivery-file-list></div>
+                              <input type="file" class="resource-file-input d-none" id="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>" name="archivoEntrega[]" multiple data-delivery-file-input>
+                              <label class="btn btn-outline-primary btn-sm btn-block mb-0" for="archivoEntregaTarea<?php echo (int) $leccion['idLeccion']; ?>">
+                                <i class="fas fa-paperclip mr-1"></i>Agregar archivos
+                              </label>
                               <?php if ($entrega): ?>
                                 <small class="form-text text-muted">Si elegís archivos nuevos, reemplazarán los actuales.</small>
+                              <?php else: ?>
+                                <small class="form-text text-muted">Podés seleccionarlos en una o varias tandas.</small>
                               <?php endif; ?>
                             </div>
                             <div class="form-group col-md-7">
-                              <label class="small text-muted">Comentario</label>
-                              <input type="text" name="comentarioEntrega" class="form-control form-control-sm" placeholder="Opcional">
+                              <label class="small text-muted">Comentario o enlace de entrega</label>
+                              <textarea name="comentarioEntrega" class="form-control form-control-sm" rows="3" placeholder="Escribí un comentario o pegá tu enlace aqui" data-delivery-comment><?php echo htmlspecialchars((string) ($entrega['comentarioEntrega'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                              <small class="form-text text-muted">Adjuntá archivos, escribí un comentario o usá ambas opciones.</small>
                             </div>
                             <div class="form-group col-12 mb-0 text-right">
                               <button type="submit" class="btn btn-primary btn-sm">
@@ -920,6 +946,9 @@ if (ControladorPermisos::esEstudiante()) {
                                   </li>
                                 <?php endforeach; ?>
                               </ul>
+                              <?php if (!empty($entrega['comentarioEntrega'])): ?>
+                                <div class="small mt-2"><strong>Comentario o enlace:</strong> <?php echo $renderComentarioEntrega($entrega['comentarioEntrega']); ?></div>
+                              <?php endif; ?>
                             </div>
                           <?php endif; ?>
                         <?php endif; ?>
@@ -975,7 +1004,7 @@ if (ControladorPermisos::esEstudiante()) {
                                           <?php endforeach; ?>
                                         </ul>
                                       </td>
-                                      <td><?php echo nl2br(htmlspecialchars((string) ($entregaDoc['comentarioEntrega'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></td>
+                                      <td><?php echo $renderComentarioEntrega($entregaDoc['comentarioEntrega'] ?? ''); ?></td>
                                       <td>
                                         <div class="batch-grading-fields">
                                           <input

@@ -565,6 +565,7 @@ class ControladorLecciones
 
         $entregaAnterior = self::crtBuscarEntregaPorLeccionEstudiante((int) $_POST['id_leccion'], $idEstudiante);
         $urlArchivo = (string) ($entregaAnterior['urlArchivo'] ?? '');
+        $comentarioEntrega = trim((string) ($_POST['comentarioEntrega'] ?? ''));
 
         $archivosSeleccionados = self::normalizarArchivos('archivoEntrega');
         $adjuntosNuevos = [];
@@ -595,8 +596,8 @@ class ControladorLecciones
             $urlArchivo = (string) $adjuntosNuevos[0]['rutaArchivo'];
         }
 
-        if ($urlArchivo === '') {
-            $_SESSION['error_message'] = 'Subi al menos un archivo valido para entregar la tarea.';
+        if ($urlArchivo === '' && $comentarioEntrega === '') {
+            $_SESSION['error_message'] = 'Adjunta al menos un archivo o escribe un comentario con tu entrega.';
             return 'error';
         }
 
@@ -606,7 +607,7 @@ class ControladorLecciones
             'id_curso' => (int) $_POST['id_curso'],
             'id_estudiante' => (int) ($_SESSION['usuario']['id'] ?? 0),
             'urlArchivo' => $urlArchivo,
-            'comentarioEntrega' => trim((string) ($_POST['comentarioEntrega'] ?? '')),
+            'comentarioEntrega' => $comentarioEntrega,
             'fechaEntrega' => date('Y-m-d H:i:s'),
             'estadoEntrega' => 'ENTREGADA',
         ], $adjuntosNuevos, !empty($archivosSeleccionados));
@@ -619,7 +620,11 @@ class ControladorLecciones
             $cantidadArchivos = !empty($adjuntosNuevos)
                 ? count($adjuntosNuevos)
                 : count((array) ($entregaAnterior['adjuntos'] ?? []));
-            $_SESSION['success_message'] = 'Entrega enviada correctamente con ' . $cantidadArchivos . ' archivo' . ($cantidadArchivos === 1 ? '.' : 's.');
+            if ($cantidadArchivos > 0) {
+                $_SESSION['success_message'] = 'Entrega enviada correctamente con ' . $cantidadArchivos . ' archivo' . ($cantidadArchivos === 1 ? '.' : 's.');
+            } else {
+                $_SESSION['success_message'] = 'Entrega enviada correctamente con tu comentario o enlace.';
+            }
             return 'ok';
         } else {
             self::eliminarAdjuntosLocales($adjuntosNuevos);
