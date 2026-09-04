@@ -99,6 +99,62 @@ class RutasController
         return __DIR__ . '/../vistas/paginas/';
     }
 
+    public static function procesarAntesDeRenderizar($ruta)
+    {
+        $ruta = trim((string) $ruta);
+        if (!isset($_SESSION['logueado']) || $_SESSION['logueado'] !== true || !ControladorPermisos::puedeAccederRuta($ruta)) {
+            return;
+        }
+
+        if ($ruta === 'detalle-curso') {
+            $idCurso = (int) ($_GET['idCurso'] ?? 0);
+            $resultado = ControladorCursos::crtProcesarAdministracionCurso();
+            if ($resultado !== null) {
+                $eliminado = $resultado === 'ok' && ($_POST['accion_curso'] ?? '') === 'eliminar_curso';
+                header('Location: ' . ($eliminado ? 'index.php?r=listado-cursos' : 'index.php?r=detalle-curso&idCurso=' . $idCurso));
+                exit;
+            }
+
+            $curso = ControladorCursos::crtBuscarCursoPorId($idCurso);
+            if ($curso && (int) ($curso['activo'] ?? 1) !== 1 && !ControladorPermisos::esAdministrador()) {
+                $_SESSION['error_message'] = 'Este curso se encuentra dado de baja.';
+                header('Location: index.php?r=listado-cursos');
+                exit;
+            }
+        }
+
+        if ($ruta === 'editar-curso') {
+            $idCurso = (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0);
+            if (!ControladorCursos::crtPuedeGestionarCurso($idCurso)) {
+                $_SESSION['error_message'] = 'No podes editar un curso que no esta a tu cargo.';
+                header('Location: index.php?r=listado-cursos');
+                exit;
+            }
+        }
+
+        if (in_array($ruta, ['detalle-seccion', 'editar-materia'], true)) {
+            $idSeccion = (int) ($_GET['idSeccion'] ?? $_GET['id'] ?? 0);
+            if ($ruta === 'detalle-seccion') {
+                $resultado = ControladorMaterias::crtProcesarAdministracionMateria();
+                if ($resultado !== null) {
+                    $eliminada = $resultado === 'ok' && ($_POST['accion_materia'] ?? '') === 'eliminar_materia';
+                    header('Location: ' . ($eliminada ? 'index.php?r=listado-materias' : 'index.php?r=detalle-seccion&idSeccion=' . $idSeccion));
+                    exit;
+                }
+            }
+
+            $materia = ControladorMaterias::crtBuscarMateriaPorId($idSeccion);
+            if ($materia && !ControladorPermisos::esAdministrador()) {
+                $curso = ControladorCursos::crtBuscarCursoPorId((int) ($materia['id_curso'] ?? 0));
+                if ((int) ($materia['activo'] ?? 1) !== 1 || ($curso && (int) ($curso['activo'] ?? 1) !== 1)) {
+                    $_SESSION['error_message'] = 'Esta materia no se encuentra disponible.';
+                    header('Location: index.php?r=listado-materias');
+                    exit;
+                }
+            }
+        }
+    }
+
     public static function procesarVistaEstudiante()
     {
         $tieneSesion = isset($_SESSION['logueado']) && $_SESSION['logueado'] === true;

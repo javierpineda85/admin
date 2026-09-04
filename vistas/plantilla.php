@@ -48,6 +48,8 @@ if (!$usuarioSesionActual || (int) ($usuarioSesionActual['activo'] ?? 0) !== 1) 
   header('Location: index.php?r=login');
   exit;
 }
+
+RutasController::procesarAntesDeRenderizar($rutaVista);
 ?>
 <?php include_once('contenido/head.php'); ?>
 

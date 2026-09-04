@@ -1,29 +1,7 @@
 <?php
 $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
-$administracionMateria = ControladorMaterias::crtProcesarAdministracionMateria();
-if ($administracionMateria !== null) {
-  $destino = $administracionMateria === 'ok' && ($_POST['accion_materia'] ?? '') === 'eliminar_materia'
-    ? 'index.php?r=listado-materias'
-    : 'index.php?r=detalle-seccion&idSeccion=' . $idSeccion;
-  header('Location: ' . $destino);
-  exit;
-}
 $accion = trim((string) ($_POST['accion'] ?? ''));
 $seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
-
-if ($seccion && !ControladorPermisos::esAdministrador()) {
-  if ((int) ($seccion['activo'] ?? 1) !== 1) {
-    $_SESSION['error_message'] = 'Esta materia se encuentra dada de baja.';
-    header('Location: index.php?r=listado-materias');
-    exit;
-  }
-  $cursoSeccion = ControladorCursos::crtBuscarCursoPorId((int) ($seccion['id_curso'] ?? 0));
-  if ($cursoSeccion && (int) ($cursoSeccion['activo'] ?? 1) !== 1) {
-    $_SESSION['error_message'] = 'Este curso se encuentra dado de baja.';
-    header('Location: index.php?r=listado-cursos');
-    exit;
-  }
-}
 
 if ($accion !== '') {
   ControladorLecciones::crtProcesarAcciones();

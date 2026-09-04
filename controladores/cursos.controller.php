@@ -66,7 +66,8 @@ class ControladorCursos
                 "fechaInicioCurso"  => $_POST["fechaInicioCurso"],
                 "fechaFinCurso"     => $_POST["fechaFinCurso"],
                 "horarioCurso"      => $_POST["horarioCurso"],
-                "creadoPor"         => (int) ($_SESSION['usuario']['id'] ?? 0)
+                "creadoPor"         => (int) ($_SESSION['usuario']['id'] ?? 0),
+                "responsable"       => (int) ($_SESSION['usuario']['id'] ?? 0)
             );
 
             $respuesta = ModeloCursos::mdlGuardarCurso($tabla, $datos);
@@ -115,7 +116,7 @@ class ControladorCursos
     static public function crtProcesarAdministracionCurso()
     {
         $accion = trim((string) ($_POST['accion_curso'] ?? ''));
-        if (!in_array($accion, ['baja_curso', 'reactivar_curso', 'eliminar_curso'], true)) {
+        if (!in_array($accion, ['baja_curso', 'reactivar_curso', 'eliminar_curso', 'reasignar_docente_curso', 'quitar_docente_curso'], true)) {
             return null;
         }
 
@@ -129,6 +130,24 @@ class ControladorCursos
         if (!$curso) {
             $_SESSION['error_message'] = 'El curso no existe.';
             return 'error';
+        }
+
+        if (in_array($accion, ['reasignar_docente_curso', 'quitar_docente_curso'], true)) {
+            $idResponsable = $accion === 'quitar_docente_curso' ? 0 : (int) ($_POST['idResponsable'] ?? 0);
+            if ($accion === 'reasignar_docente_curso') {
+                $usuario = ModeloUsuarios::mdlObtenerUsuarioPorId($idResponsable);
+                $rol = strtoupper((string) ($usuario['rol'] ?? ''));
+                if (!$usuario || (int) ($usuario['activo'] ?? 0) !== 1 || !in_array($rol, ['DOCENTE', 'ADMINISTRADOR'], true)) {
+                    $_SESSION['error_message'] = 'Selecciona un docente o administrador activo.';
+                    return 'error';
+                }
+            }
+
+            $respuesta = ModeloCursos::mdlActualizarResponsableCurso($idCurso, $idResponsable);
+            $_SESSION[$respuesta === 'ok' ? 'success_message' : 'error_message'] = $respuesta === 'ok'
+                ? ($idResponsable > 0 ? 'Responsable del curso reasignado correctamente.' : 'El curso quedo sin docente responsable.')
+                : 'No se pudo actualizar el responsable del curso.';
+            return $respuesta;
         }
 
         if ($accion === 'baja_curso') {

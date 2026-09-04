@@ -75,11 +75,11 @@ class ModeloCursos
             FROM cursos c
             LEFT JOIN secciones s ON c.idCurso = s.id_curso
             LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
-            WHERE (c.creadoPor = :idDocente
+            WHERE (c.responsable = :idDocente
                OR s.docente = :idDocente
                OR s.tutor = :idDocente)
               AND c.activo = 1
-            GROUP BY c.idCurso, c.nombreCurso, c.contenidoCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso, c.creadoPor
+            GROUP BY c.idCurso, c.nombreCurso, c.contenidoCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso, c.creadoPor, c.responsable
             ORDER BY c.nombreCurso ASC
         ");
         $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
@@ -94,7 +94,7 @@ class ModeloCursos
             SELECT COUNT(*) AS total
             FROM cursos c
             WHERE c.idCurso = :idCurso
-              AND c.creadoPor = :idDocente
+              AND c.responsable = :idDocente
               AND c.activo = 1
         ");
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
@@ -176,7 +176,7 @@ class ModeloCursos
     static public function mdlGuardarCurso($tabla, $datos)
     {
 
-        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla(nombreCurso, contenidoCurso, estado, fechaInicioCurso, fechaFinCurso, horarioCurso, creadoPor) VALUES(:nombreCurso, :contenidoCurso, :estado, :fechaInicioCurso, :fechaFinCurso, :horarioCurso, :creadoPor)");
+        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla(nombreCurso, contenidoCurso, estado, fechaInicioCurso, fechaFinCurso, horarioCurso, creadoPor, responsable) VALUES(:nombreCurso, :contenidoCurso, :estado, :fechaInicioCurso, :fechaFinCurso, :horarioCurso, :creadoPor, :responsable)");
 
         $registro->bindParam(":nombreCurso", $datos["nombreCurso"], PDO::PARAM_STR);
         $registro->bindParam(":contenidoCurso", $datos["contenidoCurso"], PDO::PARAM_STR);
@@ -185,6 +185,7 @@ class ModeloCursos
         $registro->bindParam(":fechaFinCurso", $datos["fechaFinCurso"], PDO::PARAM_STR);
         $registro->bindParam(":horarioCurso", $datos["horarioCurso"], PDO::PARAM_STR);
         $registro->bindParam(":creadoPor", $datos["creadoPor"], PDO::PARAM_INT);
+        $registro->bindParam(":responsable", $datos["responsable"], PDO::PARAM_INT);
 
         if ($registro->execute()) {
             return "ok";
@@ -235,6 +236,16 @@ class ModeloCursos
         $stmt->bindValue(':fechaBaja', $esActivo ? null : date('Y-m-d H:i:s'), $esActivo ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $stmt->bindValue(':motivoBaja', $esActivo ? null : trim((string) $motivo), $esActivo ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $stmt->bindValue(':usuarioBaja', $esActivo ? null : (int) $idAdministrador, $esActivo ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
+
+        return $stmt->execute() ? 'ok' : 'error';
+    }
+
+    static public function mdlActualizarResponsableCurso($idCurso, $idResponsable)
+    {
+        $stmt = Conexion::conectar()->prepare('UPDATE cursos SET responsable = :idResponsable WHERE idCurso = :idCurso');
+        $idResponsable = (int) $idResponsable;
+        $stmt->bindValue(':idResponsable', $idResponsable > 0 ? $idResponsable : null, $idResponsable > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
 
         return $stmt->execute() ? 'ok' : 'error';

@@ -154,6 +154,22 @@ class ModeloMaterias
         return $stmt->execute() ? 'ok' : 'error';
     }
 
+    static public function mdlActualizarDocentesMateria($idSeccion, $idDocente, $idAdjunto)
+    {
+        $stmt = Conexion::conectar()->prepare('
+            UPDATE secciones
+            SET docente = :idDocente,
+                tutor = :idAdjunto
+            WHERE idSeccion = :idSeccion
+        ');
+        $idAdjunto = (int) $idAdjunto;
+        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idAdjunto', $idAdjunto > 0 ? $idAdjunto : null, $idAdjunto > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
+
+        return $stmt->execute() ? 'ok' : 'error';
+    }
+
     static public function mdlDependenciasMateria($idSeccion)
     {
         $relaciones = [

@@ -44,5 +44,6 @@ Accede solo a lo que corresponde a su inscripcion:
 - El administrador inscribe estudiantes; administradores y docentes crean cursos.
 - Solo el administrador puede dar de baja, reactivar o eliminar cursos; la eliminacion se bloquea si existen datos asociados.
 - Solo el administrador puede dar de baja, reactivar o eliminar materias; la eliminacion se bloquea si existen contenidos o actividad asociados.
+- Solo el administrador puede reasignar o quitar responsables de cursos y actualizar el equipo docente de una materia.
 - WordPress autentica la cuenta, pero el rol academico se administra desde Campus.
 - Las calificaciones siempre guardan nota y devolucion.

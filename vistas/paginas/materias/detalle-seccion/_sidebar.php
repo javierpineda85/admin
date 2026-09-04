@@ -27,11 +27,42 @@ $escSidebar = static function ($valor) {
 </div>
 
 <?php if (ControladorPermisos::esAdministrador()): ?>
+  <?php $docentesAsignables = ControladorUsuarios::crtUsuariosDocentesAsignables(); ?>
   <div class="card card-outline card-danger shadow-sm lesson-side-card">
     <div class="card-header section-header-soft">
       <h3 class="card-title">Administrar materia</h3>
     </div>
     <div class="card-body">
+      <form method="post" class="mb-3">
+        <input type="hidden" name="accion_materia" value="reasignar_docentes_materia">
+        <input type="hidden" name="idSeccion" value="<?php echo (int) ($seccion['idSeccion'] ?? 0); ?>">
+        <div class="form-group">
+          <label for="docenteTitularMateria">Docente titular</label>
+          <select id="docenteTitularMateria" name="idDocente" class="custom-select custom-select-sm" required>
+            <?php foreach ($docentesAsignables as $docenteAsignable): ?>
+              <option value="<?php echo (int) $docenteAsignable['idUsuario']; ?>" <?php echo (int) ($seccion['docente'] ?? 0) === (int) $docenteAsignable['idUsuario'] ? 'selected' : ''; ?>>
+                <?php echo $escSidebar(trim($docenteAsignable['nombreUsuario'] . ' ' . $docenteAsignable['apellidoUsuario'])); ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="docenteAdjuntoMateria">Docente adjunto</label>
+          <select id="docenteAdjuntoMateria" name="idAdjunto" class="custom-select custom-select-sm">
+            <option value="">Sin docente adjunto</option>
+            <?php foreach ($docentesAsignables as $docenteAsignable): ?>
+              <option value="<?php echo (int) $docenteAsignable['idUsuario']; ?>" <?php echo (int) ($seccion['tutor'] ?? 0) === (int) $docenteAsignable['idUsuario'] ? 'selected' : ''; ?>>
+                <?php echo $escSidebar(trim($docenteAsignable['nombreUsuario'] . ' ' . $docenteAsignable['apellidoUsuario'])); ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm btn-block">
+          <i class="fas fa-users-cog mr-1"></i>Actualizar equipo docente
+        </button>
+        <small class="form-text text-muted">El titular es obligatorio; el adjunto puede dejarse vacío.</small>
+      </form>
+      <hr>
       <?php if ((int) ($seccion['activo'] ?? 1) === 1): ?>
         <form method="post" class="mb-3">
           <input type="hidden" name="accion_materia" value="baja_materia">

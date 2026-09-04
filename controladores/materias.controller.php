@@ -201,7 +201,7 @@ class ControladorMaterias
     static public function crtProcesarAdministracionMateria()
     {
         $accion = trim((string) ($_POST['accion_materia'] ?? ''));
-        if (!in_array($accion, ['baja_materia', 'reactivar_materia', 'eliminar_materia'], true)) {
+        if (!in_array($accion, ['baja_materia', 'reactivar_materia', 'eliminar_materia', 'reasignar_docentes_materia'], true)) {
             return null;
         }
 
@@ -215,6 +215,25 @@ class ControladorMaterias
         if (!$materia) {
             $_SESSION['error_message'] = 'La materia no existe.';
             return 'error';
+        }
+
+        if ($accion === 'reasignar_docentes_materia') {
+            $idDocente = (int) ($_POST['idDocente'] ?? 0);
+            $idAdjunto = (int) ($_POST['idAdjunto'] ?? 0);
+            if ($idDocente <= 0 || !self::docenteAdjuntoValido($idDocente)) {
+                $_SESSION['error_message'] = 'La materia debe tener un docente titular activo.';
+                return 'error';
+            }
+            if ($idAdjunto > 0 && (!self::docenteAdjuntoValido($idAdjunto) || $idAdjunto === $idDocente)) {
+                $_SESSION['error_message'] = 'Selecciona otro docente activo como adjunto.';
+                return 'error';
+            }
+
+            $respuesta = ModeloMaterias::mdlActualizarDocentesMateria($idSeccion, $idDocente, $idAdjunto);
+            $_SESSION[$respuesta === 'ok' ? 'success_message' : 'error_message'] = $respuesta === 'ok'
+                ? 'Equipo docente de la materia actualizado correctamente.'
+                : 'No se pudo actualizar el equipo docente.';
+            return $respuesta;
         }
 
         if ($accion === 'baja_materia') {

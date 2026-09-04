@@ -1,17 +1,10 @@
 <?php
 $idCurso = (int) ($_GET['idCurso'] ?? 0);
-$administracionCurso = ControladorCursos::crtProcesarAdministracionCurso();
-if ($administracionCurso !== null) {
-    $destino = $administracionCurso === 'ok' && ($_POST['accion_curso'] ?? '') === 'eliminar_curso'
-        ? 'index.php?r=listado-cursos'
-        : 'index.php?r=detalle-curso&idCurso=' . $idCurso;
-    header('Location: ' . $destino);
-    exit;
-}
 $rolActual = ControladorPermisos::rolActual();
 $rolReal = ControladorPermisos::rolReal();
 $esAdmin = ControladorPermisos::esAdministrador();
 $esDocente = ControladorPermisos::esDocente();
+$docentesAsignables = $esAdmin ? ControladorUsuarios::crtUsuariosDocentesAsignables() : [];
 $vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $puedeGestionarCurso = $esAdmin || ($esDocente && ControladorCursos::crtPuedeGestionarCurso($idCurso));
@@ -20,12 +13,6 @@ $quitarEstudiante = ControladorCursos::crtQuitarEstudianteCurso();
 
 $cursoDetalle = ControladorCursos::crtBuscarCursoPorId($idCurso);
 $curso = $cursoDetalle ? [$cursoDetalle] : [];
-
-if ($cursoDetalle && (int) ($cursoDetalle['activo'] ?? 1) !== 1 && !$esAdmin) {
-    $_SESSION['error_message'] = 'Este curso se encuentra dado de baja.';
-    header('Location: index.php?r=listado-cursos');
-    exit;
-}
 
 $estudiantes = $esAdmin ? ControladorCursos::crtEstudiantesDisponiblesCurso($idCurso) : [];
 
@@ -175,6 +162,35 @@ if (ControladorPermisos::esEstudiante()) {
                                 <i class="fas fa-user-circle mr-1"></i>
                                 Creado por: <strong><?php echo htmlspecialchars(trim((string) ($curso[0]['creadorNombre'] ?? '')) ?: 'No registrado', ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
+                            <?php if ($esAdmin): ?>
+                                <form method="post" class="form-row align-items-end mb-3">
+                                    <input type="hidden" name="accion_curso" value="reasignar_docente_curso">
+                                    <input type="hidden" name="idCurso" value="<?php echo (int) $idCurso; ?>">
+                                    <div class="form-group col-md-8 mb-2">
+                                        <label for="responsableCurso">Responsable del curso</label>
+                                        <select id="responsableCurso" name="idResponsable" class="custom-select custom-select-sm" required>
+                                            <option value="">Seleccionar docente</option>
+                                            <?php foreach ($docentesAsignables as $docenteAsignable): ?>
+                                                <option value="<?php echo (int) $docenteAsignable['idUsuario']; ?>" <?php echo (int) ($curso[0]['responsable'] ?? 0) === (int) $docenteAsignable['idUsuario'] ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars(trim($docenteAsignable['nombreUsuario'] . ' ' . $docenteAsignable['apellidoUsuario']), ENT_QUOTES, 'UTF-8'); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-md-4 mb-2">
+                                        <button type="submit" class="btn btn-primary btn-sm btn-block">Reasignar</button>
+                                    </div>
+                                </form>
+                                <?php if ((int) ($curso[0]['responsable'] ?? 0) > 0): ?>
+                                    <form method="post" class="mb-3">
+                                        <input type="hidden" name="accion_curso" value="quitar_docente_curso">
+                                        <input type="hidden" name="idCurso" value="<?php echo (int) $idCurso; ?>">
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm" onclick="return confirm('¿Quitar al responsable actual de este curso?');">
+                                            <i class="fas fa-user-minus mr-1"></i>Quitar responsable
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            <?php endif; ?>
                             <form action="" method="post">
                                 <input type="hidden" name="idCurso" value="<?php echo $idCurso; ?>">
                                 <div class="row">
