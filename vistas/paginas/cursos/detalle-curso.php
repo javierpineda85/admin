@@ -1,5 +1,13 @@
 <?php
 $idCurso = (int) ($_GET['idCurso'] ?? 0);
+$administracionCurso = ControladorCursos::crtProcesarAdministracionCurso();
+if ($administracionCurso !== null) {
+    $destino = $administracionCurso === 'ok' && ($_POST['accion_curso'] ?? '') === 'eliminar_curso'
+        ? 'index.php?r=listado-cursos'
+        : 'index.php?r=detalle-curso&idCurso=' . $idCurso;
+    header('Location: ' . $destino);
+    exit;
+}
 $rolActual = ControladorPermisos::rolActual();
 $rolReal = ControladorPermisos::rolReal();
 $esAdmin = ControladorPermisos::esAdministrador();
@@ -10,9 +18,14 @@ $puedeGestionarCurso = $esAdmin || ($esDocente && ControladorCursos::crtPuedeGes
 $puedeQuitarEstudiantes = $esAdmin;
 $quitarEstudiante = ControladorCursos::crtQuitarEstudianteCurso();
 
-$db = new Conexion;
-$sql = "SELECT * FROM cursos WHERE idCurso = $idCurso";
-$curso = $db->consultas($sql);
+$cursoDetalle = ControladorCursos::crtBuscarCursoPorId($idCurso);
+$curso = $cursoDetalle ? [$cursoDetalle] : [];
+
+if ($cursoDetalle && (int) ($cursoDetalle['activo'] ?? 1) !== 1 && !$esAdmin) {
+    $_SESSION['error_message'] = 'Este curso se encuentra dado de baja.';
+    header('Location: index.php?r=listado-cursos');
+    exit;
+}
 
 $estudiantes = $esAdmin ? ControladorCursos::crtEstudiantesDisponiblesCurso($idCurso) : [];
 
@@ -153,6 +166,10 @@ if (ControladorPermisos::esEstudiante()) {
                             </div>
                         </div>
                         <div class="card-body">
+                            <div class="mb-3 text-muted">
+                                <i class="fas fa-user-circle mr-1"></i>
+                                Creado por: <strong><?php echo htmlspecialchars(trim((string) ($curso[0]['creadorNombre'] ?? '')) ?: 'No registrado', ENT_QUOTES, 'UTF-8'); ?></strong>
+                            </div>
                             <form action="" method="post">
                                 <input type="hidden" name="idCurso" value="<?php echo $idCurso; ?>">
                                 <div class="row">
@@ -198,6 +215,43 @@ if (ControladorPermisos::esEstudiante()) {
                                     <div class="col-12"></div>
                                 </div>
                             </form>
+
+                            <?php if ($esAdmin): ?>
+                                <hr>
+                                <div class="d-flex flex-wrap align-items-end justify-content-between">
+                                    <?php if ((int) ($curso[0]['activo'] ?? 1) === 1): ?>
+                                        <form method="post" class="form-inline mb-2 mr-2">
+                                            <input type="hidden" name="accion_curso" value="baja_curso">
+                                            <input type="hidden" name="idCurso" value="<?php echo (int) $idCurso; ?>">
+                                            <div class="form-group mr-2">
+                                                <label class="sr-only" for="motivoBajaCurso">Motivo de baja</label>
+                                                <input id="motivoBajaCurso" type="text" name="motivoBaja" class="form-control form-control-sm" placeholder="Motivo de la baja" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('¿Dar de baja este curso?');">
+                                                <i class="fas fa-ban mr-1"></i>Dar de baja
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <div class="mb-2 mr-2">
+                                            <div class="text-danger font-weight-bold">Curso dado de baja</div>
+                                            <small class="text-muted"><?php echo htmlspecialchars((string) ($curso[0]['motivoBaja'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
+                                            <form method="post" class="mt-2">
+                                                <input type="hidden" name="accion_curso" value="reactivar_curso">
+                                                <input type="hidden" name="idCurso" value="<?php echo (int) $idCurso; ?>">
+                                                <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-undo mr-1"></i>Reactivar curso</button>
+                                            </form>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <form method="post" class="mb-2">
+                                        <input type="hidden" name="accion_curso" value="eliminar_curso">
+                                        <input type="hidden" name="idCurso" value="<?php echo (int) $idCurso; ?>">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar definitivamente este curso? Esta acción no se puede deshacer.');">
+                                            <i class="fas fa-trash mr-1"></i>Eliminar definitivamente
+                                        </button>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

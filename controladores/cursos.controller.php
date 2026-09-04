@@ -112,6 +112,64 @@ class ControladorCursos
         }
     }
 
+    static public function crtProcesarAdministracionCurso()
+    {
+        $accion = trim((string) ($_POST['accion_curso'] ?? ''));
+        if (!in_array($accion, ['baja_curso', 'reactivar_curso', 'eliminar_curso'], true)) {
+            return null;
+        }
+
+        if (!ControladorPermisos::esAdministrador()) {
+            $_SESSION['error_message'] = 'Solo el administrador puede dar de baja o eliminar cursos.';
+            return 'denied';
+        }
+
+        $idCurso = (int) ($_POST['idCurso'] ?? 0);
+        $curso = self::crtBuscarCursoPorId($idCurso);
+        if (!$curso) {
+            $_SESSION['error_message'] = 'El curso no existe.';
+            return 'error';
+        }
+
+        if ($accion === 'baja_curso') {
+            $motivo = trim((string) ($_POST['motivoBaja'] ?? ''));
+            if ($motivo === '') {
+                $_SESSION['error_message'] = 'Indica el motivo de la baja.';
+                return 'error';
+            }
+            $respuesta = ModeloCursos::mdlCambiarEstadoActivoCurso(
+                $idCurso,
+                0,
+                $motivo,
+                (int) ($_SESSION['usuario']['id'] ?? 0)
+            );
+            $_SESSION[$respuesta === 'ok' ? 'success_message' : 'error_message'] = $respuesta === 'ok'
+                ? 'Curso dado de baja correctamente.'
+                : 'No se pudo dar de baja el curso.';
+            return $respuesta;
+        }
+
+        if ($accion === 'reactivar_curso') {
+            $respuesta = ModeloCursos::mdlCambiarEstadoActivoCurso($idCurso, 1, '', 0);
+            $_SESSION[$respuesta === 'ok' ? 'success_message' : 'error_message'] = $respuesta === 'ok'
+                ? 'Curso reactivado correctamente.'
+                : 'No se pudo reactivar el curso.';
+            return $respuesta;
+        }
+
+        $dependencias = ModeloCursos::mdlDependenciasCurso($idCurso);
+        if (!empty($dependencias)) {
+            $_SESSION['error_message'] = 'No se puede eliminar el curso porque tiene secciones, estudiantes o actividad asociada. Podes darlo de baja.';
+            return 'blocked';
+        }
+
+        $respuesta = ModeloCursos::mdlEliminarCurso($idCurso);
+        $_SESSION[$respuesta === 'ok' ? 'success_message' : 'error_message'] = $respuesta === 'ok'
+            ? 'Curso eliminado definitivamente.'
+            : 'No se pudo eliminar el curso.';
+        return $respuesta;
+    }
+
     /*Asignar curso */
     static public function crtEstudiantesDisponiblesCurso($idCurso)
     {

@@ -42,5 +42,6 @@ Accede solo a lo que corresponde a su inscripcion:
 - Un docente no puede administrar una materia donde no esta asignado.
 - Una entrega calificada queda bloqueada para edicion o cancelacion.
 - El administrador inscribe estudiantes; administradores y docentes crean cursos.
+- Solo el administrador puede dar de baja, reactivar o eliminar cursos; la eliminacion se bloquea si existen datos asociados.
 - WordPress autentica la cuenta, pero el rol academico se administra desde Campus.
 - Las calificaciones siempre guardan nota y devolucion.

@@ -1,13 +1,22 @@
 <?php
 $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
 $accion = trim((string) ($_POST['accion'] ?? ''));
+$seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
+
+if ($seccion && !ControladorPermisos::esAdministrador()) {
+  $cursoSeccion = ControladorCursos::crtBuscarCursoPorId((int) ($seccion['id_curso'] ?? 0));
+  if ($cursoSeccion && (int) ($cursoSeccion['activo'] ?? 1) !== 1) {
+    $_SESSION['error_message'] = 'Este curso se encuentra dado de baja.';
+    header('Location: index.php?r=listado-cursos');
+    exit;
+  }
+}
 
 if ($accion !== '') {
   ControladorLecciones::crtProcesarAcciones();
   ControladorCalificaciones::crtProcesarAcciones();
 }
 
-$seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
 if ($idSeccion > 0) {
   ControladorLecciones::crtProcesarLeccionesProgramadas($idSeccion);
 }

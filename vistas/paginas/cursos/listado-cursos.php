@@ -228,7 +228,9 @@ $e = static function ($valor) {
         <div class="management-card-grid" data-management-grid>
           <?php foreach ($cursos as $index => $curso): ?>
             <?php
-            $estadoCurso = trim((string) ($curso['estado'] ?? 'Sin estado'));
+            $estadoCurso = (int) ($curso['activo'] ?? 1) === 1
+              ? trim((string) ($curso['estado'] ?? 'Sin estado'))
+              : 'Dado de baja';
             $inicioCurso = trim((string) ($curso['fInicio'] ?? '')) ?: 'Sin fecha';
             $finCurso = trim((string) ($curso['fFin'] ?? '')) ?: 'Sin fecha';
             $horarioCurso = trim((string) ($curso['horarioCurso'] ?? '')) ?: 'Sin horario';

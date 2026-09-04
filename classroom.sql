@@ -88,8 +88,13 @@ CREATE TABLE IF NOT EXISTS `cursos` (
   `fechaFinCurso` date DEFAULT NULL,
   `horarioCurso` time DEFAULT NULL,
   `creadoPor` int DEFAULT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT '1',
+  `fechaBaja` datetime DEFAULT NULL,
+  `motivoBaja` varchar(255) DEFAULT NULL,
+  `usuarioBaja` int DEFAULT NULL,
   PRIMARY KEY (`idCurso`),
-  KEY `creadoPor` (`creadoPor`)
+  KEY `creadoPor` (`creadoPor`),
+  KEY `activo` (`activo`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------

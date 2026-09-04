@@ -6,11 +6,13 @@ class ModeloCursos
     static public function mdlBuscarCursoPorId($idCurso)
     {
         $stmt = Conexion::conectar()->prepare("
-            SELECT *,
-                   DATE_FORMAT(fechaInicioCurso, '%d/%m/%Y') AS fInicio,
-                   DATE_FORMAT(fechaFinCurso, '%d/%m/%Y') AS fFin
-            FROM cursos
-            WHERE idCurso = :idCurso
+            SELECT c.*,
+                   DATE_FORMAT(c.fechaInicioCurso, '%d/%m/%Y') AS fInicio,
+                   DATE_FORMAT(c.fechaFinCurso, '%d/%m/%Y') AS fFin,
+                   CONCAT(u.nombreUsuario, ' ', u.apellidoUsuario) AS creadorNombre
+            FROM cursos c
+            LEFT JOIN usuarios u ON u.idUsuario = c.creadoPor
+            WHERE c.idCurso = :idCurso
             LIMIT 1
         ");
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
@@ -52,6 +54,7 @@ class ModeloCursos
             LEFT JOIN secciones s ON s.id_curso = c.idCurso
             LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
             WHERE a.id_estudiante = :idEstudiante
+              AND c.activo = 1
             GROUP BY c.idCurso, c.nombreCurso, c.contenidoCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso
             ORDER BY c.nombreCurso ASC
         ");
@@ -72,9 +75,10 @@ class ModeloCursos
             FROM cursos c
             LEFT JOIN secciones s ON c.idCurso = s.id_curso
             LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
-            WHERE c.creadoPor = :idDocente
+            WHERE (c.creadoPor = :idDocente
                OR s.docente = :idDocente
-               OR s.tutor = :idDocente
+               OR s.tutor = :idDocente)
+              AND c.activo = 1
             GROUP BY c.idCurso, c.nombreCurso, c.contenidoCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso, c.creadoPor
             ORDER BY c.nombreCurso ASC
         ");
@@ -91,6 +95,7 @@ class ModeloCursos
             FROM cursos c
             WHERE c.idCurso = :idCurso
               AND c.creadoPor = :idDocente
+              AND c.activo = 1
         ");
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
         $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
@@ -212,6 +217,68 @@ class ModeloCursos
 
         $registro->closeCursor();
         $registro = null;
+    }
+
+    static public function mdlCambiarEstadoActivoCurso($idCurso, $activo, $motivo, $idAdministrador)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            UPDATE cursos
+            SET activo = :activo,
+                fechaBaja = :fechaBaja,
+                motivoBaja = :motivoBaja,
+                usuarioBaja = :usuarioBaja
+            WHERE idCurso = :idCurso
+        ");
+        $esActivo = (int) $activo === 1;
+        $stmt->bindValue(':activo', $esActivo ? 1 : 0, PDO::PARAM_INT);
+        $stmt->bindValue(':fechaBaja', $esActivo ? null : date('Y-m-d H:i:s'), $esActivo ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->bindValue(':motivoBaja', $esActivo ? null : trim((string) $motivo), $esActivo ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->bindValue(':usuarioBaja', $esActivo ? null : (int) $idAdministrador, $esActivo ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
+
+        return $stmt->execute() ? 'ok' : 'error';
+    }
+
+    static public function mdlDependenciasCurso($idCurso)
+    {
+        $relaciones = [
+            'secciones' => 'id_curso',
+            'asignacioncursos' => 'id_seccion',
+            'calificaciones' => 'id_curso',
+            'entregaslecciones' => 'id_curso',
+            'posteos' => 'id_curso',
+            'evaluaciones' => 'id_curso',
+            'actividades' => 'id_curso',
+        ];
+        $pdo = Conexion::conectar();
+        $dependencias = [];
+
+        foreach ($relaciones as $tabla => $columna) {
+            try {
+                $stmt = $pdo->prepare("SELECT COUNT(*) AS total FROM {$tabla} WHERE {$columna} = :idCurso");
+                $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
+                $stmt->execute();
+                $total = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+                if ($total > 0) {
+                    $dependencias[$tabla] = $total;
+                }
+            } catch (PDOException $e) {
+                // Algunas instalaciones antiguas aun no tienen todas las tablas opcionales.
+                if ((int) ($e->errorInfo[1] ?? 0) !== 1146) {
+                    throw $e;
+                }
+            }
+        }
+
+        return $dependencias;
+    }
+
+    static public function mdlEliminarCurso($idCurso)
+    {
+        $stmt = Conexion::conectar()->prepare('DELETE FROM cursos WHERE idCurso = :idCurso');
+        $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
+
+        return $stmt->execute() && $stmt->rowCount() === 1 ? 'ok' : 'error';
     }
 
     /* ASIGNAR CURSO */
