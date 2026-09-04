@@ -238,6 +238,15 @@ class ModeloUsuarios
         $usuarioLocal = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($usuarioLocal) {
+            // WordPress autentica la identidad, pero el rol academico se administra
+            // desde Campus una vez que la cuenta local ya fue creada.
+            $rolLocal = strtoupper(trim((string) ($usuarioLocal['rol'] ?? '')));
+            $emailWp = strtolower(trim((string) ($usuarioWp['user_email'] ?? '')));
+            $esSuperAdmin = $emailWp !== '' && in_array($emailWp, array_map('strtolower', WP_SUPER_ADMIN_EMAILS), true);
+            if (!$esSuperAdmin && in_array($rolLocal, ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'], true)) {
+                $rol = $rolLocal;
+            }
+
             $update = $conexion->prepare("
                 UPDATE usuarios
                 SET nombreUsuario = :nombre,

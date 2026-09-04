@@ -69,18 +69,34 @@ class ModeloCursos
                    DATE_FORMAT(c.fechaFinCurso, '%d/%m/%Y') AS fFin,
                    COUNT(DISTINCT s.idSeccion) AS totalSecciones,
                    COUNT(DISTINCT l.idLeccion) AS totalLecciones
-            FROM secciones s
-            INNER JOIN cursos c ON c.idCurso = s.id_curso
+            FROM cursos c
+            LEFT JOIN secciones s ON c.idCurso = s.id_curso
             LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
-            WHERE s.docente = :idDocente
+            WHERE c.creadoPor = :idDocente
+               OR s.docente = :idDocente
                OR s.tutor = :idDocente
-            GROUP BY c.idCurso, c.nombreCurso, c.contenidoCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso
+            GROUP BY c.idCurso, c.nombreCurso, c.contenidoCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso, c.creadoPor
             ORDER BY c.nombreCurso ASC
         ");
         $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    static public function mdlDocentePuedeGestionarCurso($idCurso, $idDocente)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT COUNT(*) AS total
+            FROM cursos c
+            WHERE c.idCurso = :idCurso
+              AND c.creadoPor = :idDocente
+        ");
+        $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0) > 0;
     }
 
     static public function mdlEstudianteInscriptoCurso($idEstudiante, $idCurso)
@@ -154,7 +170,7 @@ class ModeloCursos
     static public function mdlGuardarCurso($tabla, $datos)
     {
 
-        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla(nombreCurso, contenidoCurso, estado, fechaInicioCurso, fechaFinCurso, horarioCurso) VALUES(:nombreCurso, :contenidoCurso, :estado, :fechaInicioCurso, :fechaFinCurso, :horarioCurso)");
+        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla(nombreCurso, contenidoCurso, estado, fechaInicioCurso, fechaFinCurso, horarioCurso, creadoPor) VALUES(:nombreCurso, :contenidoCurso, :estado, :fechaInicioCurso, :fechaFinCurso, :horarioCurso, :creadoPor)");
 
         $registro->bindParam(":nombreCurso", $datos["nombreCurso"], PDO::PARAM_STR);
         $registro->bindParam(":contenidoCurso", $datos["contenidoCurso"], PDO::PARAM_STR);
@@ -162,6 +178,7 @@ class ModeloCursos
         $registro->bindParam(":fechaInicioCurso", $datos["fechaInicioCurso"], PDO::PARAM_STR);
         $registro->bindParam(":fechaFinCurso", $datos["fechaFinCurso"], PDO::PARAM_STR);
         $registro->bindParam(":horarioCurso", $datos["horarioCurso"], PDO::PARAM_STR);
+        $registro->bindParam(":creadoPor", $datos["creadoPor"], PDO::PARAM_INT);
 
         if ($registro->execute()) {
             return "ok";

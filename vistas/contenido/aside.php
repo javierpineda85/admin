@@ -146,6 +146,26 @@
           <?php elseif (ControladorPermisos::esDocente()): ?>
             <li class="nav-item">
               <a href="#" class="nav-link">
+                <i class="nav-icon fas fa-copy text-success"></i>
+                <p>Cursos<i class="fas fa-angle-left right"></i></p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="index.php?r=listado-cursos" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Mis cursos</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?r=crear-curso" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Crear curso</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
                 <i class="nav-icon fas fa-book-open text-success"></i>
                 <p>Materias<i class="fas fa-angle-left right"></i></p>
               </a>
@@ -154,6 +174,12 @@
                   <a href="index.php?r=listado-materias" class="nav-link">
                     <i class="far fa-circle nav-icon"></i>
                     <p>Mis materias</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?r=crear-materia" class="nav-link">
+                    <i class="far fa-circle nav-icon"></i>
+                    <p>Crear materia</p>
                   </a>
                 </li>
               </ul>

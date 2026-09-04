@@ -1,6 +1,8 @@
 <?php
 $db = new Conexion;
-$cursos = $db->consultas("SELECT * FROM cursos ORDER BY nombreCurso ASC");
+$cursos = ControladorPermisos::esDocente()
+  ? ControladorCursos::crtCursosPorDocente((int) ($_SESSION['usuario']['id'] ?? 0))
+  : $db->consultas("SELECT * FROM cursos ORDER BY nombreCurso ASC");
 $usuarios = ControladorUsuarios::crtUsuariosDocentesAsignables();
 $registro = ControladorMaterias::crtGuardarMateria();
 ?>
@@ -11,7 +13,7 @@ $registro = ControladorMaterias::crtGuardarMateria();
       <div class="entity-hero__content">
         <span class="entity-kicker mb-3">Secciones</span>
         <h1 class="entity-title mb-2">Crear nueva materia</h1>
-        <p class="entity-lead mb-0">Asigná curso, docente y tutor desde una vista consistente con el resto de la plataforma.</p>
+        <p class="entity-lead mb-0">Asigná el curso, el docente titular y, si corresponde, un docente adjunto.</p>
       </div>
     </div>
 
@@ -47,18 +49,23 @@ $registro = ControladorMaterias::crtGuardarMateria();
             <div class="col-md-6">
               <div class="form-group">
                 <label>Docente a cargo</label>
-                <select class="custom-select" name="docente" required>
-                  <?php foreach ($usuarios as $usuario): ?>
-                    <option value="<?php echo (int) $usuario['idUsuario']; ?>"><?php echo htmlspecialchars($usuario['nombreUsuario'] . ' ' . $usuario['apellidoUsuario'], ENT_QUOTES, 'UTF-8'); ?></option>
-                  <?php endforeach; ?>
-                </select>
+                <?php if (ControladorPermisos::esDocente()): ?>
+                  <input type="hidden" name="docente" value="<?php echo (int) ($_SESSION['usuario']['id'] ?? 0); ?>">
+                  <input type="text" class="form-control" value="Vos (docente titular)" readonly>
+                <?php else: ?>
+                  <select class="custom-select" name="docente" required>
+                    <?php foreach ($usuarios as $usuario): ?>
+                      <option value="<?php echo (int) $usuario['idUsuario']; ?>"><?php echo htmlspecialchars($usuario['nombreUsuario'] . ' ' . $usuario['apellidoUsuario'], ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                <?php endif; ?>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label>Tutor</label>
+                <label>Docente adjunto</label>
                 <select class="custom-select" name="tutor">
-                  <option value="">Sin tutor</option>
+                  <option value="">Sin docente adjunto</option>
                   <?php foreach ($usuarios as $usuario): ?>
                     <option value="<?php echo (int) $usuario['idUsuario']; ?>"><?php echo htmlspecialchars($usuario['nombreUsuario'] . ' ' . $usuario['apellidoUsuario'], ENT_QUOTES, 'UTF-8'); ?></option>
                   <?php endforeach; ?>

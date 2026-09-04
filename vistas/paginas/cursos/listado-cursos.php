@@ -193,7 +193,7 @@ $e = static function ($valor) {
           <h1 class="entity-title mb-2"><?php echo $esDocente ? 'Tus aulas asignadas' : 'Gestión de cursos'; ?></h1>
           <p class="entity-lead mb-0">
             <?php echo $esDocente
-              ? 'Revisá los cursos donde participás como docente o tutor y entrá directamente a sus aulas.'
+              ? 'Revisá los cursos propios o donde participás como docente adjunto y entrá directamente a sus aulas.'
               : 'Explorá los cursos de forma visual y accedé a la información administrativa cuando la necesites.'; ?>
           </p>
         </div>
@@ -210,7 +210,7 @@ $e = static function ($valor) {
             <i class="fas fa-search"></i>
             <input type="search" class="form-control form-control-sm" placeholder="Buscar curso..." data-management-search>
           </label>
-          <?php if ($esAdmin): ?>
+          <?php if ($esAdmin || $esDocente): ?>
             <a href="index.php?r=crear-curso" class="btn btn-primary btn-sm">
               <i class="fas fa-plus mr-1"></i>Nuevo curso
             </a>
@@ -275,7 +275,7 @@ $e = static function ($valor) {
                   <a href="index.php?r=detalle-curso&idCurso=<?php echo (int) $curso['idCurso']; ?>" class="btn btn-info btn-sm">
                     <i class="far fa-eye mr-1"></i>Abrir
                   </a>
-                  <?php if ($esAdmin): ?>
+                  <?php if ($esAdmin || ($esDocente && ControladorCursos::crtPuedeGestionarCurso((int) $curso['idCurso']))): ?>
                     <div class="dropdown">
                       <button type="button" class="btn btn-outline-secondary btn-sm management-menu-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Más opciones">
                         <i class="fas fa-ellipsis-v"></i>

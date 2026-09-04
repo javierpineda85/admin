@@ -17,7 +17,7 @@ $urlPerfil = function (int $idUsuario) use ($idSeccion): string {
 
 <div class="people-panel">
   <div class="d-flex align-items-center justify-content-between flex-wrap mb-3">
-    <h3 class="mb-0">Docentes y tutores</h3>
+    <h3 class="mb-0">Equipo docente</h3>
     <span class="badge badge-info">Materia</span>
   </div>
 
@@ -43,8 +43,8 @@ $urlPerfil = function (int $idUsuario) use ($idSeccion): string {
     <div class="people-row mt-2">
       <div class="classroom-avatar"><?php echo strtoupper(substr($tutorNombre !== '' ? $tutorNombre : 'T', 0, 1)); ?></div>
       <div class="flex-grow-1">
-        <strong><?php echo $esc($tutorNombre !== '' ? $tutorNombre : 'Tutor'); ?></strong>
-        <small>Tutor de la materia</small>
+        <strong><?php echo $esc($tutorNombre !== '' ? $tutorNombre : 'Docente adjunto'); ?></strong>
+        <small>Docente adjunto</small>
       </div>
       <div class="people-row__actions d-flex flex-wrap align-items-center">
         <a class="btn btn-outline-secondary btn-sm mr-2" href="<?php echo $esc($urlPerfil($idTutor)); ?>">

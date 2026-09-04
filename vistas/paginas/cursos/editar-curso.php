@@ -1,5 +1,10 @@
 <?php
 $idCurso = (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0);
+if (!ControladorCursos::crtPuedeGestionarCurso($idCurso)) {
+    $_SESSION['error_message'] = 'No podes editar un curso que no esta a tu cargo.';
+    header('Location: index.php?r=listado-cursos');
+    exit;
+}
 $db = new Conexion;
 $curso = $db->consultas("SELECT * FROM cursos WHERE idCurso = $idCurso");
 $curso = $curso[0] ?? [

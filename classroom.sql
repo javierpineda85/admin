@@ -87,7 +87,9 @@ CREATE TABLE IF NOT EXISTS `cursos` (
   `fechaInicioCurso` date NOT NULL,
   `fechaFinCurso` date DEFAULT NULL,
   `horarioCurso` time DEFAULT NULL,
-  PRIMARY KEY (`idCurso`)
+  `creadoPor` int DEFAULT NULL,
+  PRIMARY KEY (`idCurso`),
+  KEY `creadoPor` (`creadoPor`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------

@@ -22,7 +22,7 @@ $colorSeguro = static function ($valor, $alternativa) {
         <h1 class="entity-title mb-2"><?php echo $esDocente && !$esAdmin ? 'Tus aulas asignadas' : 'Gestión de secciones'; ?></h1>
         <p class="entity-lead mb-0">
           <?php echo $esDocente && !$esAdmin
-            ? 'Encontrá rápidamente cada aula donde participás como docente o tutor.'
+            ? 'Encontrá rápidamente cada aula donde participás como titular o docente adjunto.'
             : 'Visualizá las aulas por curso, docente y actividad sin perder las opciones administrativas.'; ?>
         </p>
       </div>
@@ -39,7 +39,7 @@ $colorSeguro = static function ($valor, $alternativa) {
           <i class="fas fa-search"></i>
           <input type="search" class="form-control form-control-sm" placeholder="Buscar sección..." data-management-search>
         </label>
-        <?php if ($esAdmin): ?>
+        <?php if ($esAdmin || $esDocente): ?>
           <a href="index.php?r=crear-materia" class="btn btn-primary btn-sm">
             <i class="fas fa-plus mr-1"></i>Nueva sección
           </a>
@@ -90,7 +90,7 @@ $colorSeguro = static function ($valor, $alternativa) {
                 </div>
                 <?php if ($tutor !== ''): ?>
                   <div>
-                    <span><i class="fas fa-user-friends"></i> Tutor</span>
+                    <span><i class="fas fa-user-friends"></i> Docente adjunto</span>
                     <strong><?php echo $e($tutor); ?></strong>
                   </div>
                 <?php endif; ?>

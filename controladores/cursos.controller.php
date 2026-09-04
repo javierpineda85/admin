@@ -38,10 +38,25 @@ class ControladorCursos
         return ModeloCursos::mdlSeccionesPorCursoParaDocente((int) $idCurso, (int) $idDocente);
     }
 
+    static public function crtPuedeGestionarCurso($idCurso)
+    {
+        if (ControladorPermisos::esAdministrador()) {
+            return true;
+        }
+
+        return ControladorPermisos::esDocente()
+            && ModeloCursos::mdlDocentePuedeGestionarCurso((int) $idCurso, (int) ($_SESSION['usuario']['id'] ?? 0));
+    }
+
     /*GUARDAR CURSO */
     static public function crtGuardarCurso()
     {
         if (isset($_POST["nombreCurso"])) {
+            if (!ControladorPermisos::esAdministrador() && !ControladorPermisos::esDocente()) {
+                $_SESSION['error_message'] = 'No tenes permisos para crear cursos.';
+                return 'denied';
+            }
+
             $tabla = "cursos";
 
             $datos = array(
@@ -50,7 +65,8 @@ class ControladorCursos
                 "estado"            => $_POST["estado"],
                 "fechaInicioCurso"  => $_POST["fechaInicioCurso"],
                 "fechaFinCurso"     => $_POST["fechaFinCurso"],
-                "horarioCurso"      => $_POST["horarioCurso"]
+                "horarioCurso"      => $_POST["horarioCurso"],
+                "creadoPor"         => (int) ($_SESSION['usuario']['id'] ?? 0)
             );
 
             $respuesta = ModeloCursos::mdlGuardarCurso($tabla, $datos);
@@ -68,10 +84,16 @@ class ControladorCursos
     {
         if (isset($_POST["nombreCurso"])) {
 
+            $idCurso = (int) ($_POST['idCurso'] ?? 0);
+            if (!self::crtPuedeGestionarCurso($idCurso)) {
+                $_SESSION['error_message'] = 'No podes editar un curso que no esta a tu cargo.';
+                return 'denied';
+            }
+
             $tabla = "cursos";
 
             $datos = array(
-                "idCurso"           => $_POST["idCurso"],
+                "idCurso"           => $idCurso,
                 "nombreCurso"       => $_POST["nombreCurso"],
                 "contenidoCurso"    => $_POST["contenidoCurso"],
                 "estado"            => $_POST["estado"],

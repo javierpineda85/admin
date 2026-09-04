@@ -4,6 +4,19 @@ require('modelos/materias.modelo.php');
 
 class ControladorMaterias
 {
+    private static function docenteAdjuntoValido($idUsuario)
+    {
+        $idUsuario = (int) $idUsuario;
+        if ($idUsuario === 0) {
+            return true;
+        }
+
+        $usuario = ModeloUsuarios::mdlObtenerUsuarioPorId($idUsuario);
+        return $usuario
+            && (int) ($usuario['activo'] ?? 0) === 1
+            && in_array(strtoupper((string) ($usuario['rol'] ?? '')), ['DOCENTE', 'ADMINISTRADOR'], true);
+    }
+
     private static function eliminarArchivoLocal($ruta)
     {
         $ruta = trim((string) $ruta);
@@ -51,8 +64,8 @@ class ControladorMaterias
     static public function crtGuardarMateria()
     {
         if (isset($_POST["tituloSeccion"])) {
-            if (!ControladorPermisos::esAdministrador()) {
-                $_SESSION['error_message'] = 'Solo el administrador puede crear materias.';
+            if (!ControladorPermisos::esAdministrador() && !ControladorPermisos::esDocente()) {
+                $_SESSION['error_message'] = 'No tenes permisos para crear materias.';
                 return 'denied';
             }
 
@@ -70,6 +83,24 @@ class ControladorMaterias
                 "colorInicioBanner" => trim((string) ($_POST["colorInicioBanner"] ?? '#0f172a')),
                 "colorFinBanner" => trim((string) ($_POST["colorFinBanner"] ?? '#1d4ed8')),
             );
+
+            if (ControladorPermisos::esDocente()) {
+                $idDocente = (int) ($_SESSION['usuario']['id'] ?? 0);
+                if (!ModeloCursos::mdlDocentePuedeGestionarCurso((int) $datos['id_curso'], $idDocente)) {
+                    $_SESSION['error_message'] = 'Solo podes crear materias dentro de tus cursos.';
+                    return 'denied';
+                }
+                $datos['docente'] = $idDocente;
+            }
+
+            if ((int) ($datos['tutor'] ?? 0) === (int) $datos['docente']) {
+                $_SESSION['error_message'] = 'El docente adjunto debe ser otra persona.';
+                return 'error';
+            }
+            if (!self::docenteAdjuntoValido($datos['tutor'] ?? 0)) {
+                $_SESSION['error_message'] = 'Selecciona un docente adjunto activo.';
+                return 'error';
+            }
 
             if (!empty($_FILES['bannerSeccion']['name']) && ($_FILES['bannerSeccion']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
                 $bannerSeccion = self::subirBannerSeccion($_FILES['bannerSeccion']);
@@ -109,6 +140,11 @@ class ControladorMaterias
                     $_SESSION['error_message'] = 'No podes editar una materia donde no estas asignado.';
                     return 'denied';
                 }
+
+                // Un docente puede elegir al adjunto, pero no transferir la
+                // titularidad ni mover la materia a otro curso.
+                $_POST['id_curso'] = $materiaActual['id_curso'];
+                $_POST['docente'] = $materiaActual['docente'];
             }
 
             $bannerSeccion = $materiaActual['bannerSeccion'] ?? '';
@@ -136,6 +172,15 @@ class ControladorMaterias
                 "colorInicioBanner" => trim((string) ($_POST["colorInicioBanner"] ?? '#0f172a')),
                 "colorFinBanner" => trim((string) ($_POST["colorFinBanner"] ?? '#1d4ed8')),
             );
+
+            if ((int) ($datos['tutor'] ?? 0) === (int) $datos['docente']) {
+                $_SESSION['error_message'] = 'El docente adjunto debe ser otra persona.';
+                return 'error';
+            }
+            if (!self::docenteAdjuntoValido($datos['tutor'] ?? 0)) {
+                $_SESSION['error_message'] = 'Selecciona un docente adjunto activo.';
+                return 'error';
+            }
 
             $respuesta = ModeloMaterias::mdlModificarMateria($tabla, $datos);
             if ($respuesta === 'ok') {

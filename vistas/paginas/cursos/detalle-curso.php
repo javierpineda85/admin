@@ -6,6 +6,7 @@ $esAdmin = ControladorPermisos::esAdministrador();
 $esDocente = ControladorPermisos::esDocente();
 $vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
+$puedeGestionarCurso = $esAdmin || ($esDocente && ControladorCursos::crtPuedeGestionarCurso($idCurso));
 $puedeQuitarEstudiantes = $esAdmin;
 $quitarEstudiante = ControladorCursos::crtQuitarEstudianteCurso();
 
@@ -132,6 +133,8 @@ if (ControladorPermisos::esEstudiante()) {
             Estás dentro del detalle del curso como <strong><?php echo htmlspecialchars($rolActual !== '' ? $rolActual : 'usuario', ENT_QUOTES, 'UTF-8'); ?></strong>.
             <?php if ($esAdmin): ?>
                 Podés editar el curso e inscribir estudiantes.
+            <?php elseif ($puedeGestionarCurso): ?>
+                Podés editar el curso y administrar sus aulas.
             <?php else: ?>
                 Desde acá podés revisar la información general y la composición del aula.
             <?php endif; ?>
@@ -155,11 +158,11 @@ if (ControladorPermisos::esEstudiante()) {
                                 <div class="row">
                                     <div class="form-group col-md-4 col-sm-12">
                                         <label for="inputName">Nombre del Curso</label>
-                                        <input type="text" class="form-control form-control-sm" name="nombreCurso" value="<?php echo htmlspecialchars($curso[0]['nombreCurso'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo !$esAdmin ? 'readonly' : ''; ?>>
+                                        <input type="text" class="form-control form-control-sm" name="nombreCurso" value="<?php echo htmlspecialchars($curso[0]['nombreCurso'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo !$puedeGestionarCurso ? 'readonly' : ''; ?>>
                                     </div>
                                     <div class="form-group col-md-4 col-sm-12">
                                         <label for="inputStatus">Estado</label>
-                                        <select id="inputStatus" class="form-control form-control-sm" name="estado" <?php echo !$esAdmin ? 'disabled' : ''; ?>>
+                                        <select id="inputStatus" class="form-control form-control-sm" name="estado" <?php echo !$puedeGestionarCurso ? 'disabled' : ''; ?>>
                                             <option value="<?php echo htmlspecialchars($curso[0]['estado'], ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($curso[0]['estado'], ENT_QUOTES, 'UTF-8'); ?></option>
                                             <option value="En Curso">En curso</option>
                                             <option value="Programado">Programado</option>
@@ -169,25 +172,25 @@ if (ControladorPermisos::esEstudiante()) {
                                     </div>
                                     <div class="form-group col-md-4 col-sm-12">
                                         <label for="inputDescription">Descripción</label>
-                                        <textarea id="inputDescription" class="form-control form-control-sm" rows="1" name="contenidoCurso" <?php echo !$esAdmin ? 'readonly' : ''; ?>><?php echo htmlspecialchars($curso[0]['contenidoCurso'], ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                        <textarea id="inputDescription" class="form-control form-control-sm" rows="1" name="contenidoCurso" <?php echo !$puedeGestionarCurso ? 'readonly' : ''; ?>><?php echo htmlspecialchars($curso[0]['contenidoCurso'], ENT_QUOTES, 'UTF-8'); ?></textarea>
                                     </div>
                                 </div>
 
                                 <div class="row">
                                     <div class="form-group col-md-4 col-sm-12">
                                         <label for="inputEstimatedBudget">Inicio:</label>
-                                        <input type="date" id="inputEstimatedBudget" class="form-control form-control-sm" name="fechaInicioCurso" value="<?php echo htmlspecialchars($curso[0]['fechaInicioCurso'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo !$esAdmin ? 'readonly' : ''; ?>>
+                                        <input type="date" id="inputEstimatedBudget" class="form-control form-control-sm" name="fechaInicioCurso" value="<?php echo htmlspecialchars($curso[0]['fechaInicioCurso'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo !$puedeGestionarCurso ? 'readonly' : ''; ?>>
                                     </div>
                                     <div class="form-group col-md-4 col-sm-12">
                                         <label for="inputSpentBudget">Finaliza:</label>
-                                        <input type="date" id="inputSpentBudget" class="form-control form-control-sm" name="fechaFinCurso" value="<?php echo htmlspecialchars((string) $curso[0]['fechaFinCurso'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo !$esAdmin ? 'readonly' : ''; ?>>
+                                        <input type="date" id="inputSpentBudget" class="form-control form-control-sm" name="fechaFinCurso" value="<?php echo htmlspecialchars((string) $curso[0]['fechaFinCurso'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo !$puedeGestionarCurso ? 'readonly' : ''; ?>>
                                     </div>
                                     <div class="form-group col-md-3 col-sm-12">
                                         <label for="inputEstimatedDuration">Horario:</label>
-                                        <input type="time" id="inputEstimatedDuration" class="form-control form-control-sm" name="horarioCurso" value="<?php echo htmlspecialchars((string) $curso[0]['horarioCurso'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo !$esAdmin ? 'readonly' : ''; ?>>
+                                        <input type="time" id="inputEstimatedDuration" class="form-control form-control-sm" name="horarioCurso" value="<?php echo htmlspecialchars((string) $curso[0]['horarioCurso'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo !$puedeGestionarCurso ? 'readonly' : ''; ?>>
                                     </div>
                                     <div class="form-group col-1 mt-4">
-                                        <?php if ($esAdmin): ?>
+                                        <?php if ($puedeGestionarCurso): ?>
                                             <?php $editar = ControladorCursos::crtModificarCurso(); ?>
                                             <button type="submit" class="btn btn-success btn-sm mt-2"><i class="fas fa-edit"></i></button>
                                         <?php endif; ?>

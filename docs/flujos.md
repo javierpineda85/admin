@@ -12,8 +12,8 @@
 ## Flujo del docente
 
 1. Inicia sesion.
-2. Entra a sus cursos asignados.
-3. Abre una materia asignada.
+2. Entra a sus cursos asignados o crea un curso propio.
+3. Agrega materias, abre un aula y puede sumar un docente adjunto.
 4. Crea lecciones, recursos y preguntas, incluso como borrador.
 5. Publica materiales y recibe entregas de tareas.
 6. Carga nota y devolucion.

@@ -13,9 +13,11 @@ Puede administrar todo el sistema:
 
 ## Docente
 
-Trabaja solo sobre las materias en las que esta asignado como docente o tutor:
+Trabaja solo sobre los cursos propios y las materias en las que esta asignado como titular o docente adjunto:
 
 - Ver sus cursos en formato de tarjetas.
+- Crear y editar sus propios cursos.
+- Crear materias dentro de sus cursos y sumar un docente adjunto.
 - Entrar al detalle del curso.
 - Ver solo las materias asignadas.
 - Crear, editar y eliminar lecciones.
@@ -39,5 +41,6 @@ Accede solo a lo que corresponde a su inscripcion:
 - Un estudiante no puede escribir a otro estudiante fuera de su curso.
 - Un docente no puede administrar una materia donde no esta asignado.
 - Una entrega calificada queda bloqueada para edicion o cancelacion.
-- Los cursos los inscribe el administrador.
+- El administrador inscribe estudiantes; administradores y docentes crean cursos.
+- WordPress autentica la cuenta, pero el rol academico se administra desde Campus.
 - Las calificaciones siempre guardan nota y devolucion.
