@@ -122,7 +122,7 @@ class ModeloCursos
     static public function mdlSeccionesPorCurso($idCurso)
     {
         $stmt = Conexion::conectar()->prepare("
-            SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
+            SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor, s.activo,
                    c.nombreCurso,
                    u.nombreUsuario, u.apellidoUsuario,
                    COUNT(DISTINCT l.idLeccion) AS totalLecciones,
@@ -147,7 +147,7 @@ class ModeloCursos
     static public function mdlSeccionesPorCursoParaDocente($idCurso, $idDocente)
     {
         $stmt = Conexion::conectar()->prepare("
-            SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
+            SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor, s.activo,
                    c.nombreCurso,
                    u.nombreUsuario, u.apellidoUsuario,
                    COUNT(DISTINCT l.idLeccion) AS totalLecciones,
@@ -160,6 +160,7 @@ class ModeloCursos
             LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
             WHERE s.id_curso = :idCurso
               AND (s.docente = :idDocente OR s.tutor = :idDocente)
+              AND s.activo = 1
             GROUP BY s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
                      c.nombreCurso, u.nombreUsuario, u.apellidoUsuario
             ORDER BY s.tituloSeccion ASC

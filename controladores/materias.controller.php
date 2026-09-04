@@ -82,6 +82,7 @@ class ControladorMaterias
                 "bannerSeccion" => '',
                 "colorInicioBanner" => trim((string) ($_POST["colorInicioBanner"] ?? '#0f172a')),
                 "colorFinBanner" => trim((string) ($_POST["colorFinBanner"] ?? '#1d4ed8')),
+                "creadoPor" => (int) ($_SESSION['usuario']['id'] ?? 0),
             );
 
             if (ControladorPermisos::esDocente()) {
@@ -177,6 +178,11 @@ class ControladorMaterias
                 $_SESSION['error_message'] = 'El docente adjunto debe ser otra persona.';
                 return 'error';
             }
+
+            if (!ControladorPermisos::esAdministrador() && (int) ($materiaActual['activo'] ?? 1) !== 1) {
+                $_SESSION['error_message'] = 'No podes editar una materia dada de baja.';
+                return 'denied';
+            }
             if (!self::docenteAdjuntoValido($datos['tutor'] ?? 0)) {
                 $_SESSION['error_message'] = 'Selecciona un docente adjunto activo.';
                 return 'error';
@@ -190,6 +196,64 @@ class ControladorMaterias
             }
             return $respuesta;
         }
+    }
+
+    static public function crtProcesarAdministracionMateria()
+    {
+        $accion = trim((string) ($_POST['accion_materia'] ?? ''));
+        if (!in_array($accion, ['baja_materia', 'reactivar_materia', 'eliminar_materia'], true)) {
+            return null;
+        }
+
+        if (!ControladorPermisos::esAdministrador()) {
+            $_SESSION['error_message'] = 'Solo el administrador puede dar de baja o eliminar materias.';
+            return 'denied';
+        }
+
+        $idSeccion = (int) ($_POST['idSeccion'] ?? 0);
+        $materia = self::crtBuscarMateriaPorId($idSeccion);
+        if (!$materia) {
+            $_SESSION['error_message'] = 'La materia no existe.';
+            return 'error';
+        }
+
+        if ($accion === 'baja_materia') {
+            $motivo = trim((string) ($_POST['motivoBaja'] ?? ''));
+            if ($motivo === '') {
+                $_SESSION['error_message'] = 'Indica el motivo de la baja.';
+                return 'error';
+            }
+            $respuesta = ModeloMaterias::mdlCambiarEstadoActivoMateria(
+                $idSeccion,
+                0,
+                $motivo,
+                (int) ($_SESSION['usuario']['id'] ?? 0)
+            );
+            $_SESSION[$respuesta === 'ok' ? 'success_message' : 'error_message'] = $respuesta === 'ok'
+                ? 'Materia dada de baja correctamente.'
+                : 'No se pudo dar de baja la materia.';
+            return $respuesta;
+        }
+
+        if ($accion === 'reactivar_materia') {
+            $respuesta = ModeloMaterias::mdlCambiarEstadoActivoMateria($idSeccion, 1, '', 0);
+            $_SESSION[$respuesta === 'ok' ? 'success_message' : 'error_message'] = $respuesta === 'ok'
+                ? 'Materia reactivada correctamente.'
+                : 'No se pudo reactivar la materia.';
+            return $respuesta;
+        }
+
+        $dependencias = ModeloMaterias::mdlDependenciasMateria($idSeccion);
+        if (!empty($dependencias)) {
+            $_SESSION['error_message'] = 'No se puede eliminar la materia porque tiene clases, calificaciones, entregas o actividades asociadas. Podes darla de baja.';
+            return 'blocked';
+        }
+
+        $respuesta = ModeloMaterias::mdlEliminarMateria($idSeccion);
+        $_SESSION[$respuesta === 'ok' ? 'success_message' : 'error_message'] = $respuesta === 'ok'
+            ? 'Materia eliminada definitivamente.'
+            : 'No se pudo eliminar la materia.';
+        return $respuesta;
     }
 
     static public function crtBuscarMateriaXcurso($item, $valor)

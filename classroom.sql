@@ -289,8 +289,15 @@ CREATE TABLE IF NOT EXISTS `secciones` (
   `bannerSeccion` varchar(255) DEFAULT NULL,
   `colorInicioBanner` varchar(20) DEFAULT '#0f172a',
   `colorFinBanner` varchar(20) DEFAULT '#1d4ed8',
+  `creadoPor` int DEFAULT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT '1',
+  `fechaBaja` datetime DEFAULT NULL,
+  `motivoBaja` varchar(255) DEFAULT NULL,
+  `usuarioBaja` int DEFAULT NULL,
   PRIMARY KEY (`idSeccion`),
-  KEY `id_curso` (`id_curso`,`docente`,`tutor`)
+  KEY `id_curso` (`id_curso`,`docente`,`tutor`),
+  KEY `creadoPor` (`creadoPor`),
+  KEY `activo` (`activo`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------

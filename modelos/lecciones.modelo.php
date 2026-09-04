@@ -93,13 +93,16 @@ class ModeloLecciones
     {
         $stmt = Conexion::conectar()->prepare(
             'SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.bannerSeccion, s.colorInicioBanner, s.colorFinBanner, s.id_curso, s.docente, s.tutor,
+                    s.creadoPor, s.activo, s.fechaBaja, s.motivoBaja,
                     c.nombreCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso,
                     u.nombreUsuario, u.apellidoUsuario,
-                    tutor.nombreUsuario AS nombreTutor, tutor.apellidoUsuario AS apellidoTutor
+                    tutor.nombreUsuario AS nombreTutor, tutor.apellidoUsuario AS apellidoTutor,
+                    CONCAT(creador.nombreUsuario, CHAR(32), creador.apellidoUsuario) AS creadorNombre
              FROM secciones s
              INNER JOIN cursos c ON c.idCurso = s.id_curso
              INNER JOIN usuarios u ON u.idUsuario = s.docente
              LEFT JOIN usuarios tutor ON tutor.idUsuario = s.tutor
+             LEFT JOIN usuarios creador ON creador.idUsuario = s.creadoPor
              WHERE s.idSeccion = :idSeccion
              LIMIT 1'
         );

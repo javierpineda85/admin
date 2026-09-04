@@ -78,6 +78,9 @@ $colorSeguro = static function ($valor, $alternativa) {
                 <span class="management-entity-card__eyebrow">Sección</span>
                 <h2><?php echo $e($materia['tituloSeccion'] ?? 'Sección'); ?></h2>
                 <p><i class="fas fa-layer-group mr-1"></i><?php echo $e($materia['nombreCurso'] ?? 'Sin curso'); ?></p>
+                <?php if ((int) ($materia['activo'] ?? 1) !== 1): ?>
+                  <span class="badge badge-danger mt-2">Dada de baja</span>
+                <?php endif; ?>
               </div>
             </div>
 

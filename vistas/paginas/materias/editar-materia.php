@@ -2,6 +2,12 @@
 $idSeccion = (int) ($_GET['idSeccion'] ?? $_GET['id'] ?? 0);
 $db = new Conexion;
 $materia = $db->consultas("SELECT * FROM secciones WHERE idSeccion = $idSeccion");
+$materiaEncontrada = $materia[0] ?? null;
+if ($materiaEncontrada && !ControladorPermisos::esAdministrador() && (int) ($materiaEncontrada['activo'] ?? 1) !== 1) {
+    $_SESSION['error_message'] = 'Esta materia se encuentra dada de baja.';
+    header('Location: index.php?r=listado-materias');
+    exit;
+}
 $materia = $materia[0] ?? [
     'idSeccion' => $idSeccion,
     'tituloSeccion' => '',

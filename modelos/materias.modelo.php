@@ -6,8 +6,11 @@ class ModeloMaterias
     static public function mdlBuscarMateriaPorId($idSeccion)
     {
         $stmt = Conexion::conectar()->prepare("
-            SELECT * FROM secciones
-            WHERE idSeccion = :idSeccion
+            SELECT s.*,
+                   CONCAT(creador.nombreUsuario, ' ', creador.apellidoUsuario) AS creadorNombre
+            FROM secciones s
+            LEFT JOIN usuarios creador ON creador.idUsuario = s.creadoPor
+            WHERE s.idSeccion = :idSeccion
             LIMIT 1
         ");
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -20,7 +23,7 @@ class ModeloMaterias
     static public function mdlGuardarMateria($tabla, $datos)
     {
 
-        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla (tituloSeccion, contenidoSeccion, id_curso, docente, tutor, bannerSeccion, colorInicioBanner, colorFinBanner) VALUES (:tituloSeccion, :contenidoSeccion, :id_curso, :docente, :tutor, :bannerSeccion, :colorInicioBanner, :colorFinBanner)");
+        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla (tituloSeccion, contenidoSeccion, id_curso, docente, tutor, bannerSeccion, colorInicioBanner, colorFinBanner, creadoPor) VALUES (:tituloSeccion, :contenidoSeccion, :id_curso, :docente, :tutor, :bannerSeccion, :colorInicioBanner, :colorFinBanner, :creadoPor)");
 
         $registro->bindParam(":tituloSeccion", $datos["tituloSeccion"], PDO::PARAM_STR);
         $registro->bindParam(":contenidoSeccion", $datos["contenidoSeccion"], PDO::PARAM_STR);
@@ -30,6 +33,7 @@ class ModeloMaterias
         $registro->bindParam(":bannerSeccion", $datos["bannerSeccion"], PDO::PARAM_STR);
         $registro->bindParam(":colorInicioBanner", $datos["colorInicioBanner"], PDO::PARAM_STR);
         $registro->bindParam(":colorFinBanner", $datos["colorFinBanner"], PDO::PARAM_STR);
+        $registro->bindParam(":creadoPor", $datos["creadoPor"], PDO::PARAM_INT);
 
         if ($registro->execute()) {
             return "ok";
@@ -97,12 +101,12 @@ class ModeloMaterias
     static public function mdlListarMateriasGestion($idDocente = 0)
     {
         $filtroDocente = (int) $idDocente > 0
-            ? ' WHERE s.docente = :idDocente OR s.tutor = :idDocente'
+            ? ' WHERE (s.docente = :idDocente OR s.tutor = :idDocente) AND s.activo = 1 AND c.activo = 1'
             : '';
 
         $stmt = Conexion::conectar()->prepare("
             SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
-                   s.bannerSeccion, s.colorInicioBanner, s.colorFinBanner,
+                   s.bannerSeccion, s.colorInicioBanner, s.colorFinBanner, s.creadoPor, s.activo,
                    c.nombreCurso,
                    u.nombreUsuario, u.apellidoUsuario,
                    tutor.nombreUsuario AS nombreTutor, tutor.apellidoUsuario AS apellidoTutor,
@@ -128,5 +132,64 @@ class ModeloMaterias
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    static public function mdlCambiarEstadoActivoMateria($idSeccion, $activo, $motivo, $idAdministrador)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            UPDATE secciones
+            SET activo = :activo,
+                fechaBaja = :fechaBaja,
+                motivoBaja = :motivoBaja,
+                usuarioBaja = :usuarioBaja
+            WHERE idSeccion = :idSeccion
+        ");
+        $esActiva = (int) $activo === 1;
+        $stmt->bindValue(':activo', $esActiva ? 1 : 0, PDO::PARAM_INT);
+        $stmt->bindValue(':fechaBaja', $esActiva ? null : date('Y-m-d H:i:s'), $esActiva ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->bindValue(':motivoBaja', $esActiva ? null : trim((string) $motivo), $esActiva ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->bindValue(':usuarioBaja', $esActiva ? null : (int) $idAdministrador, $esActiva ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
+
+        return $stmt->execute() ? 'ok' : 'error';
+    }
+
+    static public function mdlDependenciasMateria($idSeccion)
+    {
+        $relaciones = [
+            'lecciones' => 'id_modulo',
+            'calificaciones' => 'id_seccion',
+            'entregaslecciones' => 'id_seccion',
+            'evaluaciones' => 'id_seccion',
+            'actividades' => 'id_seccion',
+        ];
+        $pdo = Conexion::conectar();
+        $dependencias = [];
+
+        foreach ($relaciones as $tabla => $columna) {
+            try {
+                $stmt = $pdo->prepare("SELECT COUNT(*) AS total FROM {$tabla} WHERE {$columna} = :idSeccion");
+                $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
+                $stmt->execute();
+                $total = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+                if ($total > 0) {
+                    $dependencias[$tabla] = $total;
+                }
+            } catch (PDOException $e) {
+                if ((int) ($e->errorInfo[1] ?? 0) !== 1146) {
+                    throw $e;
+                }
+            }
+        }
+
+        return $dependencias;
+    }
+
+    static public function mdlEliminarMateria($idSeccion)
+    {
+        $stmt = Conexion::conectar()->prepare('DELETE FROM secciones WHERE idSeccion = :idSeccion');
+        $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
+
+        return $stmt->execute() && $stmt->rowCount() === 1 ? 'ok' : 'error';
     }
 }

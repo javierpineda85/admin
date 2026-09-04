@@ -39,6 +39,11 @@ $cursantes = $db->consultas($sql);
 $secciones = $esDocente && !$esAdmin
     ? ControladorCursos::crtSeccionesPorCursoParaDocente($idCurso, $idUsuarioActual)
     : ControladorCursos::crtSeccionesPorCurso($idCurso);
+if (!$esAdmin) {
+    $secciones = array_values(array_filter($secciones, static function ($seccionCurso) {
+        return (int) ($seccionCurso['activo'] ?? 1) === 1;
+    }));
+}
 
 if (!$curso) {
     $curso = [[

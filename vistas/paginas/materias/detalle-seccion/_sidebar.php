@@ -16,6 +16,8 @@ $escSidebar = static function ($valor) {
       <dd class="col-7"><?php echo $escSidebar($seccion['estado']); ?></dd>
       <dt class="col-5 text-muted">Docente</dt>
       <dd class="col-7"><?php echo $escSidebar(trim(($seccion['nombreUsuario'] ?? '') . ' ' . ($seccion['apellidoUsuario'] ?? ''))); ?></dd>
+      <dt class="col-5 text-muted">Creado por</dt>
+      <dd class="col-7"><?php echo $escSidebar(trim((string) ($seccion['creadorNombre'] ?? '')) ?: 'No registrado'); ?></dd>
       <dt class="col-5 text-muted">Recursos</dt>
       <dd class="col-7"><?php echo (int) ($resumen['totalRecursos'] ?? 0); ?></dd>
       <dt class="col-5 text-muted">Promedio</dt>
@@ -23,6 +25,45 @@ $escSidebar = static function ($valor) {
     </dl>
   </div>
 </div>
+
+<?php if (ControladorPermisos::esAdministrador()): ?>
+  <div class="card card-outline card-danger shadow-sm lesson-side-card">
+    <div class="card-header section-header-soft">
+      <h3 class="card-title">Administrar materia</h3>
+    </div>
+    <div class="card-body">
+      <?php if ((int) ($seccion['activo'] ?? 1) === 1): ?>
+        <form method="post" class="mb-3">
+          <input type="hidden" name="accion_materia" value="baja_materia">
+          <input type="hidden" name="idSeccion" value="<?php echo (int) ($seccion['idSeccion'] ?? 0); ?>">
+          <div class="form-group">
+            <label for="motivoBajaMateria">Motivo de baja</label>
+            <input id="motivoBajaMateria" type="text" name="motivoBaja" class="form-control form-control-sm" required>
+          </div>
+          <button type="submit" class="btn btn-warning btn-sm btn-block" onclick="return confirm('¿Dar de baja esta materia?');">
+            <i class="fas fa-ban mr-1"></i>Dar de baja
+          </button>
+        </form>
+      <?php else: ?>
+        <div class="text-danger font-weight-bold">Materia dada de baja</div>
+        <p class="small text-muted"><?php echo $escSidebar($seccion['motivoBaja'] ?? ''); ?></p>
+        <form method="post" class="mb-3">
+          <input type="hidden" name="accion_materia" value="reactivar_materia">
+          <input type="hidden" name="idSeccion" value="<?php echo (int) ($seccion['idSeccion'] ?? 0); ?>">
+          <button type="submit" class="btn btn-success btn-sm btn-block"><i class="fas fa-undo mr-1"></i>Reactivar materia</button>
+        </form>
+      <?php endif; ?>
+
+      <form method="post">
+        <input type="hidden" name="accion_materia" value="eliminar_materia">
+        <input type="hidden" name="idSeccion" value="<?php echo (int) ($seccion['idSeccion'] ?? 0); ?>">
+        <button type="submit" class="btn btn-outline-danger btn-sm btn-block" onclick="return confirm('¿Eliminar definitivamente esta materia? Esta acción no se puede deshacer.');">
+          <i class="fas fa-trash mr-1"></i>Eliminar definitivamente
+        </button>
+      </form>
+    </div>
+  </div>
+<?php endif; ?>
 
 <?php if (ControladorPermisos::esEstudiante()): ?>
   <div class="card card-outline card-warning shadow-sm lesson-side-card">

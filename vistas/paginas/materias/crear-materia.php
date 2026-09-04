@@ -2,7 +2,7 @@
 $db = new Conexion;
 $cursos = ControladorPermisos::esDocente()
   ? ControladorCursos::crtCursosPorDocente((int) ($_SESSION['usuario']['id'] ?? 0))
-  : $db->consultas("SELECT * FROM cursos ORDER BY nombreCurso ASC");
+  : $db->consultas("SELECT * FROM cursos WHERE activo = 1 ORDER BY nombreCurso ASC");
 $usuarios = ControladorUsuarios::crtUsuariosDocentesAsignables();
 $registro = ControladorMaterias::crtGuardarMateria();
 ?>
