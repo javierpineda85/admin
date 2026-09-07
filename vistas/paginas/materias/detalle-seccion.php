@@ -503,8 +503,30 @@ if (ControladorPermisos::esEstudiante()) {
       <div class="col-12"></div>
     </div>
 
-    <div class="row">
-      <div class="col-12 col-lg-8">
+    <ul class="nav nav-tabs classroom-tabs mb-4" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link" id="informacion-tab" data-toggle="tab" href="#informacion" role="tab" aria-controls="informacion" aria-selected="false">Información</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link active" id="trabajo-clase-docente-tab" data-toggle="tab" href="#trabajo-clase-docente" role="tab" aria-controls="trabajo-clase-docente" aria-selected="true">Trabajo de clase</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="personas-docente-tab" data-toggle="tab" href="#personas" role="tab" aria-controls="personas" aria-selected="false">Personas</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="seguimiento-tab" data-toggle="tab" href="#seguimiento" role="tab" aria-controls="seguimiento" aria-selected="false">Seguimiento</a>
+      </li>
+      <?php if (ControladorPermisos::esAdministrador()): ?>
+        <li class="nav-item">
+          <a class="nav-link" id="administracion-tab" data-toggle="tab" href="#administracion" role="tab" aria-controls="administracion" aria-selected="false">Administración</a>
+        </li>
+      <?php endif; ?>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="trabajo-clase-docente" role="tabpanel" aria-labelledby="trabajo-clase-docente-tab">
+        <div class="row">
+          <div class="col-12">
         <!-- <div class="card card-outline card-primary shadow-sm">
           <div class="card-header d-flex align-items-center justify-content-between">
             <div>
@@ -522,41 +544,6 @@ if (ControladorPermisos::esEstudiante()) {
             </p>
           </div>
         </div> -->
-
-        <div class="row">
-          <div class="col-md-3 col-6">
-            <div class="small-box bg-info">
-              <div class="inner">
-                <h3><?php echo (int) ($resumen['totalLecciones'] ?? 0); ?></h3>
-                <p>Lecciones</p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 col-6">
-            <div class="small-box bg-success">
-              <div class="inner">
-                <h3><?php echo (int) ($resumen['totalMateriales'] ?? 0); ?></h3>
-                <p>Materiales</p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 col-6">
-            <div class="small-box bg-warning">
-              <div class="inner">
-                <h3><?php echo (int) ($resumen['totalTareas'] ?? 0); ?></h3>
-                <p>Tareas</p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 col-6">
-            <div class="small-box bg-danger">
-              <div class="inner">
-                <h3><?php echo (int) ($resumen['totalPreguntas'] ?? 0); ?></h3>
-                <p>Preguntas</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <?php if ($puedeGestionar): ?>
           <div class="card card-outline card-primary shadow-sm lesson-builder-card mb-3 collapsed-card">
@@ -1120,10 +1107,33 @@ if (ControladorPermisos::esEstudiante()) {
         </div>
 
 
+          </div>
+        </div>
       </div>
-      <div class="col-12 col-lg-4">
+
+      <div class="tab-pane fade" id="informacion" role="tabpanel" aria-labelledby="informacion-tab">
+        <?php $panelDetalleSeccion = 'informacion'; ?>
         <?php include __DIR__ . '/detalle-seccion/_sidebar.php'; ?>
-        <?php if (false): ?>
+      </div>
+
+      <div class="tab-pane fade" id="personas" role="tabpanel" aria-labelledby="personas-docente-tab">
+        <?php $panelDetalleSeccion = 'personas'; ?>
+        <?php include __DIR__ . '/detalle-seccion/_sidebar.php'; ?>
+      </div>
+
+      <div class="tab-pane fade" id="seguimiento" role="tabpanel" aria-labelledby="seguimiento-tab">
+        <?php $panelDetalleSeccion = 'seguimiento'; ?>
+        <?php include __DIR__ . '/detalle-seccion/_sidebar.php'; ?>
+      </div>
+
+      <?php if (ControladorPermisos::esAdministrador()): ?>
+        <div class="tab-pane fade" id="administracion" role="tabpanel" aria-labelledby="administracion-tab">
+          <?php $panelDetalleSeccion = 'administracion'; ?>
+          <?php include __DIR__ . '/detalle-seccion/_sidebar.php'; ?>
+        </div>
+      <?php endif; ?>
+
+      <?php if (false): ?>
         <div class="card card-outline card-success shadow-sm lesson-side-card">
           <div class="card-header section-header-soft">
             <h3 class="card-title">Detalle de la sección</h3>
@@ -1247,12 +1257,39 @@ if (ControladorPermisos::esEstudiante()) {
             </div>
           </div>
         <?php endif; ?>
-        <?php endif; ?>
-      </div>
+      <?php endif; ?>
     </div>
 </section>
 
 <script>
+  (function() {
+    var prepararPestanas = function() {
+      if (!window.jQuery) {
+        return;
+      }
+
+      var hash = window.location.hash;
+      if (hash) {
+        var tabLink = document.querySelector('.classroom-tabs a[href="' + hash + '"]');
+        if (tabLink) {
+          window.jQuery(tabLink).tab('show');
+        }
+      }
+
+      window.jQuery('.classroom-tabs a[data-toggle="tab"]').on('shown.bs.tab', function(event) {
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', event.target.hash);
+        }
+      });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', prepararPestanas);
+    } else {
+      prepararPestanas();
+    }
+  })();
+
   document.querySelectorAll('[data-resource-uploader]').forEach(function(uploader) {
     var fileInput = uploader.querySelector('[data-file-input]');
     var fileList = uploader.querySelector('[data-attachment-list]');

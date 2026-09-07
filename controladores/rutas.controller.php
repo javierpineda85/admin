@@ -138,7 +138,7 @@ class RutasController
                 $resultado = ControladorMaterias::crtProcesarAdministracionMateria();
                 if ($resultado !== null) {
                     $eliminada = $resultado === 'ok' && ($_POST['accion_materia'] ?? '') === 'eliminar_materia';
-                    header('Location: ' . ($eliminada ? 'index.php?r=listado-materias' : 'index.php?r=detalle-seccion&idSeccion=' . $idSeccion));
+                    header('Location: ' . ($eliminada ? 'index.php?r=listado-materias' : 'index.php?r=detalle-seccion&idSeccion=' . $idSeccion . '#administracion'));
                     exit;
                 }
             }
