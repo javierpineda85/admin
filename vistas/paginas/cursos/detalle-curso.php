@@ -6,6 +6,8 @@ $esAdmin = ControladorPermisos::esAdministrador();
 $esDocente = ControladorPermisos::esDocente();
 $docentesAsignables = $esAdmin ? ControladorUsuarios::crtUsuariosDocentesAsignables() : [];
 $vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
+$vistaAulaSolicitada = trim((string) ($_GET['vista'] ?? '')) === 'aula'
+    && ($esAdmin || ControladorCursos::crtDocenteVinculadoCurso($idCurso));
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $puedeGestionarCurso = $esAdmin || ($esDocente && ControladorCursos::crtPuedeGestionarCurso($idCurso));
 $puedeQuitarEstudiantes = $esAdmin;
@@ -43,12 +45,16 @@ if (!$curso) {
     ]];
 }
 
-if (ControladorPermisos::esEstudiante()) {
+if (ControladorPermisos::esEstudiante() || $vistaAulaSolicitada) {
     $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
     $cursoEstudiante = ControladorCursos::crtBuscarCursoPorId($idCurso);
-    $estaInscripto = $vistaEstudianteSimulada
+    $estaInscripto = $vistaAulaSolicitada
+      || $vistaEstudianteSimulada
       || ($idCurso > 0 && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, $idCurso));
     $seccionesEstudiante = $estaInscripto ? ControladorCursos::crtSeccionesPorCurso($idCurso) : [];
+    $seccionesEstudiante = array_values(array_filter($seccionesEstudiante, static function ($seccionCurso) {
+      return (int) ($seccionCurso['activo'] ?? 1) === 1;
+    }));
     $e = static function ($valor) {
       return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
     };
@@ -83,7 +89,7 @@ if (ControladorPermisos::esEstudiante()) {
               <div class="section-subtitle">Elegí una materia para entrar al tablón, tareas, materiales y foro.</div>
             </div>
             <a href="index.php?r=listado-cursos" class="btn btn-light border">
-              <i class="fas fa-arrow-left mr-1"></i>Mis cursos
+              <i class="fas fa-arrow-left mr-1"></i><?php echo $vistaAulaSolicitada ? 'Volver al listado' : 'Mis cursos'; ?>
             </a>
           </div>
 

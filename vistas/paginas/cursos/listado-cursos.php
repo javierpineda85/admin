@@ -274,7 +274,7 @@ $e = static function ($valor) {
                   <span><i class="fas fa-tasks"></i><?php echo (int) ($curso['totalLecciones'] ?? 0); ?> clases</span>
                 </div>
                 <div class="management-card-actions">
-                  <a href="index.php?r=detalle-curso&idCurso=<?php echo (int) $curso['idCurso']; ?>" class="btn btn-info btn-sm">
+                  <a href="index.php?r=detalle-curso&idCurso=<?php echo (int) $curso['idCurso']; ?>&vista=aula" class="btn btn-info btn-sm">
                     <i class="far fa-eye mr-1"></i>Abrir
                   </a>
                   <?php if ($esAdmin || ($esDocente && ControladorCursos::crtPuedeGestionarCurso((int) $curso['idCurso']))): ?>
@@ -287,7 +287,7 @@ $e = static function ($valor) {
                           <i class="fas fa-edit mr-2"></i>Editar curso
                         </a>
                         <a class="dropdown-item" href="index.php?r=detalle-curso&idCurso=<?php echo (int) $curso['idCurso']; ?>">
-                          <i class="fas fa-users-cog mr-2"></i>Secciones y estudiantes
+                          <i class="fas fa-users-cog mr-2"></i>Gestionar secciones y estudiantes
                         </a>
                       </div>
                     </div>

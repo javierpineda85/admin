@@ -48,6 +48,12 @@ class ControladorCursos
             && ModeloCursos::mdlDocentePuedeGestionarCurso((int) $idCurso, (int) ($_SESSION['usuario']['id'] ?? 0));
     }
 
+    static public function crtDocenteVinculadoCurso($idCurso)
+    {
+        return ControladorPermisos::esDocente()
+            && ModeloCursos::mdlDocenteVinculadoCurso((int) $idCurso, (int) ($_SESSION['usuario']['id'] ?? 0));
+    }
+
     /*GUARDAR CURSO */
     static public function crtGuardarCurso()
     {

@@ -104,6 +104,23 @@ class ModeloCursos
         return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0) > 0;
     }
 
+    static public function mdlDocenteVinculadoCurso($idCurso, $idDocente)
+    {
+        $stmt = Conexion::conectar()->prepare("
+            SELECT COUNT(*) AS total
+            FROM cursos c
+            LEFT JOIN secciones s ON s.id_curso = c.idCurso AND s.activo = 1
+            WHERE c.idCurso = :idCurso
+              AND c.activo = 1
+              AND (c.responsable = :idDocente OR s.docente = :idDocente OR s.tutor = :idDocente)
+        ");
+        $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0) > 0;
+    }
+
     static public function mdlEstudianteInscriptoCurso($idEstudiante, $idCurso)
     {
         $stmt = Conexion::conectar()->prepare("
