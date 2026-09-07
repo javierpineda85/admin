@@ -35,6 +35,23 @@ Por lo tanto, el orden natural coincide con el cronologico: `5.2026.08.29 < 5.20
 
 Todas las versiones nuevas deben usar el formato `<major>.<YYYY>.<MM>.<DD>`. Las versiones historicas ya publicadas conservan sus identificadores originales y no deben renumerarse, salvo que exista una razon tecnica explicita y documentada para hacerlo.
 
+## 5.2026.09.04 - Gestion academica desde el campus
+
+### Cambios principales
+
+- Gestion de roles academicos desde el Campus sin que la sincronizacion con WordPress reemplace una asignacion posterior.
+- Creacion y administracion de cursos por docentes, conservando por separado al creador historico y al responsable actual.
+- Incorporacion de docentes adjuntos y reasignacion del equipo docente de cursos y materias.
+- Baja, reactivacion y eliminacion protegida de cursos y materias para administradores.
+- Separacion entre la vista de aula y las herramientas de gestion de cursos.
+- Reorganizacion del detalle de materias en pestañas de informacion, trabajo de clase, personas, seguimiento y administracion.
+- Acceso al perfil publico y a mensajeria desde el listado de estudiantes de una materia.
+
+### Estado
+
+- Version final integrada en `main`.
+- Footer del sistema: `Version 5.2026.09.04`.
+
 ## 5.2026.08.29 - Nuevo esquema cronologico
 
 ### Cambios principales
@@ -45,7 +62,7 @@ Todas las versiones nuevas deben usar el formato `<major>.<YYYY>.<MM>.<DD>`. Las
 
 ### Estado
 
-- Version actual publicada en `main`.
+- Version publicada historicamente en `main`.
 - Footer del sistema: `Version 5.2026.08.29`.
 
 ## Historial anterior al nuevo esquema
