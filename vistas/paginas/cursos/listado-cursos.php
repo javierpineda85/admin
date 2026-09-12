@@ -289,6 +289,11 @@ $e = static function ($valor) {
                         <a class="dropdown-item" href="index.php?r=detalle-curso&idCurso=<?php echo (int) $curso['idCurso']; ?>">
                           <i class="fas fa-users-cog mr-2"></i>Gestionar secciones y estudiantes
                         </a>
+                        <button type="button" class="dropdown-item" data-toggle="modal" data-target="#duplicarCursoModal"
+                          data-id-curso="<?php echo (int) $curso['idCurso']; ?>"
+                          data-nombre-curso="<?php echo $e($curso['nombreCurso'] ?? 'Curso'); ?>">
+                          <i class="fas fa-copy mr-2"></i>Duplicar como borrador
+                        </button>
                       </div>
                     </div>
                   <?php endif; ?>
@@ -307,3 +312,51 @@ $e = static function ($valor) {
     <?php endif; ?>
   </div>
 </section>
+
+<?php if (!$esEstudiante): ?>
+  <div class="modal fade" id="duplicarCursoModal" tabindex="-1" role="dialog" aria-labelledby="duplicarCursoTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <form method="post">
+          <input type="hidden" name="accion_curso" value="duplicar_curso">
+          <input type="hidden" name="idCurso" value="" data-duplicar-id>
+          <div class="modal-header">
+            <h5 class="modal-title" id="duplicarCursoTitulo">Duplicar curso</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted">Se copiarán materias, lecciones, tareas, recursos y actividades. No se copiarán estudiantes, entregas, notas, intentos ni conversaciones.</p>
+            <div class="form-group">
+              <label for="nombreCursoCopia">Nombre del nuevo curso</label>
+              <input type="text" class="form-control" id="nombreCursoCopia" name="nombreCursoCopia" maxlength="180" required data-duplicar-nombre>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-sm-6">
+                <label for="fechaInicioCursoCopia">Fecha de inicio</label>
+                <input type="date" class="form-control" id="fechaInicioCursoCopia" name="fechaInicioCursoCopia" required>
+              </div>
+              <div class="form-group col-sm-6">
+                <label for="fechaFinCursoCopia">Fecha de finalización</label>
+                <input type="date" class="form-control" id="fechaFinCursoCopia" name="fechaFinCursoCopia" required>
+              </div>
+            </div>
+            <div class="alert alert-info mb-0"><i class="fas fa-info-circle mr-1"></i>Todo el contenido publicable se guardará como borrador y sin fecha programada.</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light border" data-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-copy mr-1"></i>Duplicar curso</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('click', function (event) {
+      var boton = event.target.closest('[data-target="#duplicarCursoModal"]');
+      if (!boton) return;
+      var modal = document.getElementById('duplicarCursoModal');
+      modal.querySelector('[data-duplicar-id]').value = boton.getAttribute('data-id-curso') || '';
+      modal.querySelector('[data-duplicar-nombre]').value = (boton.getAttribute('data-nombre-curso') || 'Curso') + ' - copia';
+    });
+  </script>
+<?php endif; ?>

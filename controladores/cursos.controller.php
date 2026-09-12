@@ -195,6 +195,38 @@ class ControladorCursos
         return $respuesta;
     }
 
+    static public function crtDuplicarCurso()
+    {
+        if (($_POST['accion_curso'] ?? '') !== 'duplicar_curso') {
+            return null;
+        }
+
+        $idCurso = (int) ($_POST['idCurso'] ?? 0);
+        if (!self::crtPuedeGestionarCurso($idCurso)) {
+            $_SESSION['error_message'] = 'No podes duplicar un curso que no esta a tu cargo.';
+            return 0;
+        }
+
+        $nombre = trim((string) ($_POST['nombreCursoCopia'] ?? ''));
+        $inicio = trim((string) ($_POST['fechaInicioCursoCopia'] ?? ''));
+        $fin = trim((string) ($_POST['fechaFinCursoCopia'] ?? ''));
+        if ($nombre === '' || $inicio === '' || $fin === '' || $fin < $inicio) {
+            $_SESSION['error_message'] = 'Revisa el nombre y las fechas del nuevo curso.';
+            return 0;
+        }
+
+        $idNuevo = ModeloCursos::mdlDuplicarCurso($idCurso, [
+            'nombreCurso' => $nombre,
+            'fechaInicioCurso' => $inicio,
+            'fechaFinCurso' => $fin,
+            'idUsuario' => (int) ($_SESSION['usuario']['id'] ?? 0),
+        ]);
+        $_SESSION[$idNuevo > 0 ? 'success_message' : 'error_message'] = $idNuevo > 0
+            ? 'Curso duplicado. Sus contenidos quedaron guardados como borrador.'
+            : 'No se pudo duplicar el curso.';
+        return $idNuevo;
+    }
+
     /*Asignar curso */
     static public function crtEstudiantesDisponiblesCurso($idCurso)
     {

@@ -123,6 +123,16 @@ class RutasController
             }
         }
 
+        if ($ruta === 'listado-cursos') {
+            $idCursoNuevo = ControladorCursos::crtDuplicarCurso();
+            if ($idCursoNuevo !== null) {
+                header('Location: ' . ($idCursoNuevo > 0
+                    ? 'index.php?r=detalle-curso&idCurso=' . (int) $idCursoNuevo
+                    : 'index.php?r=listado-cursos'));
+                exit;
+            }
+        }
+
         if ($ruta === 'editar-curso') {
             $idCurso = (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0);
             if (!ControladorCursos::crtPuedeGestionarCurso($idCurso)) {

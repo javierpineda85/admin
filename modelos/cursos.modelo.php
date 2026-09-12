@@ -3,6 +3,149 @@ require_once('conexion.php');
 
 class ModeloCursos
 {
+    private static function duplicarArchivoLocal($ruta)
+    {
+        $ruta = trim((string) $ruta);
+        if ($ruta === '' || preg_match('~^https?://~i', $ruta)) {
+            return $ruta;
+        }
+
+        $origen = realpath(__DIR__ . '/../' . ltrim(str_replace('\\', '/', $ruta), '/'));
+        $directorioPermitido = realpath(__DIR__ . '/../uploads/lecciones');
+        if (!$origen || !$directorioPermitido || strpos($origen, $directorioPermitido . DIRECTORY_SEPARATOR) !== 0 || !is_file($origen)) {
+            return $ruta;
+        }
+
+        $extension = pathinfo($origen, PATHINFO_EXTENSION);
+        $nombre = 'copia_' . date('YmdHis') . '_' . bin2hex(random_bytes(5)) . ($extension !== '' ? '.' . $extension : '');
+        $destino = $directorioPermitido . DIRECTORY_SEPARATOR . $nombre;
+        return copy($origen, $destino) ? 'uploads/lecciones/' . $nombre : $ruta;
+    }
+
+    static public function mdlDuplicarCurso($idCursoOrigen, array $datos)
+    {
+        $pdo = Conexion::conectar();
+
+        try {
+            $cursoStmt = $pdo->prepare('SELECT * FROM cursos WHERE idCurso = :idCurso LIMIT 1');
+            $cursoStmt->execute([':idCurso' => (int) $idCursoOrigen]);
+            $curso = $cursoStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$curso) {
+                return 0;
+            }
+
+            $insertCurso = $pdo->prepare('INSERT INTO cursos
+                (nombreCurso, contenidoCurso, estado, fechaInicioCurso, fechaFinCurso, horarioCurso, creadoPor, responsable)
+                VALUES (:nombre, :contenido, :estado, :inicio, :fin, :horario, :creador, :responsable)');
+            $insertCurso->execute([
+                ':nombre' => $datos['nombreCurso'],
+                ':contenido' => $curso['contenidoCurso'],
+                ':estado' => $curso['estado'],
+                ':inicio' => $datos['fechaInicioCurso'],
+                ':fin' => $datos['fechaFinCurso'],
+                ':horario' => $curso['horarioCurso'],
+                ':creador' => (int) $datos['idUsuario'],
+                ':responsable' => (int) $datos['idUsuario'],
+            ]);
+            $idCursoNuevo = (int) $pdo->lastInsertId();
+
+            $secciones = $pdo->prepare('SELECT * FROM secciones WHERE id_curso = :idCurso ORDER BY idSeccion');
+            $secciones->execute([':idCurso' => (int) $idCursoOrigen]);
+            foreach ($secciones->fetchAll(PDO::FETCH_ASSOC) as $seccion) {
+                $insertSeccion = $pdo->prepare('INSERT INTO secciones
+                    (tituloSeccion, contenidoSeccion, id_curso, docente, tutor, bannerSeccion, colorInicioBanner, colorFinBanner, creadoPor)
+                    VALUES (:titulo, :contenido, :curso, :docente, :tutor, :banner, :colorInicio, :colorFin, :creador)');
+                $insertSeccion->execute([
+                    ':titulo' => $seccion['tituloSeccion'], ':contenido' => $seccion['contenidoSeccion'],
+                    ':curso' => $idCursoNuevo, ':docente' => $seccion['docente'], ':tutor' => $seccion['tutor'],
+                    ':banner' => $seccion['bannerSeccion'], ':colorInicio' => $seccion['colorInicioBanner'],
+                    ':colorFin' => $seccion['colorFinBanner'], ':creador' => (int) $datos['idUsuario'],
+                ]);
+                $idSeccionNueva = (int) $pdo->lastInsertId();
+
+                $lecciones = $pdo->prepare('SELECT * FROM lecciones WHERE id_modulo = :idSeccion ORDER BY idLeccion');
+                $lecciones->execute([':idSeccion' => (int) $seccion['idSeccion']]);
+                foreach ($lecciones->fetchAll(PDO::FETCH_ASSOC) as $leccion) {
+                    $insertLeccion = $pdo->prepare('INSERT INTO lecciones
+                        (nombreLeccion, tipoLeccion, contenidoLeccion, estadoLeccion, fechaPublicacionLeccion, id_modulo)
+                        VALUES (:nombre, :tipo, :contenido, "BORRADOR", NULL, :seccion)');
+                    $insertLeccion->execute([
+                        ':nombre' => $leccion['nombreLeccion'], ':tipo' => $leccion['tipoLeccion'],
+                        ':contenido' => $leccion['contenidoLeccion'], ':seccion' => $idSeccionNueva,
+                    ]);
+                    $idLeccionNueva = (int) $pdo->lastInsertId();
+
+                    $recursos = $pdo->prepare('SELECT * FROM recursoslecciones WHERE id_leccion = :idLeccion ORDER BY idRecursoLeccion');
+                    $recursos->execute([':idLeccion' => (int) $leccion['idLeccion']]);
+                    foreach ($recursos->fetchAll(PDO::FETCH_ASSOC) as $recurso) {
+                        $insertRecurso = $pdo->prepare('INSERT INTO recursoslecciones
+                            (id_leccion, tipoRecurso, tituloRecurso, urlRecurso, creadoPor)
+                            VALUES (:leccion, :tipo, :titulo, :url, :creador)');
+                        $insertRecurso->execute([
+                            ':leccion' => $idLeccionNueva, ':tipo' => $recurso['tipoRecurso'],
+                            ':titulo' => $recurso['tituloRecurso'],
+                            ':url' => self::duplicarArchivoLocal($recurso['urlRecurso']),
+                            ':creador' => (int) $datos['idUsuario'],
+                        ]);
+                    }
+                }
+
+                try {
+                    $actividades = $pdo->prepare('SELECT * FROM actividades WHERE id_curso = :idCurso AND id_seccion = :idSeccion AND COALESCE(esPlantilla, 0) = 0 ORDER BY idActividad');
+                    $actividades->execute([':idCurso' => (int) $idCursoOrigen, ':idSeccion' => (int) $seccion['idSeccion']]);
+                    foreach ($actividades->fetchAll(PDO::FETCH_ASSOC) as $actividad) {
+                        $slug = substr($actividad['slug'], 0, 155) . '-copia-' . $idCursoNuevo . '-' . bin2hex(random_bytes(3));
+                        $insertActividad = $pdo->prepare('INSERT INTO actividades
+                            (tituloActividad, slug, descripcionActividad, tipoActividad, visibilidad, estadoActividad,
+                             id_curso, id_seccion, id_autor, puntajeMaximo, intentosPermitidos, permiteVisitantes,
+                             esPlantilla, alcancePlantilla, destacadaPublica, id_actividad_origen, recursoExternoUrl, recursoExternoEmbed)
+                            VALUES (:titulo, :slug, :descripcion, :tipo, "privada", "BORRADOR", :curso, :seccion,
+                             :autor, :puntaje, :intentos, :visitantes, 0, "personal", 0, :origen, :url, :embed)');
+                        $insertActividad->execute([
+                            ':titulo' => $actividad['tituloActividad'], ':slug' => $slug,
+                            ':descripcion' => $actividad['descripcionActividad'], ':tipo' => $actividad['tipoActividad'],
+                            ':curso' => $idCursoNuevo, ':seccion' => $idSeccionNueva, ':autor' => (int) $datos['idUsuario'],
+                            ':puntaje' => $actividad['puntajeMaximo'], ':intentos' => $actividad['intentosPermitidos'],
+                            ':visitantes' => $actividad['permiteVisitantes'], ':origen' => (int) $actividad['idActividad'],
+                            ':url' => $actividad['recursoExternoUrl'], ':embed' => $actividad['recursoExternoEmbed'],
+                        ]);
+                        $idActividadNueva = (int) $pdo->lastInsertId();
+
+                        $preguntas = $pdo->prepare('SELECT * FROM actividades_preguntas WHERE id_actividad = :id ORDER BY orden, idPregunta');
+                        $preguntas->execute([':id' => (int) $actividad['idActividad']]);
+                        foreach ($preguntas->fetchAll(PDO::FETCH_ASSOC) as $pregunta) {
+                            $insertPregunta = $pdo->prepare('INSERT INTO actividades_preguntas
+                                (id_actividad, tipoPregunta, textoPregunta, codigoBase, lenguajeCodigo, variantesCodigo,
+                                 respuestaCorrecta, puntaje, orden, pista, explicacionError)
+                                VALUES (:actividad, :tipo, :texto, :codigo, :lenguaje, :variantes, :respuesta, :puntaje, :orden, :pista, :explicacion)');
+                            $insertPregunta->execute([
+                                ':actividad' => $idActividadNueva, ':tipo' => $pregunta['tipoPregunta'], ':texto' => $pregunta['textoPregunta'],
+                                ':codigo' => $pregunta['codigoBase'], ':lenguaje' => $pregunta['lenguajeCodigo'], ':variantes' => $pregunta['variantesCodigo'],
+                                ':respuesta' => $pregunta['respuestaCorrecta'], ':puntaje' => $pregunta['puntaje'], ':orden' => $pregunta['orden'],
+                                ':pista' => $pregunta['pista'], ':explicacion' => $pregunta['explicacionError'],
+                            ]);
+                            $idPreguntaNueva = (int) $pdo->lastInsertId();
+                            $opciones = $pdo->prepare('SELECT * FROM actividades_opciones WHERE id_pregunta = :id ORDER BY orden, idOpcion');
+                            $opciones->execute([':id' => (int) $pregunta['idPregunta']]);
+                            foreach ($opciones->fetchAll(PDO::FETCH_ASSOC) as $opcion) {
+                                $pdo->prepare('INSERT INTO actividades_opciones (id_pregunta, textoOpcion, esCorrecta, orden) VALUES (?, ?, ?, ?)')
+                                    ->execute([$idPreguntaNueva, $opcion['textoOpcion'], $opcion['esCorrecta'], $opcion['orden']]);
+                            }
+                        }
+                    }
+                } catch (PDOException $e) {
+                    if ((int) ($e->errorInfo[1] ?? 0) !== 1146) {
+                        throw $e;
+                    }
+                }
+            }
+
+            return $idCursoNuevo;
+        } catch (Throwable $e) {
+            error_log('Error al duplicar curso: ' . $e->getMessage());
+            return 0;
+        }
+    }
     static public function mdlBuscarCursoPorId($idCurso)
     {
         $stmt = Conexion::conectar()->prepare("
