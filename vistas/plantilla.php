@@ -37,6 +37,8 @@ if (($ahora - $ultimaActividad) >= $limiteInactividad) {
 
 $_SESSION['ultima_actividad'] = $ahora;
 
+ModeloCursos::prepararEstructuraAcademica();
+
 $rutaVista = isset($_GET['r']) ? trim($_GET['r']) : '';
 if ($rutaVista === 'vista-estudiante') {
   RutasController::procesarVistaEstudiante();

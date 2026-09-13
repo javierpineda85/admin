@@ -198,14 +198,14 @@ class ModeloPanel
         $cursosAsignados = self::contar(
             'SELECT COUNT(DISTINCT a.id_seccion) AS total
              FROM asignacioncursos a
-             WHERE a.id_estudiante = :idUsuario',
+             WHERE a.id_estudiante = :idUsuario AND a.estadoInscripcion = "ACTIVA"',
             [':idUsuario' => $idUsuario]
         );
         $lecciones = self::contar(
             'SELECT COUNT(DISTINCT l.idLeccion) AS total
              FROM lecciones l
              INNER JOIN asignacioncursos a ON a.id_seccion = l.id_modulo
-             WHERE a.id_estudiante = :idUsuario',
+             WHERE a.id_estudiante = :idUsuario AND a.estadoInscripcion = "ACTIVA"',
             [':idUsuario' => $idUsuario]
         );
         $entregas = self::contar(
@@ -331,6 +331,7 @@ class ModeloPanel
              LEFT JOIN secciones s ON s.idSeccion = l.id_modulo
              INNER JOIN asignacioncursos a ON a.id_seccion = p.id_curso
              WHERE a.id_estudiante = :idUsuario
+               AND a.estadoInscripcion = "ACTIVA"
              ORDER BY p.fechaPosteo DESC
              LIMIT ' . (int) $limite,
             [':idUsuario' => $idUsuario]
@@ -798,6 +799,7 @@ class ModeloPanel
                  FROM posteos p
                  INNER JOIN asignacioncursos a ON a.id_seccion = p.id_curso
                  WHERE a.id_estudiante = :idUsuario
+                   AND a.estadoInscripcion = "ACTIVA"
                    AND p.fechaPosteo >= (NOW() - INTERVAL 7 DAY)',
                 [':idUsuario' => $idUsuario]
             );

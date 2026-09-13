@@ -373,6 +373,7 @@ class ModeloLecciones
              FROM asignacioncursos a
              INNER JOIN usuarios u ON u.idUsuario = a.id_estudiante
              WHERE a.id_seccion = :idCurso
+               AND a.estadoInscripcion = "ACTIVA"
                AND u.rol = "ESTUDIANTE"
              ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC'
         );
@@ -387,7 +388,7 @@ class ModeloLecciones
             'SELECT COUNT(*) AS total
              FROM asignacioncursos
              WHERE id_estudiante = :idEstudiante
-               AND id_seccion = :idCurso'
+               AND id_seccion = :idCurso AND estadoInscripcion = "ACTIVA"'
         );
         $stmt->bindValue(':idEstudiante', (int) $idEstudiante, PDO::PARAM_INT);
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);

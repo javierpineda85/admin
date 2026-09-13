@@ -75,6 +75,7 @@ class ModeloMensajes
             INNER JOIN asignacioncursos a ON a.id_seccion = s.id_curso
             INNER JOIN usuarios u ON u.idUsuario = a.id_estudiante
             WHERE s.idSeccion = :idSeccion
+              AND a.estadoInscripcion = "ACTIVA"
               AND u.activo = 1
               AND u.rol = "ESTUDIANTE"
         ');

@@ -38,6 +38,8 @@ class ModeloCalificaciones
         $pdo->exec("CREATE TABLE IF NOT EXISTS periodos_calificacion (idPeriodo INT NOT NULL AUTO_INCREMENT, id_ciclo INT NOT NULL, nombre VARCHAR(100) NOT NULL, tipo VARCHAR(30) NOT NULL DEFAULT 'REGULAR', orden INT NOT NULL DEFAULT 1, fechaInicio DATE NULL, fechaFin DATE NULL, estado VARCHAR(15) NOT NULL DEFAULT 'ABIERTO', fechaCierre DATETIME NULL, cerradoPor INT NULL, fechaReapertura DATETIME NULL, reabiertoPor INT NULL, motivoReapertura VARCHAR(255) NULL, PRIMARY KEY (idPeriodo), UNIQUE KEY uq_periodo_ciclo_nombre (id_ciclo, nombre)) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         $pdo->exec("CREATE TABLE IF NOT EXISTS instrumentos_evaluacion (idInstrumento INT NOT NULL AUTO_INCREMENT, nombre VARCHAR(100) NOT NULL, activo TINYINT(1) NOT NULL DEFAULT 1, orden INT NOT NULL DEFAULT 1, PRIMARY KEY (idInstrumento), UNIQUE KEY uq_instrumento_nombre (nombre)) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         $pdo->exec("CREATE TABLE IF NOT EXISTS cierres_periodo_calificaciones (idCierrePeriodo INT NOT NULL AUTO_INCREMENT, id_periodo INT NOT NULL, id_seccion INT NOT NULL, id_estudiante INT NOT NULL, promedioCalculado DECIMAL(5,2) NULL, calificacionCierre DECIMAL(5,2) NULL, confirmada TINYINT(1) NOT NULL DEFAULT 0, fechaActualizacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, actualizadoPor INT NULL, PRIMARY KEY (idCierrePeriodo), UNIQUE KEY uq_cierre_periodo_estudiante (id_periodo,id_seccion,id_estudiante), KEY idx_cierre_periodo_seccion (id_periodo,id_seccion)) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS periodos_seccion_estado (idPeriodoSeccion INT NOT NULL AUTO_INCREMENT,id_periodo INT NOT NULL,id_seccion INT NOT NULL,estado VARCHAR(15) NOT NULL DEFAULT 'ABIERTO',fechaCierre DATETIME NULL,cerradoPor INT NULL,fechaReapertura DATETIME NULL,reabiertoPor INT NULL,motivoReapertura VARCHAR(255) NULL,PRIMARY KEY(idPeriodoSeccion),UNIQUE KEY uq_periodo_seccion(id_periodo,id_seccion)) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("INSERT IGNORE INTO periodos_seccion_estado(id_periodo,id_seccion,estado,fechaCierre,cerradoPor,fechaReapertura,reabiertoPor,motivoReapertura) SELECT relaciones.id_periodo,relaciones.id_seccion,p.estado,p.fechaCierre,p.cerradoPor,p.fechaReapertura,p.reabiertoPor,p.motivoReapertura FROM (SELECT id_periodo,id_seccion FROM evaluaciones WHERE id_periodo IS NOT NULL UNION SELECT id_periodo,id_seccion FROM cierres_periodo_calificaciones) relaciones INNER JOIN periodos_calificacion p ON p.idPeriodo=relaciones.id_periodo");
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS evaluaciones (
                 idEvaluacion INT NOT NULL AUTO_INCREMENT,
@@ -67,7 +69,7 @@ class ModeloCalificaciones
             ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
-        foreach (['ALTER TABLE cursos ADD COLUMN id_ciclo_lectivo INT NULL AFTER responsable','ALTER TABLE evaluaciones ADD COLUMN id_periodo INT NULL AFTER id_curso','ALTER TABLE evaluaciones ADD COLUMN id_instrumento INT NULL AFTER id_periodo',"ALTER TABLE evaluaciones_calificaciones ADD COLUMN estadoAsistencia VARCHAR(15) NOT NULL DEFAULT 'PRESENTE' AFTER calificacion"] as $alter) {
+        foreach (['ALTER TABLE cursos ADD COLUMN id_ciclo_lectivo INT NULL AFTER responsable',"ALTER TABLE cursos ADD COLUMN modalidadCalificacion VARCHAR(20) NOT NULL DEFAULT 'DOS_TRAMOS'","ALTER TABLE cursos ADD COLUMN intensificacionActiva TINYINT(1) NOT NULL DEFAULT 1",'ALTER TABLE evaluaciones ADD COLUMN id_periodo INT NULL AFTER id_curso','ALTER TABLE evaluaciones ADD COLUMN id_instrumento INT NULL AFTER id_periodo',"ALTER TABLE evaluaciones_calificaciones ADD COLUMN estadoAsistencia VARCHAR(15) NOT NULL DEFAULT 'PRESENTE' AFTER calificacion"] as $alter) {
             try { $pdo->exec($alter); } catch (PDOException $e) { if ((int)($e->errorInfo[1] ?? 0) !== 1060) { throw $e; } }
         }
         try { $pdo->exec('ALTER TABLE evaluaciones_calificaciones MODIFY calificacion DECIMAL(5,2) NULL'); } catch (PDOException $e) {}
@@ -81,7 +83,7 @@ class ModeloCalificaciones
     {
         self::prepararTablasEvaluaciones();
         $pdo=Conexion::conectar();
-        $stmt=$pdo->prepare('SELECT c.idCurso,c.id_ciclo_lectivo,c.fechaInicioCurso FROM secciones s INNER JOIN cursos c ON c.idCurso=s.id_curso WHERE s.idSeccion=?');
+        $stmt=$pdo->prepare('SELECT c.idCurso,c.id_ciclo_lectivo,c.fechaInicioCurso,c.modalidadCalificacion,c.intensificacionActiva FROM secciones s INNER JOIN cursos c ON c.idCurso=s.id_curso WHERE s.idSeccion=?');
         $stmt->execute([(int)$idSeccion]); $curso=$stmt->fetch(PDO::FETCH_ASSOC);
         if(!$curso){return ['ciclo'=>null,'periodos'=>[],'instrumentos'=>[]];}
         $anio=(int)substr((string)($curso['fechaInicioCurso']??''),0,4); if($anio<2000){$anio=(int)date('Y');}
@@ -89,25 +91,28 @@ class ModeloCalificaciones
         $q=$pdo->prepare('SELECT * FROM ciclos_lectivos WHERE anio=? LIMIT 1'); $q->execute([$anio]); $ciclo=$q->fetch(PDO::FETCH_ASSOC);
         $idCiclo=(int)$ciclo['idCicloLectivo'];
         $pdo->prepare('UPDATE cursos SET id_ciclo_lectivo=? WHERE idCurso=?')->execute([$idCiclo,(int)$curso['idCurso']]);
-        foreach([['Primer período','REGULAR'],['Segundo período','REGULAR'],['Calificación final','FINAL'],['Intensificación','INTENSIFICACION']] as $orden=>$periodo){
+        foreach([['Primer período','REGULAR'],['Segundo período','REGULAR'],['Período único','REGULAR'],['Calificación final','FINAL'],['Intensificación','INTENSIFICACION']] as $orden=>$periodo){
             $pdo->prepare('INSERT IGNORE INTO periodos_calificacion (id_ciclo,nombre,tipo,orden) VALUES (?,?,?,?)')->execute([$idCiclo,$periodo[0],$periodo[1],$orden+1]);
         }
-        $q=$pdo->prepare('SELECT * FROM periodos_calificacion WHERE id_ciclo=? ORDER BY orden,idPeriodo'); $q->execute([$idCiclo]); $periodos=$q->fetchAll(PDO::FETCH_ASSOC);
+        $nombres=strtoupper((string)($curso['modalidadCalificacion']??'DOS_TRAMOS'))==='UNICO'?['Período único','Calificación final']:['Primer período','Segundo período','Calificación final'];
+        $qInt=$pdo->prepare("SELECT COUNT(*) FROM periodos_calificacion p LEFT JOIN evaluaciones e ON e.id_periodo=p.idPeriodo AND e.id_seccion=? LEFT JOIN cierres_periodo_calificaciones cp ON cp.id_periodo=p.idPeriodo AND cp.id_seccion=? WHERE p.id_ciclo=? AND p.tipo='INTENSIFICACION' AND (e.idEvaluacion IS NOT NULL OR cp.idCierrePeriodo IS NOT NULL)");$qInt->execute([(int)$idSeccion,(int)$idSeccion,$idCiclo]);
+        if(!empty($curso['intensificacionActiva'])||(int)$qInt->fetchColumn()>0){$nombres[]='Intensificación';}
+        $marcas=implode(',',array_fill(0,count($nombres),'?'));$q=$pdo->prepare("SELECT p.*,COALESCE(pe.estado,'ABIERTO') estado FROM periodos_calificacion p LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=p.idPeriodo AND pe.id_seccion=? WHERE p.id_ciclo=? AND p.nombre IN ($marcas) ORDER BY FIELD(p.nombre,'Primer período','Segundo período','Período único','Calificación final','Intensificación'),p.idPeriodo");$q->execute(array_merge([(int)$idSeccion,$idCiclo],$nombres));$periodos=$q->fetchAll(PDO::FETCH_ASSOC);
         if($periodos){$pdo->prepare('UPDATE evaluaciones SET id_periodo=? WHERE id_curso=? AND id_periodo IS NULL')->execute([(int)$periodos[0]['idPeriodo'],(int)$curso['idCurso']]);}
         return ['ciclo'=>$ciclo,'periodos'=>$periodos,'instrumentos'=>$pdo->query('SELECT * FROM instrumentos_evaluacion WHERE activo=1 ORDER BY orden,nombre')->fetchAll(PDO::FETCH_ASSOC)];
     }
 
-    public static function mdlPeriodoPorId($idPeriodo)
+    public static function mdlPeriodoPorId($idPeriodo,$idSeccion=0)
     {
-        self::prepararTablasEvaluaciones(); $stmt=Conexion::conectar()->prepare('SELECT * FROM periodos_calificacion WHERE idPeriodo=? LIMIT 1');
-        $stmt->execute([(int)$idPeriodo]); return $stmt->fetch(PDO::FETCH_ASSOC)?:null;
+        self::prepararTablasEvaluaciones(); $stmt=Conexion::conectar()->prepare("SELECT p.*,COALESCE(pe.estado,'ABIERTO') estado FROM periodos_calificacion p LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=p.idPeriodo AND pe.id_seccion=? WHERE p.idPeriodo=? LIMIT 1");
+        $stmt->execute([(int)$idSeccion,(int)$idPeriodo]); return $stmt->fetch(PDO::FETCH_ASSOC)?:null;
     }
 
-    public static function mdlCambiarEstadoPeriodo($idPeriodo,$estado,$idUsuario,$motivo='')
+    public static function mdlCambiarEstadoPeriodo($idPeriodo,$idSeccion,$estado,$idUsuario,$motivo='')
     {
         $cerrar=strtoupper((string)$estado)==='CERRADO';
-        $sql=$cerrar?'UPDATE periodos_calificacion SET estado="CERRADO",fechaCierre=NOW(),cerradoPor=? WHERE idPeriodo=?':'UPDATE periodos_calificacion SET estado="ABIERTO",fechaReapertura=NOW(),reabiertoPor=?,motivoReapertura=? WHERE idPeriodo=?';
-        $stmt=Conexion::conectar()->prepare($sql); return $stmt->execute($cerrar?[(int)$idUsuario,(int)$idPeriodo]:[(int)$idUsuario,trim((string)$motivo),(int)$idPeriodo])?'ok':'error';
+        $sql=$cerrar?'INSERT INTO periodos_seccion_estado(id_periodo,id_seccion,estado,fechaCierre,cerradoPor) VALUES(?, ?,"CERRADO",NOW(),?) ON DUPLICATE KEY UPDATE estado="CERRADO",fechaCierre=NOW(),cerradoPor=VALUES(cerradoPor)':'INSERT INTO periodos_seccion_estado(id_periodo,id_seccion,estado,fechaReapertura,reabiertoPor,motivoReapertura) VALUES(?, ?,"ABIERTO",NOW(),?,?) ON DUPLICATE KEY UPDATE estado="ABIERTO",fechaReapertura=NOW(),reabiertoPor=VALUES(reabiertoPor),motivoReapertura=VALUES(motivoReapertura)';
+        $stmt=Conexion::conectar()->prepare($sql); return $stmt->execute($cerrar?[(int)$idPeriodo,(int)$idSeccion,(int)$idUsuario]:[(int)$idPeriodo,(int)$idSeccion,(int)$idUsuario,trim((string)$motivo)])?'ok':'error';
     }
 
     public static function mdlCalcularCierresPeriodo($idPeriodo,$idSeccion,$idUsuario)
@@ -471,11 +476,12 @@ class ModeloCalificaciones
         self::prepararTablasEvaluaciones();
 
         $stmt = Conexion::conectar()->prepare('
-            SELECT e.*, s.tituloSeccion, c.nombreCurso, p.estado AS estadoPeriodo, p.nombre AS nombrePeriodo, i.nombre AS nombreInstrumento
+            SELECT e.*, s.tituloSeccion, c.nombreCurso, COALESCE(pe.estado,"ABIERTO") AS estadoPeriodo, p.nombre AS nombrePeriodo, i.nombre AS nombreInstrumento
             FROM evaluaciones e
             INNER JOIN secciones s ON s.idSeccion = e.id_seccion
             INNER JOIN cursos c ON c.idCurso = e.id_curso
             LEFT JOIN periodos_calificacion p ON p.idPeriodo=e.id_periodo
+            LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=e.id_periodo AND pe.id_seccion=e.id_seccion
             LEFT JOIN instrumentos_evaluacion i ON i.idInstrumento=e.id_instrumento
             WHERE e.idEvaluacion = :idEvaluacion
             LIMIT 1
@@ -490,7 +496,7 @@ class ModeloCalificaciones
         self::prepararTablasEvaluaciones();
 
         $stmt = Conexion::conectar()->prepare("
-            SELECT e.*, u.nombreUsuario, u.apellidoUsuario, p.nombre AS nombrePeriodo, p.estado AS estadoPeriodo,
+            SELECT e.*, u.nombreUsuario, u.apellidoUsuario, p.nombre AS nombrePeriodo, COALESCE(pe.estado,'ABIERTO') AS estadoPeriodo,
                    i.nombre AS nombreInstrumento,
                    COUNT(ec.idEvaluacionCalificacion) AS totalCalificados,
                    SUM(CASE WHEN ec.estadoAsistencia='AUSENTE' THEN 1 ELSE 0 END) AS totalAusentes,
@@ -501,6 +507,7 @@ class ModeloCalificaciones
             LEFT JOIN usuarios u ON u.idUsuario = e.id_autor
             LEFT JOIN evaluaciones_calificaciones ec ON ec.id_evaluacion = e.idEvaluacion
             LEFT JOIN periodos_calificacion p ON p.idPeriodo=e.id_periodo
+            LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=e.id_periodo AND pe.id_seccion=e.id_seccion
             LEFT JOIN instrumentos_evaluacion i ON i.idInstrumento=e.id_instrumento
             WHERE e.id_seccion = :idSeccion
             GROUP BY e.idEvaluacion
@@ -541,6 +548,7 @@ class ModeloCalificaciones
             FROM asignacioncursos a
             INNER JOIN usuarios u ON u.idUsuario = a.id_estudiante
             WHERE a.id_seccion = :idCurso
+              AND a.estadoInscripcion = "ACTIVA"
               AND u.rol = "ESTUDIANTE"
               AND u.activo = 1
             ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC
@@ -548,6 +556,13 @@ class ModeloCalificaciones
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function mdlEstudiantesIntensificacion($idCurso,$idSeccion)
+    {
+        self::prepararTablasEvaluaciones();
+        $stmt=Conexion::conectar()->prepare("SELECT DISTINCT u.idUsuario,u.nombreUsuario,u.apellidoUsuario,u.email FROM asignacioncursos a INNER JOIN usuarios u ON u.idUsuario=a.id_estudiante WHERE a.id_seccion=:idCurso AND a.estadoInscripcion='ACTIVA' AND u.activo=1 AND (SELECT cp.calificacionCierre FROM cierres_periodo_calificaciones cp INNER JOIN periodos_calificacion p ON p.idPeriodo=cp.id_periodo WHERE cp.id_seccion=:idSeccion AND cp.id_estudiante=u.idUsuario AND p.tipo IN ('REGULAR','FINAL') AND cp.calificacionCierre IS NOT NULL ORDER BY CASE WHEN p.tipo='FINAL' THEN 1 ELSE 0 END DESC,p.orden DESC LIMIT 1)<7 ORDER BY u.apellidoUsuario,u.nombreUsuario");
+        $stmt->execute([':idCurso'=>(int)$idCurso,':idSeccion'=>(int)$idSeccion]);return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public static function mdlCalificacionesEvaluacion($idEvaluacion)

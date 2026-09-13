@@ -54,6 +54,8 @@ $registro = ControladorCursos::crtModificarCurso();
                 <textarea class="form-control" rows="4" name="contenidoCurso"><?php echo htmlspecialchars((string) $curso['contenidoCurso'], ENT_QUOTES, 'UTF-8'); ?></textarea>
               </div>
             </div>
+            <div class="col-md-6"><div class="form-group"><label>Modalidad de calificación</label><select class="form-control custom-select" name="modalidadCalificacion"><option value="DOS_TRAMOS" <?php echo ($curso['modalidadCalificacion']??'DOS_TRAMOS')==='DOS_TRAMOS'?'selected':'';?>>Dos tramos</option><option value="UNICO" <?php echo ($curso['modalidadCalificacion']??'')==='UNICO'?'selected':'';?>>Período único</option></select><small class="text-muted">Incluye siempre calificación final.</small></div></div>
+            <div class="col-md-6"><div class="form-group"><label class="d-block">Períodos complementarios</label><div class="custom-control custom-switch mt-2"><input type="checkbox" class="custom-control-input" id="intensificacionActiva" name="intensificacionActiva" value="1" <?php echo !empty($curso['intensificacionActiva'])?'checked':'';?>><label class="custom-control-label" for="intensificacionActiva">Habilitar intensificación</label></div><small class="text-muted">Podés activarla cuando existan estudiantes que deban recuperar.</small></div></div>
             <div class="col-md-4">
               <div class="form-group">
                 <label>Fecha de inicio</label>

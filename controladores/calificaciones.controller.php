@@ -17,6 +17,11 @@ class ControladorCalificaciones
     {
         return ModeloCalificaciones::mdlSeccionesParaCalificaciones((int)$idDocente);
     }
+
+    public static function crtEstudiantesIntensificacion($idCurso,$idSeccion)
+    {
+        return ModeloCalificaciones::mdlEstudiantesIntensificacion((int)$idCurso,(int)$idSeccion);
+    }
     public static function crtProcesarAcciones()
     {
         $accion = trim((string) ($_POST['accion'] ?? ''));
@@ -83,7 +88,7 @@ class ControladorCalificaciones
         $contexto = ModeloCalificaciones::mdlContextoAcademicoSeccion($idSeccion);
         $periodosPermitidos = array_fill_keys(array_map('intval', array_column($contexto['periodos'], 'idPeriodo')), true);
         $instrumentosPermitidos = array_fill_keys(array_map('intval', array_column($contexto['instrumentos'], 'idInstrumento')), true);
-        $periodo = ModeloCalificaciones::mdlPeriodoPorId($idPeriodo);
+        $periodo = ModeloCalificaciones::mdlPeriodoPorId($idPeriodo,$idSeccion);
         if ($tema === '' || !$fechaValida || !isset($periodosPermitidos[$idPeriodo], $instrumentosPermitidos[$idInstrumento]) || strtoupper((string)($periodo['estado'] ?? '')) !== 'ABIERTO') {
             $_SESSION['error_message'] = 'Completa período, instrumento, tema y una fecha válida. El período debe estar abierto.';
             return 'error';
@@ -233,7 +238,7 @@ class ControladorCalificaciones
     public static function crtCambiarEstadoPeriodo()
     {
         $idPeriodo=(int)($_POST['id_periodo']??0); $idSeccion=(int)($_POST['id_seccion']??0);
-        $estado=strtoupper(trim((string)($_POST['estado_periodo']??''))); $periodo=ModeloCalificaciones::mdlPeriodoPorId($idPeriodo);
+        $estado=strtoupper(trim((string)($_POST['estado_periodo']??''))); $periodo=ModeloCalificaciones::mdlPeriodoPorId($idPeriodo,$idSeccion);
         $contexto=ModeloCalificaciones::mdlContextoAcademicoSeccion($idSeccion);
         $periodosPermitidos=array_fill_keys(array_map('intval',array_column($contexto['periodos']??[],'idPeriodo')),true);
         if(!$periodo || !isset($periodosPermitidos[$idPeriodo]) || !self::puedeGestionarSeccion($idSeccion) || !in_array($estado,['ABIERTO','CERRADO'],true)){
@@ -250,7 +255,7 @@ class ControladorCalificaciones
         }
         $motivo=trim((string)($_POST['motivoReapertura']??''));
         if($estado==='ABIERTO' && $motivo===''){$_SESSION['error_message']='Indica el motivo de la reapertura.';return 'error';}
-        $respuesta=ModeloCalificaciones::mdlCambiarEstadoPeriodo($idPeriodo,$estado,(int)($_SESSION['usuario']['id']??0),$motivo);
+        $respuesta=ModeloCalificaciones::mdlCambiarEstadoPeriodo($idPeriodo,$idSeccion,$estado,(int)($_SESSION['usuario']['id']??0),$motivo);
         $_SESSION[$respuesta==='ok'?'success_message':'error_message']=$respuesta==='ok'?($estado==='CERRADO'?'Período cerrado y bloqueado.':'Período reabierto correctamente.'):'No se pudo actualizar el período.';
         return $respuesta;
     }
@@ -258,7 +263,7 @@ class ControladorCalificaciones
     public static function crtCalcularCierrePeriodo()
     {
         $idPeriodo=(int)($_POST['id_periodo']??0); $idSeccion=(int)($_POST['id_seccion']??0);
-        $periodo=ModeloCalificaciones::mdlPeriodoPorId($idPeriodo);
+        $periodo=ModeloCalificaciones::mdlPeriodoPorId($idPeriodo,$idSeccion);
         if(!$periodo || strtoupper((string)$periodo['estado'])!=='ABIERTO' || !self::puedeGestionarSeccion($idSeccion)){
             $_SESSION['error_message']='El período no está abierto o no tenés permisos.'; return 'denied';
         }
@@ -269,7 +274,7 @@ class ControladorCalificaciones
 
     public static function crtGuardarCierrePeriodo()
     {
-        $idPeriodo=(int)($_POST['id_periodo']??0); $idSeccion=(int)($_POST['id_seccion']??0); $periodo=ModeloCalificaciones::mdlPeriodoPorId($idPeriodo);
+        $idPeriodo=(int)($_POST['id_periodo']??0); $idSeccion=(int)($_POST['id_seccion']??0); $periodo=ModeloCalificaciones::mdlPeriodoPorId($idPeriodo,$idSeccion);
         if(!$periodo || strtoupper((string)$periodo['estado'])!=='ABIERTO' || !self::puedeGestionarSeccion($idSeccion)){
             $_SESSION['error_message']='El período está cerrado o no tenés permisos.'; return 'denied';
         }

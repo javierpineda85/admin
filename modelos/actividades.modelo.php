@@ -308,7 +308,7 @@ class ModeloActividades
             LEFT JOIN secciones s ON s.idSeccion = a.id_seccion
             LEFT JOIN cursos c ON c.idCurso = a.id_curso
             LEFT JOIN usuarios u ON u.idUsuario = a.id_autor
-            LEFT JOIN asignacioncursos ac ON ac.id_seccion = a.id_curso
+            LEFT JOIN asignacioncursos ac ON ac.id_seccion = a.id_curso AND ac.estadoInscripcion = 'ACTIVA'
             LEFT JOIN (
                 SELECT id_actividad, COUNT(*) AS totalIntentos
                 FROM actividades_intentos

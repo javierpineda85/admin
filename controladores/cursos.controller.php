@@ -65,6 +65,8 @@ class ControladorCursos
 
             $tabla = "cursos";
 
+            $modalidadNueva=in_array(($_POST['modalidadCalificacion']??''),['UNICO','DOS_TRAMOS'],true)?$_POST['modalidadCalificacion']:'DOS_TRAMOS';
+
             $datos = array(
                 "nombreCurso"       => $_POST["nombreCurso"],
                 "contenidoCurso"    => $_POST["contenidoCurso"],
@@ -73,7 +75,9 @@ class ControladorCursos
                 "fechaFinCurso"     => $_POST["fechaFinCurso"],
                 "horarioCurso"      => $_POST["horarioCurso"],
                 "creadoPor"         => (int) ($_SESSION['usuario']['id'] ?? 0),
-                "responsable"       => (int) ($_SESSION['usuario']['id'] ?? 0)
+                "responsable"       => (int) ($_SESSION['usuario']['id'] ?? 0),
+                "modalidadCalificacion" => $modalidadNueva,
+                "intensificacionActiva" => isset($_POST['intensificacionActiva'])?1:0
             );
 
             $respuesta = ModeloCursos::mdlGuardarCurso($tabla, $datos);
@@ -99,6 +103,12 @@ class ControladorCursos
 
             $tabla = "cursos";
 
+            $modalidadNueva=in_array(($_POST['modalidadCalificacion']??''),['UNICO','DOS_TRAMOS'],true)?$_POST['modalidadCalificacion']:'DOS_TRAMOS';
+            $cursoActual=ModeloCursos::mdlBuscarCursoPorId($idCurso);
+            if($cursoActual && ($cursoActual['modalidadCalificacion']??'DOS_TRAMOS')!==$modalidadNueva && ModeloCursos::mdlCursoTieneCalificaciones($idCurso)){
+                $_SESSION['error_message']='No se puede cambiar la modalidad porque el curso ya tiene calificaciones. Los antecedentes fueron preservados.';return 'locked';
+            }
+
             $datos = array(
                 "idCurso"           => $idCurso,
                 "nombreCurso"       => $_POST["nombreCurso"],
@@ -106,7 +116,9 @@ class ControladorCursos
                 "estado"            => $_POST["estado"],
                 "fechaInicioCurso"  => $_POST["fechaInicioCurso"],
                 "fechaFinCurso"     => $_POST["fechaFinCurso"],
-                "horarioCurso"      => $_POST["horarioCurso"]
+                "horarioCurso"      => $_POST["horarioCurso"],
+                "modalidadCalificacion" => $modalidadNueva,
+                "intensificacionActiva" => isset($_POST['intensificacionActiva'])?1:0
             );
 
             $respuesta = ModeloCursos::mdlModificarCurso($tabla, $datos);

@@ -340,7 +340,7 @@ class ModeloUsuarios
                 FROM asignacioncursos a
                 INNER JOIN cursos c ON c.idCurso = a.id_seccion
                 LEFT JOIN secciones s ON s.id_curso = c.idCurso
-                WHERE a.id_estudiante = :idEstudiante
+                WHERE a.id_estudiante = :idEstudiante AND a.estadoInscripcion='ACTIVA'
 
                 UNION
 
@@ -501,6 +501,7 @@ class ModeloUsuarios
             INNER JOIN asignacioncursos a1 ON a1.id_estudiante = :idUsuarioActual
             INNER JOIN asignacioncursos a2 ON a2.id_seccion = a1.id_seccion
             WHERE u.idUsuario = a2.id_estudiante
+              AND a1.estadoInscripcion='ACTIVA' AND a2.estadoInscripcion='ACTIVA'
               AND u.activo = 1
               AND u.rol = 'ESTUDIANTE'
               AND u.idUsuario <> :idUsuarioActual
@@ -512,6 +513,7 @@ class ModeloUsuarios
             INNER JOIN secciones s ON s.id_curso = a.id_seccion
             INNER JOIN usuarios u ON u.idUsuario IN (s.docente, s.tutor)
             WHERE a.id_estudiante = :idUsuarioActual
+              AND a.estadoInscripcion='ACTIVA'
               AND u.activo = 1
               AND u.rol IN ('DOCENTE', 'ADMINISTRADOR')
               AND u.idUsuario <> :idUsuarioActual
@@ -531,6 +533,7 @@ class ModeloUsuarios
             FROM asignacioncursos a
             INNER JOIN secciones s ON s.id_curso = a.id_seccion
             WHERE a.id_estudiante = :idEstudiante
+              AND a.estadoInscripcion='ACTIVA'
               AND (s.docente = :idDocente OR s.tutor = :idDocente)
         ");
         $stmt->bindParam(":idEstudiante", $idEstudiante, PDO::PARAM_INT);
@@ -549,6 +552,7 @@ class ModeloUsuarios
             INNER JOIN asignacioncursos a2 ON a1.id_seccion = a2.id_seccion
             WHERE a1.id_estudiante = :idUsuario1
               AND a2.id_estudiante = :idUsuario2
+              AND a1.estadoInscripcion='ACTIVA' AND a2.estadoInscripcion='ACTIVA'
         ");
         $stmt->bindParam(":idUsuario1", $idUsuario1, PDO::PARAM_INT);
         $stmt->bindParam(":idUsuario2", $idUsuario2, PDO::PARAM_INT);

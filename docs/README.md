@@ -14,3 +14,6 @@ Este directorio agrupa la documentacion tecnica y funcional del sistema.
 ## Objetivo
 
 Dejar claro como esta organizado el proyecto, que hace cada parte y cual es la regla de negocio principal por rol.
+# Documentación académica
+
+- [Inscripciones históricas y períodos de calificación](inscripciones-y-periodos.md)

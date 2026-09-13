@@ -43,6 +43,8 @@ $registro = ControladorCursos::crtGuardarCurso();
                 <textarea class="form-control" rows="4" name="contenidoCurso" placeholder="Descripción general del curso..."></textarea>
               </div>
             </div>
+            <div class="col-md-6"><div class="form-group"><label>Modalidad de calificación</label><select class="form-control custom-select" name="modalidadCalificacion"><option value="DOS_TRAMOS">Dos tramos</option><option value="UNICO">Período único</option></select><small class="text-muted">Incluye siempre calificación final.</small></div></div>
+            <div class="col-md-6"><div class="form-group"><label class="d-block">Períodos complementarios</label><div class="custom-control custom-switch mt-2"><input type="checkbox" class="custom-control-input" id="intensificacionActiva" name="intensificacionActiva" value="1"><label class="custom-control-label" for="intensificacionActiva">Habilitar intensificación</label></div><small class="text-muted">Para estudiantes que deben recuperar saberes.</small></div></div>
             <div class="col-md-4">
               <div class="form-group">
                 <label>Fecha de inicio</label>

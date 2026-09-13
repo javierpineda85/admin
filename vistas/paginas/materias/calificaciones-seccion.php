@@ -93,6 +93,7 @@ $evaluacionesEstudiante = $esEstudiante && $idEstudianteContexto > 0
 $estudiantesEvaluacion = $puedeGestionar
     ? ControladorCalificaciones::crtEstudiantesPorCurso((int) ($seccion['id_curso'] ?? 0))
     : [];
+if($puedeGestionar && strtoupper((string)($periodoActual['tipo']??''))==='INTENSIFICACION'){$estudiantesEvaluacion=ControladorCalificaciones::crtEstudiantesIntensificacion((int)($seccion['id_curso']??0),$idSeccion);}
 $cierresEstudiante = $esEstudiante && $idEstudianteContexto > 0
     ? ControladorCalificaciones::crtCierresEstudianteSeccion($idSeccion,$idEstudianteContexto)
     : [];

@@ -22,8 +22,10 @@ $db = new Conexion;
 $sql = "SELECT * FROM asignacioncursos
         RIGHT JOIN usuarios ON asignacioncursos.id_estudiante = usuarios.idUsuario
         WHERE usuarios.rol = 'ESTUDIANTE'
-        AND asignacioncursos.id_seccion = $idCurso";
+        AND asignacioncursos.id_seccion = $idCurso
+        AND asignacioncursos.estadoInscripcion = 'ACTIVA'";
 $cursantes = $db->consultas($sql);
+$cursantesBaja=$esAdmin?$db->consultas("SELECT a.*,u.nombreUsuario,u.apellidoUsuario,u.email FROM asignacioncursos a INNER JOIN usuarios u ON u.idUsuario=a.id_estudiante WHERE a.id_seccion=$idCurso AND a.estadoInscripcion='BAJA' ORDER BY a.fechaBaja DESC"):[];
 
 $secciones = $esDocente && !$esAdmin
     ? ControladorCursos::crtSeccionesPorCursoParaDocente($idCurso, $idUsuarioActual)
@@ -414,8 +416,9 @@ if (ControladorPermisos::esEstudiante() || $vistaAulaSolicitada) {
                                                     <i class="fas fa-paper-plane"></i>
                                                 </a>
                                                 <?php if ($puedeQuitarEstudiantes): ?>
-                                                    <form method="post" class="d-inline" onsubmit="return confirm('¿Quitar este estudiante del curso?');">
+                                                    <form method="post" class="d-inline" onsubmit="var motivo=prompt('Motivo de la baja del curso:');if(motivo===null||!motivo.trim()){return false;}this.motivoBaja.value=motivo.trim();return confirm('¿Dar de baja a este estudiante del curso? Sus antecedentes se conservarán.');">
                                                         <input type="hidden" name="accion_curso" value="quitar_estudiante">
+                                                        <input type="hidden" name="motivoBaja" value="">
                                                         <input type="hidden" name="idCurso" value="<?php echo (int) $idCurso; ?>">
                                                         <input type="hidden" name="idUsuario" value="<?php echo (int) $valor['idUsuario']; ?>">
                                                         <button type="submit" class="btn btn-danger btn-sm" title="Quitar del curso">
@@ -432,6 +435,7 @@ if (ControladorPermisos::esEstudiante() || $vistaAulaSolicitada) {
                         </div>
                     </div>
                 </div>
+                <?php if($esAdmin&&!empty($cursantesBaja)):?><div class="col-12"><div class="card"><div class="card-header"><h3 class="card-title">Historial de bajas</h3></div><div class="card-body table-responsive p-0"><table class="table table-sm mb-0"><thead><tr><th>Estudiante</th><th>Fecha de baja</th><th>Motivo</th><th></th></tr></thead><tbody><?php foreach($cursantesBaja as $baja):?><tr><td><?php echo htmlspecialchars($baja['apellidoUsuario'].' '.$baja['nombreUsuario'],ENT_QUOTES,'UTF-8');?></td><td><?php echo $baja['fechaBaja']?date('d/m/Y H:i',strtotime($baja['fechaBaja'])):'—';?></td><td><?php echo htmlspecialchars((string)$baja['motivoBaja'],ENT_QUOTES,'UTF-8');?></td><td class="text-right"><form method="post"><input type="hidden" name="idCurso" value="<?php echo (int)$idCurso;?>"><input type="hidden" name="idUsuarios[]" value="<?php echo (int)$baja['id_estudiante'];?>"><button class="btn btn-outline-success btn-sm" type="submit"><i class="fas fa-user-check mr-1"></i>Reinscribir</button></form></td></tr><?php endforeach;?></tbody></table></div></div></div><?php endif;?>
             </div>
         </section>
     </div>

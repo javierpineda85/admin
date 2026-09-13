@@ -42,6 +42,7 @@ class ModeloNotificaciones
              FROM asignacioncursos a
              INNER JOIN usuarios u ON u.idUsuario = a.id_estudiante
              WHERE a.id_seccion = :idCurso
+               AND a.estadoInscripcion = "ACTIVA"
                AND u.rol = "ESTUDIANTE"
                AND u.activo = 1
              ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC'
