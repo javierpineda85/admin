@@ -587,7 +587,8 @@ class ModeloLecciones
         $stmt->bindValue(':fechaPosteo', $datos['fechaPosteo'], PDO::PARAM_STR);
         $stmt->bindValue(':id_curso', (int) $datos['id_curso'], PDO::PARAM_INT);
         $stmt->bindValue(':id_leccion', (int) $datos['id_leccion'], PDO::PARAM_INT);
-        return $stmt->execute() ? 'ok' : 'error';
+        if(!$stmt->execute()){return 'error';}
+        return !ModeloTenant::activo() || $stmt->rowCount()===1 ? 'ok' : 'error';
     }
 
     public static function mdlGuardarEntregaLeccion($datos)

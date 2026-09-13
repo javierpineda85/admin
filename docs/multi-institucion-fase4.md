@@ -81,6 +81,10 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
   miembros, cursos, materias, lecciones, entregas, posteos y calificaciones con
   el contexto central. Los `LEFT JOIN` de notas también descartan relaciones
   incoherentes para no alterar los conteos de pendientes.
+- El inicio y el formulario de actividades ya no consultan cursos o materias
+  directamente desde las vistas: reutilizan los controladores y modelos
+  institucionales. Los posteos validan conjuntamente autor, curso y lección en
+  altas y lecturas, incluso ante IDs manipulados.
 
 ## Pruebas
 
@@ -93,7 +97,7 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260913_220816_3ab1c3`, 213 comprobaciones
+Última verificación: `campus_mt_fase2_20260913_225834_c47009`, 216 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno. Los archivos sintéticos
 se eliminan después de comprobar que la copia mantiene exactamente su contenido.
@@ -121,7 +125,7 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas
   de entregas, posteos, calificaciones y eliminación de dependencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
-- Sustituir SQL de las vistas restantes y validar todos los POST/AJAX y parámetros de recursos.
+- Completar la validación residual de todos los POST/AJAX y parámetros de recursos.
 - Entregar archivos privados por controlador, bloquear acceso estático y revisar
   rutas canónicas, adjuntos de mensajes y contenido enriquecido histórico.
 - Trasladar preparaciones DDL a migraciones, finalizar restricciones y validar el

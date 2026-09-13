@@ -5,12 +5,7 @@ $visibilidadActual = (string) ($actividad['visibilidad'] ?? 'privada');
 $estadoActual = (string) ($actividad['estadoActividad'] ?? 'BORRADOR');
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $materias = ControladorPermisos::esAdministrador()
-  ? (new Conexion())->consultas("
-      SELECT s.idSeccion, s.tituloSeccion, s.id_curso, c.nombreCurso
-      FROM secciones s
-      INNER JOIN cursos c ON c.idCurso = s.id_curso
-      ORDER BY c.nombreCurso ASC, s.tituloSeccion ASC
-    ")
+  ? ControladorMaterias::crtListarMateriasGestion()
   : ControladorMaterias::crtBuscarMateriasPorDocente($idUsuarioActual);
 
 if (empty($preguntas)) {

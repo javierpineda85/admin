@@ -14,9 +14,10 @@ $resumen = ControladorPanel::crtResumenDashboard();
 $entregasPendientesDashboard = (array) ($resumen['pendientes'] ?? []);
 $puedeGestionarPendientes = ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente();
 
-$db = new Conexion;
-$sql = "SELECT idCurso, nombreCurso FROM cursos ORDER BY idCurso ASC LIMIT 1";
-$primerCurso = $db->consultas($sql);
+$cursosDashboard = ControladorPermisos::esEstudiante()
+  ? ControladorCursos::crtCursosPorEstudiante($idEstudianteContexto)
+  : ControladorCursos::crtListarCursos();
+$primerCurso = !empty($cursosDashboard) ? [$cursosDashboard[0]] : [];
 
 $ctaPrincipal = 'index.php?r=listado-cursos';
 $ctaPrincipalTexto = 'Ver cursos';
@@ -125,19 +126,17 @@ if (ControladorPermisos::esAdministrador()) {
 
 $primeraMateriaDashboard = [];
 if (ControladorPermisos::esAdministrador()) {
-  $primeraMateriaDashboard = $db->consultas('SELECT idSeccion FROM secciones ORDER BY idSeccion ASC LIMIT 1');
+  $materiasDashboard = ControladorMaterias::crtListarMateriasGestion();
+  $primeraMateriaDashboard = !empty($materiasDashboard) ? [$materiasDashboard[0]] : [];
 } elseif (ControladorPermisos::esDocente()) {
   $materiasDocenteDashboard = ControladorMaterias::crtBuscarMateriasPorDocente($idUsuarioActual);
   $primeraMateriaDashboard = !empty($materiasDocenteDashboard) ? [$materiasDocenteDashboard[0]] : [];
 } elseif (ControladorPermisos::esEstudiante()) {
-  $primeraMateriaDashboard = $db->consultas("
-    SELECT s.idSeccion
-    FROM secciones s
-    INNER JOIN asignacioncursos a ON a.id_seccion = s.id_curso
-    WHERE a.id_estudiante = {$idEstudianteContexto}
-    ORDER BY s.idSeccion ASC
-    LIMIT 1
-  ");
+  $idPrimerCursoDashboard = (int) ($primerCurso[0]['idCurso'] ?? 0);
+  $materiasEstudianteDashboard = $idPrimerCursoDashboard > 0
+    ? ControladorMaterias::crtBuscarMateriaXcurso('join-1-curso', $idPrimerCursoDashboard)
+    : [];
+  $primeraMateriaDashboard = !empty($materiasEstudianteDashboard) ? [$materiasEstudianteDashboard[0]] : [];
 }
 
 $idPrimeraMateriaDashboard = (int) ($primeraMateriaDashboard[0]['idSeccion'] ?? 0);

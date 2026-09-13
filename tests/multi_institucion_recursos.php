@@ -116,6 +116,14 @@ $leccion=['nombreLeccion'=>'Lección Demo','tipoLeccion'=>'MATERIAL','contenidoL
 verificar(ModeloLecciones::mdlGuardarLeccion('lecciones',$leccion)==='ok', 'Lección hereda institución desde materia');
 $leccionDemo=(int)$pdo->lastInsertId();
 verificar(ModeloLecciones::mdlBuscarLeccionPorId($leccionDemo)['nombreLeccion']==='Lección Demo', 'Lectura de lección propia permitida');
+verificar(ModeloLecciones::mdlGuardarPostLeccion([
+    'id_autor'=>$ids['B'],'contenidoPosteo'=>'Aporte Demo','fechaPosteo'=>'2026-09-13 11:00:00',
+    'id_curso'=>$cursoDemo,'id_leccion'=>$leccionDemo
+])==='ok'&&count(ModeloLecciones::mdlBuscarPostsPorLeccion($leccionDemo))===1, 'Posteo se crea y lista dentro de la lección institucional');
+denegado(function() use($ids,$cursoMM,$leccionDemo) { ModeloLecciones::mdlGuardarPostLeccion([
+    'id_autor'=>$ids['B'],'contenidoPosteo'=>'Cruce','fechaPosteo'=>'2026-09-13 11:01:00',
+    'id_curso'=>$cursoMM,'id_leccion'=>$leccionDemo
+]); }, 'Posteo rechaza combinación de lección y curso de otra institución');
 ModeloLecciones::mdlGuardarRecursoLeccion('recursoslecciones',['id_leccion'=>$leccionDemo,'tipoRecurso'=>'ENLACE',
     'tituloRecurso'=>'Recurso Demo','urlRecurso'=>'https://example.invalid','creadoPor'=>$ids['B']]);
 $recursoDemo=(int)$pdo->lastInsertId();
@@ -296,6 +304,7 @@ verificar((int)$tarjetasMM['Secciones a cargo']===1&&(int)$tarjetasMM['Lecciones
 verificar(ModeloMaterias::mdlBuscarMateriaPorId($materiaDemo)===false, 'Docente no puede leer materia ajena por ID');
 verificar(array_column(ModeloMaterias::mdlListarMateriasGestion(),'idSeccion')===[$materiaMM], 'Listado de materias conserva solo las de la institución activa');
 denegado(function() use($leccionDemo) { ModeloLecciones::mdlBuscarLeccionPorId($leccionDemo); }, 'Lección ajena denegada por ID');
+denegado(function() use($leccionDemo) { ModeloLecciones::mdlBuscarPostsPorLeccion($leccionDemo); }, 'Posteos de una lección ajena no se revelan por ID');
 denegado(function() use($recursoDemo) { ModeloLecciones::mdlBuscarRecursoPorId($recursoDemo); }, 'Recurso ajeno denegado por ID');
 denegado(function() use($leccionDemo) { ModeloLecciones::mdlEliminarLeccion($leccionDemo); }, 'Borrado de lección ajena rechazado antes de eliminar dependencias');
 denegado(function() use($claseDemo) { ModeloAsistencias::mdlClase($claseDemo); }, 'Clase de asistencia ajena no se revela por ID');
