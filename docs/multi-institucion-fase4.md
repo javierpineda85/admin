@@ -38,6 +38,13 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
   El controlador valida la sección antes de conceder acceso a un administrador.
 - `2026-09-14_multi_institucion_02_asistencias.sql` prepara las tablas requeridas;
   las peticiones institucionales ya no ejecutan DDL para crearlas.
+- Las calificaciones de tareas validan en SQL la relación curso/materia/lección,
+  la inscripción activa y el rol ESTUDIANTE de la membresía. Los listados por
+  materia o estudiante filtran registros incoherentes y el controlador valida
+  la materia antes de conceder gestión a administradores o docentes.
+- Los listados de alumnos evaluables ya no consultan `usuarios.rol`: usan el rol
+  de la membresía actual. En modo institucional, la preparación de calificaciones
+  y evaluaciones tampoco intenta ejecutar DDL durante la petición.
 
 ## Pruebas
 
@@ -50,7 +57,7 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260913_203321_c1d88d`, 139 comprobaciones
+Última verificación: `campus_mt_fase2_20260913_211132_3102d4`, 146 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno. Los archivos sintéticos
 se eliminan después de comprobar que la copia mantiene exactamente su contenido.
@@ -58,7 +65,7 @@ se eliminan después de comprobar que la copia mantiene exactamente su contenido
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
 definiendo `CAMPUS_TEST_BASE` con el nombre devuelto por el ensayo de recursos;
-rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus siete
+rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus nueve
 comprobaciones de listados, lecturas y escritura, incluidas materias y clases de
 asistencia. No usa la base original.
 
@@ -69,7 +76,7 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 ## Trabajo pendiente antes de finalizar y habilitar
 
-- Completar calificaciones, evaluaciones, ciclos y períodos; ampliar asistencia
+- Completar calificaciones generales, evaluaciones, ciclos y períodos; ampliar asistencia
   con pruebas HTTP cuando se retire el bloqueo preventivo de las aulas.
 - Completar actividades, plantillas, intentos y rutas públicas.
 - Aislar mensajería, notificaciones y agregados de panel.

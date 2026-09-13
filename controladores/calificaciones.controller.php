@@ -1,5 +1,5 @@
 <?php
-require_once('modelos/calificaciones.modelo.php');
+require_once __DIR__ . '/../modelos/calificaciones.modelo.php';
 
 class ControladorCalificaciones
 {
@@ -59,6 +59,7 @@ class ControladorCalificaciones
 
     private static function puedeGestionarSeccion($idSeccion)
     {
+        ModeloTenant::exigirSeccion((int)$idSeccion);
         if (ControladorPermisos::esAdministrador()) {
             return true;
         }
@@ -375,6 +376,11 @@ class ControladorCalificaciones
 
         if (!(ControladorPermisos::esAdministrador() || ControladorPermisos::esDocente())) {
             $_SESSION['error_message'] = 'No tenes permisos para calificar.';
+            return 'denied';
+        }
+
+        if (!self::puedeGestionarSeccion((int)$_POST['id_seccion'])) {
+            $_SESSION['error_message'] = 'No tenes permisos para calificar esta materia.';
             return 'denied';
         }
 

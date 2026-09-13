@@ -115,6 +115,29 @@ class ModeloTenant
                 (SELECT 1 FROM lecciones nota_l WHERE nota_l.idLeccion=' . $alias . '.id_modulo AND nota_l.id_modulo=nota_s.idSeccion)))';
     }
 
+    public static function escrituraCalificacion(array $datos)
+    {
+        if (!self::activo()) { return '1=1'; }
+        $idLeccion = (int)($datos['id_modulo'] ?? 0);
+        $relacion = $idLeccion > 0
+            ? self::relacionLeccion($idLeccion, $datos['id_seccion'], $datos['id_curso'])
+            : 'EXISTS (SELECT 1 FROM secciones nota_es INNER JOIN cursos nota_ec ON nota_ec.idCurso=nota_es.id_curso
+                WHERE nota_es.idSeccion=' . (int)$datos['id_seccion'] . ' AND nota_ec.idCurso=' . (int)$datos['id_curso'] . '
+                AND ' . self::cursos('nota_ec') . ')';
+        return $relacion . ' AND EXISTS (SELECT 1 FROM asignacioncursos nota_a
+            INNER JOIN usuarios nota_u ON nota_u.idUsuario=nota_a.id_estudiante
+            WHERE nota_a.id_estudiante=' . (int)$datos['id_estudiante'] . '
+            AND nota_a.id_seccion=' . (int)$datos['id_curso'] . " AND nota_a.estadoInscripcion='ACTIVA'
+            AND " . self::usuarioConRol('nota_u.idUsuario', ['ESTUDIANTE']) . ')';
+    }
+
+    public static function exigirCalificacion(array $datos)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->query('SELECT 1 WHERE ' . self::escrituraCalificacion($datos));
+        if (!$stmt || !$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
+    }
+
     public static function asistenciaClases($alias = 'ac')
     {
         if (!self::activo()) { return '1=1'; }

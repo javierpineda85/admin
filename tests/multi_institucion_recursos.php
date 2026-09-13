@@ -7,6 +7,7 @@ require_once __DIR__ . '/../modelos/cursos.modelo.php';
 require_once __DIR__ . '/../modelos/materias.modelo.php';
 require_once __DIR__ . '/../modelos/lecciones.modelo.php';
 require_once __DIR__ . '/../modelos/asistencias.modelo.php';
+require_once __DIR__ . '/../modelos/calificaciones.modelo.php';
 foreach (['secciones', 'lecciones', 'asignacioncursos', 'recursoslecciones', 'entregaslecciones', 'posteos',
     'calificaciones','entregaslecciones_adjuntos','archivoslecciones','actividades','actividades_preguntas','actividades_opciones',
     'asistencia_clases','asistencia_registros'] as $tabla) {
@@ -77,6 +78,17 @@ $pdo->prepare("UPDATE asignacioncursos SET estadoInscripcion='ACTIVA' WHERE id_e
 verificar(ModeloLecciones::mdlGuardarEntregaLeccion($entrega)==='ok', 'Entrega coherente e inscripta se guarda');
 $entregaId=(int)$pdo->lastInsertId();
 verificar(count(ModeloLecciones::mdlBuscarEntregasPorLeccion($leccionDemo))===1, 'Listado devuelve entrega coherente');
+$notaDemo=['id_estudiante'=>$ids['A'],'id_seccion'=>$materiaDemo,'id_modulo'=>$leccionDemo,
+    'id_curso'=>$cursoDemo,'calificacion'=>8,'devolucion'=>'Bien'];
+verificar(ModeloCalificaciones::mdlGuardarCalificacion($notaDemo)==='ok', 'Calificación de tarea coherente se guarda en la institución activa');
+verificar(count(ModeloCalificaciones::mdlCalificacionesPorSeccion($materiaDemo))===1, 'Listado de calificaciones devuelve la nota institucional propia');
+$notaCruzada=$notaDemo; $notaCruzada['id_curso']=$cursoMM;
+denegado(function() use($notaCruzada) { ModeloCalificaciones::mdlGuardarCalificacion($notaCruzada); }, 'Calificación rechaza combinación cruzada de curso y materia');
+$notaAjena=$notaDemo; $notaAjena['id_estudiante']=$ids['C'];
+denegado(function() use($notaAjena) { ModeloCalificaciones::mdlGuardarCalificacion($notaAjena); }, 'Calificación rechaza estudiante sin membresía en la institución');
+$pdo->prepare('INSERT INTO calificaciones(id_estudiante,id_seccion,id_modulo,id_curso,calificacion,devolucion) VALUES(?,?,?,?,?,?)')
+    ->execute([$ids['C'],$materiaDemo,$leccionDemo,$cursoMM,10,'Dato incoherente']);
+verificar(count(ModeloCalificaciones::mdlCalificacionesPorSeccion($materiaDemo))===1, 'Listado excluye calificación histórica con curso cruzado');
 $pdo->prepare('UPDATE entregaslecciones SET id_curso=? WHERE idEntregaLeccion=?')->execute([$cursoMM,$entregaId]);
 verificar(ModeloLecciones::mdlBuscarEntregasPorLeccion($leccionDemo)===[], 'Lectura no revela entrega con curso cruzado heredada de datos históricos');
 verificar(ModeloLecciones::mdlBuscarEntregaPorLeccionEstudiante($leccionDemo,$ids['A'])===null, 'Consulta individual excluye entrega incoherente');
@@ -149,6 +161,7 @@ denegado(function() use($recursoDemo) { ModeloLecciones::mdlBuscarRecursoPorId($
 denegado(function() use($leccionDemo) { ModeloLecciones::mdlEliminarLeccion($leccionDemo); }, 'Borrado de lección ajena rechazado antes de eliminar dependencias');
 denegado(function() use($claseDemo) { ModeloAsistencias::mdlClase($claseDemo); }, 'Clase de asistencia ajena no se revela por ID');
 denegado(function() use($materiaDemo) { ModeloAsistencias::mdlClasesSeccion($materiaDemo); }, 'Listado de asistencia ajeno se rechaza por materia');
+denegado(function() use($materiaDemo) { ModeloCalificaciones::mdlCalificacionesPorSeccion($materiaDemo); }, 'Calificaciones de otra institución no se revelan por materia');
 denegado(function() use($cursoDemo,$ids) { ModeloCursos::mdlDuplicarCurso($cursoDemo,['idUsuario'=>$ids['A']]); }, 'Duplicación de curso ajeno rechazada antes de crear datos');
 $datosMateria['idSeccion']=$materiaDemo;
 denegado(function() use($datosMateria) { ModeloMaterias::mdlModificarMateria('secciones',$datosMateria); }, 'Docente no puede modificar materia de otra institución');
@@ -158,8 +171,10 @@ denegado(function() use($datosMateria) { ModeloMaterias::mdlGuardarMateria('secc
 require_once __DIR__ . '/../controladores/cursos.controller.php';
 require_once __DIR__ . '/../controladores/lecciones.controller.php';
 require_once __DIR__ . '/../controladores/asistencias.controller.php';
+require_once __DIR__ . '/../controladores/calificaciones.controller.php';
 denegado(function() use($cursoDemo) { ControladorCursos::crtPuedeGestionarCurso($cursoDemo); }, 'Controlador no concede gestión de curso ajeno');
 denegado(function() use($materiaDemo) { ControladorAsistencias::crtPuedeGestionar($materiaDemo); }, 'Controlador no concede gestión de asistencia ajena a un administrador institucional');
+denegado(function() use($materiaDemo) { ControladorCalificaciones::crtCalificacionesPorSeccion($materiaDemo); }, 'Controlador no revela calificaciones de otra institución');
 $_POST=['accion_curso'=>'duplicar_curso','idCurso'=>$cursoDemo];
 denegado(function() { ControladorCursos::crtDuplicarCurso(); }, 'POST de duplicación manipulado rechazado por controlador');
 $_POST=[];

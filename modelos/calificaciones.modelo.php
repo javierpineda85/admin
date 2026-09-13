@@ -1,5 +1,6 @@
 <?php
-require_once('conexion.php');
+require_once __DIR__ . '/conexion.php';
+require_once __DIR__ . '/tenant.modelo.php';
 
 class ModeloCalificaciones
 {
@@ -9,6 +10,10 @@ class ModeloCalificaciones
     private static function prepararTablaCalificaciones()
     {
         if (self::$tablaCalificacionesPreparada) {
+            return;
+        }
+        if (ModeloTenant::activo()) {
+            self::$tablaCalificacionesPreparada = true;
             return;
         }
         $pdo = Conexion::conectar();
@@ -30,6 +35,11 @@ class ModeloCalificaciones
     private static function prepararTablasEvaluaciones()
     {
         if (self::$tablasEvaluacionesPreparadas) {
+            return;
+        }
+
+        if (ModeloTenant::activo()) {
+            self::$tablasEvaluacionesPreparadas = true;
             return;
         }
 
@@ -150,9 +160,11 @@ class ModeloCalificaciones
     public static function mdlGuardarCalificacion($datos)
     {
         self::prepararTablaCalificaciones();
+        ModeloTenant::exigirCalificacion($datos);
         $stmt = Conexion::conectar()->prepare(
             'INSERT INTO calificaciones (id_estudiante, id_seccion, id_modulo, id_curso, calificacion, devolucion)
-             VALUES (:id_estudiante, :id_seccion, :id_modulo, :id_curso, :calificacion, :devolucion)
+             SELECT :id_estudiante, :id_seccion, :id_modulo, :id_curso, :calificacion, :devolucion
+             WHERE ' . ModeloTenant::escrituraCalificacion($datos) . '
              ON DUPLICATE KEY UPDATE
                 id_curso = VALUES(id_curso),
                 calificacion = VALUES(calificacion),
@@ -173,6 +185,12 @@ class ModeloCalificaciones
         self::prepararTablaCalificaciones();
         if (empty($calificaciones)) {
             return 'error';
+        }
+        if (ModeloTenant::activo()) {
+            foreach ($calificaciones as $calificacion) {
+                if (self::mdlGuardarCalificacion($calificacion) !== 'ok') { return 'error'; }
+            }
+            return 'ok';
         }
 
         $valores = [];
@@ -204,6 +222,7 @@ class ModeloCalificaciones
 
     public static function mdlCalificacionesPorSeccion($idSeccion)
     {
+        ModeloTenant::exigirSeccion($idSeccion);
         $stmt = Conexion::conectar()->prepare(
             'SELECT c.idCalificacion, c.id_estudiante, c.id_seccion, c.id_modulo, c.id_curso, c.calificacion,
                     c.devolucion,
@@ -212,7 +231,7 @@ class ModeloCalificaciones
              FROM calificaciones c
              INNER JOIN usuarios u ON u.idUsuario = c.id_estudiante
              LEFT JOIN lecciones l ON l.idLeccion = c.id_modulo
-             WHERE c.id_seccion = :idSeccion
+             WHERE c.id_seccion = :idSeccion AND ' . ModeloTenant::calificaciones('c') . '
              ORDER BY c.idCalificacion DESC'
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -365,6 +384,8 @@ class ModeloCalificaciones
 
     public static function mdlCalificacionesPorEstudiante($idSeccion, $idEstudiante)
     {
+        ModeloTenant::exigirSeccion($idSeccion);
+        ModeloTenant::exigirUsuario($idEstudiante, ['ESTUDIANTE']);
         $stmt = Conexion::conectar()->prepare(
             'SELECT c.idCalificacion, c.id_estudiante, c.id_seccion, c.id_modulo, c.id_curso, c.calificacion,
                     c.devolucion,
@@ -372,7 +393,7 @@ class ModeloCalificaciones
              FROM calificaciones c
              LEFT JOIN lecciones l ON l.idLeccion = c.id_modulo
              WHERE c.id_seccion = :idSeccion
-               AND c.id_estudiante = :idEstudiante
+               AND c.id_estudiante = :idEstudiante AND ' . ModeloTenant::calificaciones('c') . '
              ORDER BY c.idCalificacion DESC'
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -383,6 +404,8 @@ class ModeloCalificaciones
 
     public static function mdlCalificacionPorLeccionYEstudiante($idSeccion, $idLeccion, $idEstudiante)
     {
+        ModeloTenant::exigirLeccion($idLeccion, $idSeccion);
+        ModeloTenant::exigirUsuario($idEstudiante, ['ESTUDIANTE']);
         $stmt = Conexion::conectar()->prepare(
             'SELECT c.idCalificacion, c.id_estudiante, c.id_seccion, c.id_modulo, c.id_curso, c.calificacion, c.devolucion,
                     l.nombreLeccion, l.tipoLeccion
@@ -390,7 +413,7 @@ class ModeloCalificaciones
              LEFT JOIN lecciones l ON l.idLeccion = c.id_modulo
              WHERE c.id_seccion = :idSeccion
                AND c.id_modulo = :idLeccion
-               AND c.id_estudiante = :idEstudiante
+               AND c.id_estudiante = :idEstudiante AND ' . ModeloTenant::calificaciones('c') . '
              LIMIT 1'
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -402,13 +425,15 @@ class ModeloCalificaciones
 
     public static function mdlCalificacionPorSeccionYEstudiante($idSeccion, $idEstudiante)
     {
+        ModeloTenant::exigirSeccion($idSeccion);
+        ModeloTenant::exigirUsuario($idEstudiante, ['ESTUDIANTE']);
         $stmt = Conexion::conectar()->prepare(
             'SELECT c.idCalificacion, c.id_estudiante, c.id_seccion, c.id_modulo, c.id_curso, c.calificacion, c.devolucion,
                     l.nombreLeccion, l.tipoLeccion
              FROM calificaciones c
              LEFT JOIN lecciones l ON l.idLeccion = c.id_modulo
              WHERE c.id_seccion = :idSeccion
-               AND c.id_estudiante = :idEstudiante
+               AND c.id_estudiante = :idEstudiante AND ' . ModeloTenant::calificaciones('c') . '
              ORDER BY c.idCalificacion DESC'
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -542,6 +567,7 @@ class ModeloCalificaciones
     public static function mdlEstudiantesPorCurso($idCurso)
     {
         self::prepararTablasEvaluaciones();
+        ModeloTenant::exigirCurso($idCurso);
 
         $stmt = Conexion::conectar()->prepare('
             SELECT DISTINCT u.idUsuario, u.nombreUsuario, u.apellidoUsuario, u.email
@@ -549,8 +575,9 @@ class ModeloCalificaciones
             INNER JOIN usuarios u ON u.idUsuario = a.id_estudiante
             WHERE a.id_seccion = :idCurso
               AND a.estadoInscripcion = "ACTIVA"
-              AND u.rol = "ESTUDIANTE"
               AND u.activo = 1
+              AND ' . ModeloTenant::cursoId($idCurso) . '
+              AND ' . ModeloTenant::usuarioConRol('u.idUsuario', ['ESTUDIANTE']) . '
             ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC
         ');
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);

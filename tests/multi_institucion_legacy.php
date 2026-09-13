@@ -11,6 +11,7 @@ require __DIR__ . '/../modelos/cursos.modelo.php';
 require __DIR__ . '/../modelos/materias.modelo.php';
 require __DIR__ . '/../modelos/lecciones.modelo.php';
 require __DIR__ . '/../modelos/asistencias.modelo.php';
+require __DIR__ . '/../modelos/calificaciones.modelo.php';
 $pdo = Conexion::conectar();
 function comprobarLegacy($condicion, $mensaje) {
     if (!$condicion) { throw new RuntimeException($mensaje); }
@@ -29,3 +30,7 @@ $seccionesAsistencia=ModeloAsistencias::mdlSecciones();
 comprobarLegacy(count($seccionesAsistencia)>0, 'Listado habitual de asistencia conserva materias existentes');
 $idSeccionAsistencia=(int)$pdo->query('SELECT MIN(id_seccion) FROM asistencia_clases')->fetchColumn();
 comprobarLegacy(count(ModeloAsistencias::mdlClasesSeccion($idSeccionAsistencia))>0, 'Consulta habitual de clases funciona sin contexto');
+$idSeccionCalificacion=(int)$pdo->query('SELECT MIN(id_seccion) FROM calificaciones')->fetchColumn();
+comprobarLegacy(count(ModeloCalificaciones::mdlCalificacionesPorSeccion($idSeccionCalificacion))===(int)$pdo->query('SELECT COUNT(*) FROM calificaciones WHERE id_seccion='.(int)$idSeccionCalificacion)->fetchColumn(), 'Listado habitual de calificaciones conserva registros existentes');
+$notaLegacy=$pdo->query('SELECT * FROM calificaciones ORDER BY idCalificacion LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+comprobarLegacy(ModeloCalificaciones::mdlGuardarCalificacion($notaLegacy)==='ok', 'Escritura habitual de calificación conserva compatibilidad');
