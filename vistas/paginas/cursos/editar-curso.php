@@ -1,8 +1,6 @@
 <?php
 $idCurso = (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0);
-$db = new Conexion;
-$curso = $db->consultas("SELECT * FROM cursos WHERE idCurso = $idCurso");
-$curso = $curso[0] ?? [
+$curso = ControladorCursos::crtBuscarCursoPorId($idCurso) ?: [
     'idCurso' => $idCurso,
     'nombreCurso' => '',
     'contenidoCurso' => '',

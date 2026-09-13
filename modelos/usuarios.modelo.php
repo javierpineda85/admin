@@ -419,6 +419,32 @@ class ModeloUsuarios
 
     public static function mdlSeleccionarUsuarios($item, $valor)
     {
+        if (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true) {
+            require_once __DIR__ . '/tenant.modelo.php';
+            $institucion = ModeloTenant::id();
+            $filtro = '';
+            $parametros = [$institucion];
+            if ($item !== null && $valor !== null) {
+                if ($item === 'rol') {
+                    $filtro = ' AND ' . ModeloTenant::usuarioConRol('u.idUsuario', [(string)$valor]);
+                } elseif ($item === 'activo') {
+                    $filtro = ' AND ui.activo = ?'; $parametros[] = (int)$valor;
+                } elseif (in_array($item, ['idUsuario','nombreUsuario','apellidoUsuario','email'], true)) {
+                    $filtro = ' AND u.' . $item . ' = ?'; $parametros[] = $valor;
+                } else { return []; }
+            }
+            $stmt = Conexion::conectar()->prepare("SELECT u.idUsuario,u.nombreUsuario,u.apellidoUsuario,u.email,u.imgUsuario,
+                ui.activo,ui.fechaAlta,ui.fechaBaja,ui.motivoBaja,
+                DATE_FORMAT(ui.fechaAlta,'%d/%m/%Y %H:%i') fechaAltaFmt,
+                DATE_FORMAT(ui.fechaBaja,'%d/%m/%Y %H:%i') fechaBajaFmt,
+                GROUP_CONCAT(DISTINCT r.codigo ORDER BY r.codigo SEPARATOR ' · ') rol
+                FROM usuarios_instituciones ui INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario
+                LEFT JOIN usuarios_instituciones_roles ur ON ur.id_usuario_institucion=ui.idUsuarioInstitucion
+                LEFT JOIN roles r ON r.idRol=ur.id_rol AND r.codigo IN ('ADMINISTRADOR','DOCENTE','ESTUDIANTE')
+                WHERE ui.id_institucion=? " . $filtro . ' GROUP BY ui.idUsuarioInstitucion,u.idUsuario ORDER BY u.apellidoUsuario,u.nombreUsuario');
+            $stmt->execute($parametros);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
         if ($item === null || $valor === null) {
             $stmt = Conexion::conectar()->prepare("
                 SELECT u.*,
@@ -459,6 +485,13 @@ class ModeloUsuarios
 
     public static function mdlUsuariosDocentesAsignables()
     {
+        if (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true) {
+            $usuarios = [];
+            foreach (['DOCENTE', 'ADMINISTRADOR'] as $rol) {
+                foreach (self::mdlSeleccionarUsuarios('rol', $rol) as $usuario) { $usuarios[$usuario['idUsuario']] = $usuario; }
+            }
+            return array_values($usuarios);
+        }
         $stmt = Conexion::conectar()->prepare("
             SELECT u.*,
                    DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,

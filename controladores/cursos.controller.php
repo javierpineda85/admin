@@ -40,6 +40,7 @@ class ControladorCursos
 
     static public function crtPuedeGestionarCurso($idCurso)
     {
+        ModeloTenant::exigirCurso($idCurso);
         if (ControladorPermisos::esAdministrador()) {
             return true;
         }

@@ -70,3 +70,7 @@ La fase 3 concentra capacidades en `ControladorPermisos`: toma todos los roles d
 contexto, autoriza por su unión y conserva un rol principal estable para las vistas
 legacy. Las personas asignables se validan contra membresía y rol activos mediante
 `ModeloInstituciones`.
+
+La fase 4 en curso agrega `ModeloTenant` para construir predicados SQL comunes y
+validar cadenas de pertenencia. Las vistas de cursos y formularios de materias
+utilizan consultas de modelos. Alcance y límites en [multi-institucion-fase4.md](multi-institucion-fase4.md).

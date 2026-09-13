@@ -1,8 +1,13 @@
 <?php
 require_once('conexion.php');
+require_once __DIR__ . '/tenant.modelo.php';
 
 class ModeloMaterias
 {
+    private static function rolesDocentesSql($docente, $tutor)
+    {
+        return ModeloTenant::usuarioIdConRol($docente,['DOCENTE','ADMINISTRADOR']) . ' AND ' . ((int)$tutor > 0 ? ModeloTenant::usuarioIdConRol($tutor,['DOCENTE','ADMINISTRADOR']) : '1=1');
+    }
     static public function mdlBuscarMateriaPorId($idSeccion)
     {
         $stmt = Conexion::conectar()->prepare("
@@ -10,7 +15,7 @@ class ModeloMaterias
                    CONCAT(creador.nombreUsuario, ' ', creador.apellidoUsuario) AS creadorNombre
             FROM secciones s
             LEFT JOIN usuarios creador ON creador.idUsuario = s.creadoPor
-            WHERE s.idSeccion = :idSeccion
+            WHERE s.idSeccion = :idSeccion AND " . ModeloTenant::secciones() . "
             LIMIT 1
         ");
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -22,8 +27,11 @@ class ModeloMaterias
     /* GUARDAR MATERIA */
     static public function mdlGuardarMateria($tabla, $datos)
     {
-
-        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla (tituloSeccion, contenidoSeccion, id_curso, docente, tutor, bannerSeccion, colorInicioBanner, colorFinBanner, creadoPor) VALUES (:tituloSeccion, :contenidoSeccion, :id_curso, :docente, :tutor, :bannerSeccion, :colorInicioBanner, :colorFinBanner, :creadoPor)");
+        if ($tabla !== 'secciones') { throw new InvalidArgumentException('Tabla inválida.'); }
+        ModeloTenant::exigirCurso($datos['id_curso']);
+        ModeloTenant::exigirUsuario($datos['docente'], ['DOCENTE', 'ADMINISTRADOR']);
+        if ((int) $datos['tutor'] > 0) { ModeloTenant::exigirUsuario($datos['tutor'], ['DOCENTE', 'ADMINISTRADOR']); }
+        $registro = Conexion::conectar()->prepare("INSERT INTO $tabla (tituloSeccion, contenidoSeccion, id_curso, docente, tutor, bannerSeccion, colorInicioBanner, colorFinBanner, creadoPor) SELECT :tituloSeccion, :contenidoSeccion, :id_curso, :docente, :tutor, :bannerSeccion, :colorInicioBanner, :colorFinBanner, :creadoPor WHERE " . ModeloTenant::cursoId($datos['id_curso']) . ' AND ' . self::rolesDocentesSql($datos['docente'],$datos['tutor']));
 
         $registro->bindParam(":tituloSeccion", $datos["tituloSeccion"], PDO::PARAM_STR);
         $registro->bindParam(":contenidoSeccion", $datos["contenidoSeccion"], PDO::PARAM_STR);
@@ -46,6 +54,17 @@ class ModeloMaterias
 
     static public function mdlModificarMateria($tabla, $datos)
     {
+        if ($tabla !== 'secciones') { throw new InvalidArgumentException('Tabla inválida.'); }
+        ModeloTenant::exigirSeccion($datos['idSeccion']);
+        ModeloTenant::exigirCurso($datos['id_curso']);
+        if (ModeloTenant::activo()) {
+            $actual = self::mdlBuscarMateriaPorId($datos['idSeccion']);
+            if ((int)$actual['id_curso'] !== (int)$datos['id_curso']) {
+                throw new RuntimeException('La materia institucional no puede cambiar de curso; preservá sus referencias académicas.');
+            }
+        }
+        ModeloTenant::exigirUsuario($datos['docente'], ['DOCENTE', 'ADMINISTRADOR']);
+        if ((int) $datos['tutor'] > 0) { ModeloTenant::exigirUsuario($datos['tutor'], ['DOCENTE', 'ADMINISTRADOR']); }
         $registro = Conexion::conectar()->prepare("
             UPDATE $tabla
             SET tituloSeccion = :tituloSeccion,
@@ -56,7 +75,9 @@ class ModeloMaterias
                 bannerSeccion = :bannerSeccion,
                 colorInicioBanner = :colorInicioBanner,
                 colorFinBanner = :colorFinBanner
-            WHERE idSeccion = :idSeccion
+            WHERE idSeccion = :idSeccion AND " . ModeloTenant::secciones('secciones') . "
+              AND " . ModeloTenant::cursoId($datos['id_curso']) . "
+              AND " . self::rolesDocentesSql($datos['docente'],$datos['tutor']) . "
         ");
 
         $registro->bindParam(":tituloSeccion", $datos["tituloSeccion"], PDO::PARAM_STR);
@@ -82,11 +103,13 @@ class ModeloMaterias
     static public function mdlBuscarMateriaXcurso($item, $valor)
     {
         if ($item == 'join-1-curso') {
+            ModeloTenant::exigirCurso($valor);
+            $valor = (int) $valor;
 
             /* JOIN con usuarios y 1 curso en especifico */
-            $stmt = Conexion::conectar()->prepare("SELECT idSeccion, tituloSeccion, contenidoSeccion,id_curso, docente, tutor, cursos.nombreCurso, usuarios.nombreUsuario , usuarios.apellidoUsuario FROM secciones JOIN cursos ON secciones.id_curso = cursos.idCurso JOIN usuarios ON secciones.docente = usuarios.idUsuario WHERE secciones.id_curso= $valor ORDER BY tituloSeccion ASC");
+            $stmt = Conexion::conectar()->prepare("SELECT idSeccion, tituloSeccion, contenidoSeccion,id_curso, docente, tutor, cursos.nombreCurso, usuarios.nombreUsuario , usuarios.apellidoUsuario FROM secciones JOIN cursos ON secciones.id_curso = cursos.idCurso JOIN usuarios ON secciones.docente = usuarios.idUsuario WHERE secciones.id_curso= ? AND " . ModeloTenant::cursos('cursos') . ' ORDER BY tituloSeccion ASC');
 
-            $stmt->execute();
+            $stmt->execute([$valor]);
             return $stmt->fetchAll();
             $stmt->closeCursor();
             $stmt = null;
@@ -102,7 +125,8 @@ class ModeloMaterias
     {
         $filtroDocente = (int) $idDocente > 0
             ? ' WHERE (s.docente = :idDocente OR s.tutor = :idDocente) AND s.activo = 1 AND c.activo = 1'
-            : '';
+            : ' WHERE 1=1';
+        $filtroDocente .= ' AND ' . ModeloTenant::cursos();
 
         $stmt = Conexion::conectar()->prepare("
             SELECT s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
@@ -136,13 +160,14 @@ class ModeloMaterias
 
     static public function mdlCambiarEstadoActivoMateria($idSeccion, $activo, $motivo, $idAdministrador)
     {
+        ModeloTenant::exigirSeccion($idSeccion);
         $stmt = Conexion::conectar()->prepare("
             UPDATE secciones
             SET activo = :activo,
                 fechaBaja = :fechaBaja,
                 motivoBaja = :motivoBaja,
                 usuarioBaja = :usuarioBaja
-            WHERE idSeccion = :idSeccion
+            WHERE idSeccion = :idSeccion AND " . ModeloTenant::secciones('secciones') . "
         ");
         $esActiva = (int) $activo === 1;
         $stmt->bindValue(':activo', $esActiva ? 1 : 0, PDO::PARAM_INT);
@@ -156,12 +181,14 @@ class ModeloMaterias
 
     static public function mdlActualizarDocentesMateria($idSeccion, $idDocente, $idAdjunto)
     {
+        ModeloTenant::exigirSeccion($idSeccion);
+        ModeloTenant::exigirUsuario($idDocente, ['DOCENTE', 'ADMINISTRADOR']);
+        if ((int) $idAdjunto > 0) { ModeloTenant::exigirUsuario($idAdjunto, ['DOCENTE', 'ADMINISTRADOR']); }
         $stmt = Conexion::conectar()->prepare('
             UPDATE secciones
             SET docente = :idDocente,
                 tutor = :idAdjunto
-            WHERE idSeccion = :idSeccion
-        ');
+            WHERE idSeccion = :idSeccion AND ' . ModeloTenant::secciones('secciones') . ' AND ' . self::rolesDocentesSql($idDocente,$idAdjunto));
         $idAdjunto = (int) $idAdjunto;
         $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
         $stmt->bindValue(':idAdjunto', $idAdjunto > 0 ? $idAdjunto : null, $idAdjunto > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
@@ -172,6 +199,7 @@ class ModeloMaterias
 
     static public function mdlDependenciasMateria($idSeccion)
     {
+        ModeloTenant::exigirSeccion($idSeccion);
         $relaciones = [
             'lecciones' => 'id_modulo',
             'calificaciones' => 'id_seccion',
@@ -203,7 +231,8 @@ class ModeloMaterias
 
     static public function mdlEliminarMateria($idSeccion)
     {
-        $stmt = Conexion::conectar()->prepare('DELETE FROM secciones WHERE idSeccion = :idSeccion');
+        ModeloTenant::exigirSeccion($idSeccion);
+        $stmt = Conexion::conectar()->prepare('DELETE FROM secciones WHERE idSeccion = :idSeccion AND ' . ModeloTenant::secciones('secciones'));
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
 
         return $stmt->execute() && $stmt->rowCount() === 1 ? 'ok' : 'error';

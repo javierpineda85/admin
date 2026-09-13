@@ -1,0 +1,228 @@
+<?php
+require_once __DIR__ . '/conexion.php';
+
+/** Predicados comunes de aislamiento. Los identificadores SQL son constantes del código. */
+class ModeloTenant
+{
+    public static function activo()
+    {
+        return defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true;
+    }
+
+    public static function id()
+    {
+        if (!self::activo()) { return 0; }
+        if (!class_exists('ControladorInstitucion', false)
+            || !ControladorInstitucion::refrescar(false)
+            || ControladorInstitucion::id() <= 0) {
+            throw new RuntimeException('Acceso institucional denegado.');
+        }
+        return (int) ControladorInstitucion::id();
+    }
+
+    public static function cursos($alias = 'c')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return $alias . '.id_institucion = ' . self::id() . ' AND ' . self::sesionActiva();
+    }
+
+    private static function identificador($valor)
+    {
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$/D', $valor)) {
+            throw new InvalidArgumentException('Identificador SQL inválido.');
+        }
+    }
+
+    /** Revalida también en la sentencia ejecutada, no solo al construirla. */
+    public static function sesionActiva()
+    {
+        if (!self::activo()) { return '1=1'; }
+        $id = self::id();
+        $usuario = (int) ($_SESSION['usuario']['id'] ?? 0);
+        return 'EXISTS (SELECT 1 FROM usuarios_instituciones acceso_ui
+            INNER JOIN usuarios acceso_u ON acceso_u.idUsuario=acceso_ui.id_usuario AND acceso_u.activo=1
+            INNER JOIN instituciones acceso_i ON acceso_i.idInstitucion=acceso_ui.id_institucion AND acceso_i.activo=1
+            WHERE acceso_ui.id_usuario=' . $usuario . ' AND acceso_ui.id_institucion=' . $id . ' AND acceso_ui.activo=1)';
+    }
+
+    public static function cursoId($id)
+    {
+        return self::activo() ? 'EXISTS (SELECT 1 FROM cursos alcance_c WHERE alcance_c.idCurso=' . (int)$id . ' AND ' . self::cursos('alcance_c') . ')' : '1=1';
+    }
+
+    public static function seccionId($id)
+    {
+        return self::activo() ? 'EXISTS (SELECT 1 FROM secciones alcance_s WHERE alcance_s.idSeccion=' . (int)$id . ' AND ' . self::secciones('alcance_s') . ')' : '1=1';
+    }
+
+    public static function lecciones($alias = 'l')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM secciones alcance_ls INNER JOIN cursos alcance_lc ON alcance_lc.idCurso=alcance_ls.id_curso
+            WHERE alcance_ls.idSeccion=' . $alias . '.id_modulo AND ' . self::cursos('alcance_lc') . ')';
+    }
+
+    public static function leccionId($id)
+    {
+        return self::activo() ? 'EXISTS (SELECT 1 FROM lecciones alcance_l WHERE alcance_l.idLeccion=' . (int)$id . ' AND ' . self::lecciones('alcance_l') . ')' : '1=1';
+    }
+
+    public static function hijoLeccion($alias)
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM lecciones alcance_hl WHERE alcance_hl.idLeccion=' . $alias . '.id_leccion AND ' . self::lecciones('alcance_hl') . ')';
+    }
+
+    /** Una referencia redundante incoherente nunca permite leer datos de otra institución. */
+    public static function entregas($alias = 'e')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM lecciones coherencia_l INNER JOIN secciones coherencia_s ON coherencia_s.idSeccion=coherencia_l.id_modulo
+            INNER JOIN cursos coherencia_c ON coherencia_c.idCurso=coherencia_s.id_curso WHERE coherencia_l.idLeccion=' . $alias . '.id_leccion
+            AND coherencia_s.idSeccion=' . $alias . '.id_seccion AND coherencia_c.idCurso=' . $alias . '.id_curso
+            AND ' . self::cursos('coherencia_c') . ')';
+    }
+
+    public static function relacionLeccion($idLeccion, $idSeccion, $idCurso)
+    {
+        if (!self::activo()) { return '1=1'; }
+        return 'EXISTS (SELECT 1 FROM lecciones relacion_l INNER JOIN secciones relacion_s ON relacion_s.idSeccion=relacion_l.id_modulo
+            INNER JOIN cursos relacion_c ON relacion_c.idCurso=relacion_s.id_curso
+            WHERE relacion_l.idLeccion=' . (int)$idLeccion . ($idSeccion === null ? '' : ' AND relacion_s.idSeccion=' . (int)$idSeccion) . '
+            AND relacion_c.idCurso=' . (int)$idCurso . ' AND ' . self::cursos('relacion_c') . ')';
+    }
+
+    public static function posteos($alias = 'p')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM lecciones post_l INNER JOIN secciones post_s ON post_s.idSeccion=post_l.id_modulo
+            INNER JOIN cursos post_c ON post_c.idCurso=post_s.id_curso WHERE post_l.idLeccion=' . $alias . '.id_leccion
+            AND post_c.idCurso=' . $alias . '.id_curso AND ' . self::cursos('post_c') . ')';
+    }
+
+    public static function calificaciones($alias = 'calificaciones')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM secciones nota_s INNER JOIN cursos nota_c ON nota_c.idCurso=nota_s.id_curso
+            WHERE nota_s.idSeccion=' . $alias . '.id_seccion AND nota_c.idCurso=' . $alias . '.id_curso
+            AND ' . self::cursos('nota_c') . ' AND (COALESCE(' . $alias . '.id_modulo,0)=0 OR EXISTS
+                (SELECT 1 FROM lecciones nota_l WHERE nota_l.idLeccion=' . $alias . '.id_modulo AND nota_l.id_modulo=nota_s.idSeccion)))';
+    }
+
+    public static function adjuntosEntrega($alias = 'entregaslecciones_adjuntos')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM entregaslecciones adj_e WHERE adj_e.idEntregaLeccion=' . $alias . '.id_entrega AND ' . self::entregas('adj_e') . ')';
+    }
+
+    public static function secciones($alias = 's')
+    {
+        self::identificador($alias);
+        return self::activo()
+            ? 'EXISTS (SELECT 1 FROM cursos tenant_c WHERE tenant_c.idCurso = ' . $alias . '.id_curso AND ' . self::cursos('tenant_c') . ')'
+            : '1=1';
+    }
+
+    public static function exigirCurso($idCurso)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT 1 FROM cursos c WHERE c.idCurso = ? AND ' . self::cursos());
+        $stmt->execute([(int) $idCurso]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
+    }
+
+    public static function exigirSeccion($idSeccion)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT 1 FROM secciones s WHERE s.idSeccion = ? AND ' . self::secciones());
+        $stmt->execute([(int) $idSeccion]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
+    }
+
+    public static function exigirLeccion($idLeccion, $idSeccion = null, $idCurso = null)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT l.id_modulo, s.id_curso FROM lecciones l
+            INNER JOIN secciones s ON s.idSeccion=l.id_modulo
+            INNER JOIN cursos c ON c.idCurso=s.id_curso
+            WHERE l.idLeccion=? AND ' . self::cursos());
+        $stmt->execute([(int) $idLeccion]);
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$fila || ($idSeccion !== null && (int)$fila['id_modulo'] !== (int)$idSeccion)
+            || ($idCurso !== null && (int)$fila['id_curso'] !== (int)$idCurso)) {
+            throw new RuntimeException('Acceso institucional denegado.');
+        }
+    }
+
+    public static function exigirRecurso($idRecurso)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT id_leccion FROM recursoslecciones WHERE idRecursoLeccion=?');
+        $stmt->execute([(int)$idRecurso]);
+        self::exigirLeccion((int)$stmt->fetchColumn());
+    }
+
+    public static function exigirEntrega($idEntrega)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT id_leccion,id_seccion,id_curso FROM entregaslecciones WHERE idEntregaLeccion=?');
+        $stmt->execute([(int)$idEntrega]);
+        $fila=$stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$fila) { throw new RuntimeException('Acceso institucional denegado.'); }
+        self::exigirLeccion($fila['id_leccion'],$fila['id_seccion'],$fila['id_curso']);
+    }
+
+    public static function exigirInscripcion($idEstudiante, $idCurso)
+    {
+        if (!self::activo()) { return; }
+        self::exigirCurso($idCurso);
+        self::exigirUsuario($idEstudiante, ['ESTUDIANTE']);
+        $stmt=Conexion::conectar()->prepare("SELECT 1 FROM asignacioncursos WHERE id_estudiante=? AND id_seccion=? AND estadoInscripcion='ACTIVA'");
+        $stmt->execute([(int)$idEstudiante,(int)$idCurso]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Inscripción institucional no válida.'); }
+    }
+
+    public static function escrituraEntrega(array $datos)
+    {
+        if (!self::activo()) { return '1=1'; }
+        return self::relacionLeccion($datos['id_leccion'],$datos['id_seccion'],$datos['id_curso']) . '
+            AND EXISTS (SELECT 1 FROM asignacioncursos entrega_a INNER JOIN usuarios entrega_u ON entrega_u.idUsuario=entrega_a.id_estudiante
+            WHERE entrega_a.id_estudiante=' . (int)$datos['id_estudiante'] . ' AND entrega_a.id_seccion=' . (int)$datos['id_curso'] . " AND entrega_a.estadoInscripcion='ACTIVA' AND " . self::usuarioConRol('entrega_u.idUsuario',['ESTUDIANTE']) . ')';
+    }
+
+    public static function usuarioConRol($columna, array $roles)
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($columna);
+        $permitidos = ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'];
+        if (!$roles || array_diff($roles, $permitidos)) { throw new InvalidArgumentException('Rol inválido.'); }
+        $lista = "'" . implode("','", $roles) . "'";
+        return 'EXISTS (SELECT 1 FROM usuarios_instituciones tenant_ui
+            INNER JOIN instituciones tenant_i ON tenant_i.idInstitucion=tenant_ui.id_institucion AND tenant_i.activo=1
+            INNER JOIN usuarios tenant_u ON tenant_u.idUsuario=tenant_ui.id_usuario AND tenant_u.activo=1
+            INNER JOIN usuarios_instituciones_roles tenant_ur ON tenant_ur.id_usuario_institucion=tenant_ui.idUsuarioInstitucion
+            INNER JOIN roles tenant_r ON tenant_r.idRol=tenant_ur.id_rol
+            WHERE tenant_ui.id_usuario=' . $columna . ' AND tenant_ui.activo=1
+            AND tenant_ui.id_institucion=' . self::id() . ' AND tenant_r.codigo IN (' . $lista . '))';
+    }
+
+    public static function exigirUsuario($idUsuario, array $roles)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT 1 FROM usuarios u WHERE u.idUsuario=? AND ' . self::usuarioConRol('u.idUsuario', $roles));
+        $stmt->execute([(int) $idUsuario]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Membresía o rol institucional no válido.'); }
+    }
+
+    public static function usuarioIdConRol($idUsuario, array $roles)
+    {
+        return self::activo() ? 'EXISTS (SELECT 1 FROM usuarios rol_u WHERE rol_u.idUsuario=' . (int)$idUsuario . ' AND ' . self::usuarioConRol('rol_u.idUsuario',$roles) . ')' : '1=1';
+    }
+}

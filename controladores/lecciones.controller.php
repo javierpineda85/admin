@@ -6,6 +6,7 @@ class ControladorLecciones
 {
     private static function puedeGestionarSeccion($idSeccion)
     {
+        ModeloTenant::exigirSeccion($idSeccion);
         if (ControladorPermisos::esAdministrador()) {
             return true;
         }

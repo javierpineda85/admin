@@ -1,8 +1,7 @@
 <?php
-$db = new Conexion;
 $cursos = ControladorPermisos::esDocente()
   ? ControladorCursos::crtCursosPorDocente((int) ($_SESSION['usuario']['id'] ?? 0))
-  : $db->consultas("SELECT * FROM cursos WHERE activo = 1 ORDER BY nombreCurso ASC");
+  : array_values(array_filter(ControladorCursos::crtListarCursos(), static function ($curso) { return (int)($curso['activo'] ?? 0) === 1; }));
 $usuarios = ControladorUsuarios::crtUsuariosDocentesAsignables();
 $registro = ControladorMaterias::crtGuardarMateria();
 ?>

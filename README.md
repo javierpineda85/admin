@@ -77,3 +77,8 @@ ni conexión con WordPress de producción.
 La fase 3 conecta los roles de membresía con `ControladorPermisos`, admite roles
 simultáneos y valida institucionalmente las personas asignables. Las rutas
 académicas siguen cerradas hasta completar la fase 4.
+
+La fase 4 está en curso. `php tests/multi_institucion_recursos.php` ensaya aislamiento
+de cursos, materias, lecciones, inscripciones y duplicación sobre datos sintéticos.
+El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y los
+dominios pendientes antes de habilitar el Campus multiinstitución.

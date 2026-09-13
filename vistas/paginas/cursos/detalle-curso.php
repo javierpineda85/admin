@@ -18,14 +18,8 @@ $curso = $cursoDetalle ? [$cursoDetalle] : [];
 
 $estudiantes = $esAdmin ? ControladorCursos::crtEstudiantesDisponiblesCurso($idCurso) : [];
 
-$db = new Conexion;
-$sql = "SELECT * FROM asignacioncursos
-        RIGHT JOIN usuarios ON asignacioncursos.id_estudiante = usuarios.idUsuario
-        WHERE usuarios.rol = 'ESTUDIANTE'
-        AND asignacioncursos.id_seccion = $idCurso
-        AND asignacioncursos.estadoInscripcion = 'ACTIVA'";
-$cursantes = $db->consultas($sql);
-$cursantesBaja=$esAdmin?$db->consultas("SELECT a.*,u.nombreUsuario,u.apellidoUsuario,u.email FROM asignacioncursos a INNER JOIN usuarios u ON u.idUsuario=a.id_estudiante WHERE a.id_seccion=$idCurso AND a.estadoInscripcion='BAJA' ORDER BY a.fechaBaja DESC"):[];
+$cursantes = ModeloCursos::mdlInscripcionesCurso($idCurso);
+$cursantesBaja = $esAdmin ? ModeloCursos::mdlInscripcionesCurso($idCurso, 'BAJA') : [];
 
 $secciones = $esDocente && !$esAdmin
     ? ControladorCursos::crtSeccionesPorCursoParaDocente($idCurso, $idUsuarioActual)

@@ -4,6 +4,8 @@ Estado: fases 1, 2 y 3 implementadas y ensayadas; el flujo nuevo está disponibl
 ofrece aislamiento multiinstitución. No habilitar una segunda institución en el
 Campus hasta completar las fases de contexto, permisos, consultas y archivos.
 
+Fase 4 en curso: [alcance, pruebas y pendientes del aislamiento](multi-institucion-fase4.md).
+
 ## Arquitectura acordada
 
 Se conserva PHP, PDO y MVC. `usuarios` y `perfiles` representan la identidad global.

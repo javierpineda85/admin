@@ -1,5 +1,5 @@
 <?php
-require('modelos/materias.modelo.php');
+require_once('modelos/materias.modelo.php');
 
 
 class ControladorMaterias

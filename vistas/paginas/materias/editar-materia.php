@@ -1,8 +1,6 @@
 <?php
 $idSeccion = (int) ($_GET['idSeccion'] ?? $_GET['id'] ?? 0);
-$db = new Conexion;
-$materia = $db->consultas("SELECT * FROM secciones WHERE idSeccion = $idSeccion");
-$materia = $materia[0] ?? [
+$materia = ControladorMaterias::crtBuscarMateriaPorId($idSeccion) ?: [
     'idSeccion' => $idSeccion,
     'tituloSeccion' => '',
     'contenidoSeccion' => '',
@@ -13,8 +11,7 @@ $materia = $materia[0] ?? [
     'colorInicioBanner' => '#0f172a',
     'colorFinBanner' => '#1d4ed8',
 ];
-$db = new Conexion;
-$cursos = $db->consultas("SELECT * FROM cursos ORDER BY nombreCurso ASC");
+$cursos = ControladorCursos::crtListarCursos();
 $usuarios = ControladorUsuarios::crtUsuariosDocentesAsignables();
 $registro = ControladorMaterias::crtModificarMateria();
 ?>

@@ -84,3 +84,9 @@ La fase 3 agrega una consulta para validar los roles efectivos de cualquier usua
 en una institución concreta. Exige que usuario, institución y membresía estén
 activos y solo reconoce los códigos académicos habilitados. Las consultas legacy
 que filtran `usuarios.rol` se sustituirán al incorporar el tenant en fase 4.
+
+En el primer bloque de fase 4, los listados de usuarios y matrículas del curso usan
+roles de membresía. Las referencias redundantes de entregas se comprueban contra
+la cadena lección → sección → curso; las filas incoherentes no se reasignan ni
+eliminan automáticamente. La preparación DDL de cursos/lecciones queda desactivada
+durante el ensayo institucional. Consultar [los pendientes de despliegue](multi-institucion-fase4.md).
