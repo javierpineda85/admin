@@ -34,3 +34,6 @@ $idSeccionCalificacion=(int)$pdo->query('SELECT MIN(id_seccion) FROM calificacio
 comprobarLegacy(count(ModeloCalificaciones::mdlCalificacionesPorSeccion($idSeccionCalificacion))===(int)$pdo->query('SELECT COUNT(*) FROM calificaciones WHERE id_seccion='.(int)$idSeccionCalificacion)->fetchColumn(), 'Listado habitual de calificaciones conserva registros existentes');
 $notaLegacy=$pdo->query('SELECT * FROM calificaciones ORDER BY idCalificacion LIMIT 1')->fetch(PDO::FETCH_ASSOC);
 comprobarLegacy(ModeloCalificaciones::mdlGuardarCalificacion($notaLegacy)==='ok', 'Escritura habitual de calificación conserva compatibilidad');
+$cantidadHistorial=(int)$pdo->query('SELECT (SELECT COUNT(*) FROM calificaciones)+(SELECT COUNT(*) FROM evaluaciones_calificaciones)+(SELECT COUNT(*) FROM cierres_periodo_calificaciones)')->fetchColumn();
+comprobarLegacy(count(ModeloCalificaciones::mdlCalificacionesGenerales())===$cantidadHistorial, 'Historial general habitual conserva calificaciones y cierres existentes');
+comprobarLegacy(count(ModeloCalificaciones::mdlResumenCierresGenerales())===(int)$pdo->query('SELECT COUNT(*) FROM cierres_periodo_calificaciones')->fetchColumn(), 'Resumen habitual conserva cierres existentes');

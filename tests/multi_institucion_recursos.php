@@ -70,6 +70,18 @@ $evaluacionDemo=ModeloCalificaciones::mdlCrearEvaluacion(['id_seccion'=>$materia
 verificar($evaluacionDemo>0 && ModeloCalificaciones::mdlEvaluacionPorId($evaluacionDemo)['temaEvaluacion']==='Evaluación Demo', 'Evaluación propia puede crearse y consultarse');
 verificar(ModeloCalificaciones::mdlGuardarCalificacionesEvaluacion($evaluacionDemo,[['id_estudiante'=>$ids['A'],'calificacion'=>9,'estadoAsistencia'=>'PRESENTE','devolucion'=>'Muy bien']])==='ok', 'Calificación de evaluación valida inscripción y tenant');
 verificar(count(ModeloCalificaciones::mdlCalificacionesEvaluacion($evaluacionDemo))===1, 'Planilla de evaluación propia devuelve su calificación');
+$periodoDemo=(int)$contextoDemo['periodos'][0]['idPeriodo'];
+verificar(ModeloCalificaciones::mdlCalcularCierresPeriodo($periodoDemo,$materiaDemo,$ids['B'])===1, 'Cierre calcula promedios solo para estudiantes válidos del tenant');
+$cierresDemo=ModeloCalificaciones::mdlCierresPeriodo($periodoDemo,$materiaDemo);
+verificar(count($cierresDemo)===1&&(int)$cierresDemo[0]['id_estudiante']===$ids['A'], 'Listado de cierres conserva únicamente estudiantes institucionales');
+verificar(ModeloCalificaciones::mdlGuardarCierresPeriodo($periodoDemo,$materiaDemo,[$ids['A']=>9],$ids['B'])==='ok', 'Cierre institucional puede confirmarse');
+verificar(ModeloCalificaciones::mdlCambiarEstadoPeriodo($periodoDemo,$materiaDemo,'CERRADO',$ids['B'])==='ok'
+    && ModeloCalificaciones::mdlPeriodoPorId($periodoDemo,$materiaDemo)['estado']==='CERRADO', 'Estado del período se guarda por materia e institución');
+verificar(count(ModeloCalificaciones::mdlResumenCierresGenerales())===1, 'Resumen general de cierres queda limitado al tenant activo');
+verificar(count(ModeloCalificaciones::mdlCalificacionesGenerales())===2, 'Historial general combina solo nota de evaluación y cierre propios antes de las tareas');
+verificar(array_column(ModeloCalificaciones::mdlSeccionesParaCalificaciones(),'idSeccion')===[$materiaDemo], 'Tarjetas de calificaciones muestran solo materias del tenant activo');
+verificar(ModeloCalificaciones::mdlEstudiantesIntensificacion($cursoDemo,$materiaDemo)===[], 'Intensificación consulta cierres sin salir del tenant');
+denegado(function() use($contextoMM,$materiaDemo,$ids) { ModeloCalificaciones::mdlCambiarEstadoPeriodo($contextoMM['periodos'][0]['idPeriodo'],$materiaDemo,'CERRADO',$ids['B']); }, 'No se puede cerrar un período de otra institución');
 $notaEvaluacionAjena=[['id_estudiante'=>$ids['C'],'calificacion'=>10,'estadoAsistencia'=>'PRESENTE','devolucion'=>'']];
 denegado(function() use($evaluacionDemo,$notaEvaluacionAjena) { ModeloCalificaciones::mdlGuardarCalificacionesEvaluacion($evaluacionDemo,$notaEvaluacionAjena); }, 'Evaluación no admite calificar un usuario ajeno a la institución');
 verificar(ModeloCalificaciones::mdlEvaluacionPorId($evaluacionMM)===null, 'Evaluación de otra institución no se revela por ID');
@@ -115,6 +127,7 @@ $notaDemo=['id_estudiante'=>$ids['A'],'id_seccion'=>$materiaDemo,'id_modulo'=>$l
     'id_curso'=>$cursoDemo,'calificacion'=>8,'devolucion'=>'Bien'];
 verificar(ModeloCalificaciones::mdlGuardarCalificacion($notaDemo)==='ok', 'Calificación de tarea coherente se guarda en la institución activa');
 verificar(count(ModeloCalificaciones::mdlCalificacionesPorSeccion($materiaDemo))===1, 'Listado de calificaciones devuelve la nota institucional propia');
+verificar(count(ModeloCalificaciones::mdlCalificacionesGenerales())===3, 'Historial general incorpora la tarea sin mezclar instituciones');
 $notaCruzada=$notaDemo; $notaCruzada['id_curso']=$cursoMM;
 denegado(function() use($notaCruzada) { ModeloCalificaciones::mdlGuardarCalificacion($notaCruzada); }, 'Calificación rechaza combinación cruzada de curso y materia');
 $notaAjena=$notaDemo; $notaAjena['id_estudiante']=$ids['C'];
@@ -196,6 +209,9 @@ denegado(function() use($claseDemo) { ModeloAsistencias::mdlClase($claseDemo); }
 denegado(function() use($materiaDemo) { ModeloAsistencias::mdlClasesSeccion($materiaDemo); }, 'Listado de asistencia ajeno se rechaza por materia');
 denegado(function() use($materiaDemo) { ModeloCalificaciones::mdlCalificacionesPorSeccion($materiaDemo); }, 'Calificaciones de otra institución no se revelan por materia');
 denegado(function() use($evaluacionDemo) { ModeloCalificaciones::mdlCalificacionesEvaluacion($evaluacionDemo); }, 'Planilla de evaluación ajena no se revela por ID');
+verificar(ModeloCalificaciones::mdlResumenCierresGenerales()===[], 'Resumen general no filtra cierres desde otra institución');
+verificar(ModeloCalificaciones::mdlCalificacionesGenerales()===[], 'Historial general no mezcla notas ni cierres de otra institución');
+verificar(array_column(ModeloCalificaciones::mdlSeccionesParaCalificaciones(),'idSeccion')===[$materiaMM], 'Tarjetas agregadas cambian junto con la institución activa');
 denegado(function() use($cursoDemo,$ids) { ModeloCursos::mdlDuplicarCurso($cursoDemo,['idUsuario'=>$ids['A']]); }, 'Duplicación de curso ajeno rechazada antes de crear datos');
 $datosMateria['idSeccion']=$materiaDemo;
 denegado(function() use($datosMateria) { ModeloMaterias::mdlModificarMateria('secciones',$datosMateria); }, 'Docente no puede modificar materia de otra institución');

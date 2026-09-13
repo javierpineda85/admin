@@ -310,6 +310,15 @@ class ModeloTenant
         if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
     }
 
+    public static function periodoSeccionId($idPeriodo, $idSeccion)
+    {
+        if (!self::activo()) { return '1=1'; }
+        return 'EXISTS (SELECT 1 FROM secciones periodo_s INNER JOIN cursos periodo_c ON periodo_c.idCurso=periodo_s.id_curso
+            INNER JOIN periodos_calificacion periodo_p ON periodo_p.idPeriodo=' . (int)$idPeriodo . ' AND periodo_p.id_ciclo=periodo_c.id_ciclo_lectivo
+            WHERE periodo_s.idSeccion=' . (int)$idSeccion . ' AND ' . self::cursos('periodo_c') . '
+            AND ' . self::periodos('periodo_p') . ')';
+    }
+
     public static function exigirInstrumentoEvaluacion($idInstrumento)
     {
         if (!self::activo()) { return; }

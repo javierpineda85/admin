@@ -52,6 +52,12 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
   eliminación y calificación. Una nota de evaluación exige inscripción activa y
   rol ESTUDIANTE. La migración `03_catalogos_calificacion` reemplaza las claves
   únicas globales por claves compuestas con institución y puede reanudarse.
+- El cálculo y confirmación de cierres, así como la apertura o cierre de períodos,
+  validan período, materia, actor y sesión institucional. Los promedios sólo usan
+  evaluaciones coherentes de estudiantes con inscripción y membresía activas.
+- Los historiales generales combinan tareas, evaluaciones y cierres después de
+  aplicar el tenant a cada origen. Los resúmenes y tarjetas de materias también
+  filtran sus agregados, evitando conteos o nombres de otras instituciones.
 
 ## Pruebas
 
@@ -64,7 +70,7 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260913_213755_4f56fc`, 161 comprobaciones
+Última verificación: `campus_mt_fase2_20260913_214356_eb94c1`, 174 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno. Los archivos sintéticos
 se eliminan después de comprobar que la copia mantiene exactamente su contenido.
@@ -72,7 +78,7 @@ se eliminan después de comprobar que la copia mantiene exactamente su contenido
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
 definiendo `CAMPUS_TEST_BASE` con el nombre devuelto por el ensayo de recursos;
-rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus nueve
+rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus once
 comprobaciones de listados, lecturas y escritura, incluidas materias y clases de
 asistencia. No usa la base original.
 
@@ -83,8 +89,8 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 ## Trabajo pendiente antes de finalizar y habilitar
 
-- Completar calificaciones generales, cierres y cambios de estado de períodos;
-  ampliar asistencia
+- Ampliar asistencia con pruebas HTTP cuando se retire el bloqueo preventivo;
+  revisar las vistas de calificaciones antes de habilitarlas.
   con pruebas HTTP cuando se retire el bloqueo preventivo de las aulas.
 - Completar actividades, plantillas, intentos y rutas públicas.
 - Aislar mensajería, notificaciones y agregados de panel.
