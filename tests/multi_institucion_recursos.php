@@ -8,10 +8,13 @@ require_once __DIR__ . '/../modelos/materias.modelo.php';
 require_once __DIR__ . '/../modelos/lecciones.modelo.php';
 require_once __DIR__ . '/../modelos/asistencias.modelo.php';
 require_once __DIR__ . '/../modelos/calificaciones.modelo.php';
+require_once __DIR__ . '/../modelos/actividades.modelo.php';
+require_once __DIR__ . '/../modelos/mensajes.modelo.php';
 foreach (['secciones', 'lecciones', 'asignacioncursos', 'recursoslecciones', 'entregaslecciones', 'posteos',
     'calificaciones','entregaslecciones_adjuntos','archivoslecciones','actividades','actividades_preguntas','actividades_opciones',
     'asistencia_clases','asistencia_registros','ciclos_lectivos','periodos_calificacion','instrumentos_evaluacion',
-    'periodos_seccion_estado','cierres_periodo_calificaciones','evaluaciones','evaluaciones_calificaciones'] as $tabla) {
+    'periodos_seccion_estado','cierres_periodo_calificaciones','evaluaciones','evaluaciones_calificaciones',
+    'actividades_intentos','actividades_respuestas','mensajes','mensajes_participantes','mensajes_adjuntos'] as $tabla) {
     $pdo->exec("CREATE TABLE `$tabla` LIKE `$origen`.`$tabla`");
 }
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_01_expandir.sql');
@@ -150,6 +153,67 @@ $preguntaDemo=(int)$pdo->lastInsertId();
 $pdo->prepare('INSERT INTO actividades_opciones(id_pregunta,textoOpcion) VALUES (?,?)')->execute([$preguntaDemo,'Respuesta']);
 $pdo->prepare('INSERT INTO actividades(tituloActividad,slug,id_autor,id_curso,id_seccion,id_institucion) VALUES (?,?,?,?,?,?)')
     ->execute(['Actividad incoherente','actividad-incoherente',$ids['A'],$cursoDemo,$materiaDemo,$mm]);
+$actividadIncoherente=(int)$pdo->lastInsertId();
+verificar(ModeloActividades::mdlBuscarPorId($actividadDemo)['tituloActividad']==='Actividad Demo', 'Actividad propia se consulta por ID dentro del tenant');
+verificar(ModeloActividades::mdlBuscarPorId($actividadIncoherente)===null, 'Actividad con institución cruzada queda oculta por ID');
+verificar(array_column(ModeloActividades::mdlListarParaUsuario($ids['B'],'ADMINISTRADOR'),'idActividad')===[$actividadDemo], 'Listado de actividades excluye otros tenants y datos incoherentes');
+verificar(count(ModeloActividades::mdlPreguntasConOpciones($actividadDemo))===1, 'Preguntas heredan el aislamiento de su actividad');
+$datosActividad=['tituloActividad'=>'Actividad creada por modelo','slug'=>'actividad-modelo-demo','descripcionActividad'=>'Ensayo',
+    'tipoActividad'=>'multiple_choice','visibilidad'=>'privada','estadoActividad'=>'BORRADOR','id_curso'=>$cursoDemo,
+    'id_seccion'=>$materiaDemo,'id_autor'=>$ids['B'],'puntajeMaximo'=>1,'intentosPermitidos'=>1,
+    'permiteVisitantes'=>0,'esPlantilla'=>0,'alcancePlantilla'=>'personal','destacadaPublica'=>0,
+    'id_actividad_origen'=>0,'recursoExternoUrl'=>'','recursoExternoEmbed'=>''];
+$preguntasActividad=[['tipoPregunta'=>'multiple_choice','textoPregunta'=>'Pregunta segura','codigoBase'=>null,
+    'lenguajeCodigo'=>'plaintext','variantesCodigo'=>null,'respuestaCorrecta'=>'','puntaje'=>1,'pista'=>'',
+    'explicacionError'=>'','opciones'=>[['textoOpcion'=>'Sí','esCorrecta'=>1]]]];
+$actividadModelo=ModeloActividades::mdlGuardarActividad($datosActividad,$preguntasActividad);
+verificar($actividadModelo>0&&(int)ModeloActividades::mdlBuscarPorId($actividadModelo)['id_institucion']===$demo, 'Alta de actividad obtiene institución exclusivamente desde la sesión');
+$datosActividad['tituloActividad']='Actividad actualizada';
+verificar(ModeloActividades::mdlActualizarActividad($actividadModelo,$datosActividad,$preguntasActividad)==='ok'
+    && ModeloActividades::mdlBuscarPorId($actividadModelo)['tituloActividad']==='Actividad actualizada', 'Edición de actividad revalida tenant y relaciones');
+verificar(ModeloActividades::mdlActualizarMetadatosActividad($actividadModelo,['estadoActividad'=>'PUBLICADA'])==='ok', 'Metadatos de actividad se actualizan dentro del tenant');
+$preguntaModelo=ModeloActividades::mdlPreguntasConOpciones($actividadModelo)[0];
+sesionPara($ids['A']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+$intentoModelo=ModeloActividades::mdlRegistrarIntento(['id_actividad'=>$actividadModelo,'id_usuario'=>$ids['A'],
+    'nombreVisitante'=>'','emailVisitante'=>'','puntaje'=>1,'estadoIntento'=>'ENTREGADO','ipVisitante'=>'127.0.0.1'],
+    [['id_pregunta'=>$preguntaModelo['idPregunta'],'id_opcion'=>$preguntaModelo['opciones'][0]['idOpcion'],
+      'textoRespuesta'=>'Sí','esCorrecta'=>1,'puntajeObtenido'=>1]]);
+verificar($intentoModelo>0, 'Estudiante inscripto registra intento en actividad de su institución');
+sesionPara($ids['B']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+verificar(count(ModeloActividades::mdlIntentosActividad($actividadModelo))===1
+    && count(ModeloActividades::mdlDetalleIntentosActividad($actividadModelo))===1, 'Resultados e intentos heredan el tenant de la actividad');
+verificar(count(ModeloActividades::mdlMetricasPreguntasActividad($actividadModelo))===1, 'Métricas de preguntas permanecen dentro de la actividad institucional');
+$datosActividadPublica=array_merge($datosActividad,[
+    'tituloActividad'=>'Actividad pública Demo','slug'=>'actividad-publica-demo','visibilidad'=>'publica',
+    'estadoActividad'=>'PUBLICADA','permiteVisitantes'=>1
+]);
+$actividadPublica=ModeloActividades::mdlGuardarActividad($datosActividadPublica,$preguntasActividad);
+verificar($actividadPublica>0, 'Actividad pública se crea vinculada a la institución activa');
+$preguntaPublica=ModeloActividades::mdlPreguntasConOpciones($actividadPublica)[0];
+$destinatariosAdmin=ModeloMensajes::mdlUsuariosPermitidosParaMensajes($ids['B'],'ADMINISTRADOR');
+verificar(in_array($ids['A'],array_map('intval',array_column($destinatariosAdmin,'idUsuario')),true)
+    && !in_array($ids['C'],array_map('intval',array_column($destinatariosAdmin,'idUsuario')),true), 'Mensajería administrativa ofrece solo miembros de la institución activa');
+verificar(array_column(ModeloMensajes::mdlSeccionesParaMensajes($ids['B'],'ADMINISTRADOR'),'idSeccion')===[$materiaDemo], 'Selector de materias para mensajes queda limitado al tenant');
+verificar(ModeloMensajes::mdlDestinatariosDeSeccion($materiaDemo)===[$ids['A']], 'Envío por materia incorpora solo estudiantes institucionales inscriptos');
+$mensajeDemo=ModeloMensajes::mdlGuardarMensaje([
+    'id_remitente'=>$ids['B'],'destinatarios'=>[$ids['A']],'contenidoMensaje'=>'Mensaje Demo',
+    'fechaMensaje'=>'2026-09-13 12:30:00','adjuntos'=>[]
+]);
+verificar(is_int($mensajeDemo)&&$mensajeDemo>0&&(int)$pdo->query('SELECT id_institucion FROM mensajes WHERE idMensaje='.(int)$mensajeDemo)->fetchColumn()===$demo, 'Mensaje nuevo obtiene la institución exclusivamente desde la sesión');
+denegado(function() use($ids) { ModeloMensajes::mdlGuardarMensaje([
+    'id_remitente'=>$ids['B'],'destinatarios'=>[$ids['C']],'contenidoMensaje'=>'Cruce','adjuntos'=>[]
+]); }, 'Mensaje rechaza destinatario sin membresía en la institución');
+$detalleMensajeB=ModeloMensajes::mdlMensajeDetalle($mensajeDemo,$ids['B']);
+verificar($detalleMensajeB!==null&&count($detalleMensajeB['destinatarios'])===1, 'Remitente consulta detalle y destinatarios dentro del tenant');
+sesionPara($ids['A']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+$destinatariosEstudiante=ModeloMensajes::mdlUsuariosPermitidosParaMensajes($ids['A'],'ESTUDIANTE');
+verificar(in_array($ids['B'],array_map('intval',array_column($destinatariosEstudiante,'idUsuario')),true)
+    && !in_array($ids['C'],array_map('intval',array_column($destinatariosEstudiante,'idUsuario')),true), 'Estudiante sólo encuentra compañeros y responsables de cursos del tenant');
+verificar(ModeloMensajes::mdlContarMensajesNoLeidos($ids['A'])===1&&ModeloMensajes::mdlMensajeDetalle($mensajeDemo,$ids['A'])!==null, 'Destinatario ve el mensaje únicamente dentro de su contexto institucional');
+verificar(ModeloMensajes::mdlMarcarLeido($mensajeDemo,$ids['A'])==='ok'&&ModeloMensajes::mdlContarMensajesNoLeidos($ids['A'])===0, 'Lectura del mensaje se modifica dentro del tenant');
+sesionPara($ids['B']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+$actividadEliminar=ModeloActividades::mdlGuardarActividad(array_merge($datosActividad,['slug'=>'actividad-eliminar-demo']),$preguntasActividad);
+verificar(ModeloActividades::mdlEliminarActividad($actividadEliminar)==='ok'&&ModeloActividades::mdlBuscarPorId($actividadEliminar)===null, 'Eliminación de actividad propia limpia sus dependencias');
 $copia=ModeloCursos::mdlDuplicarCurso($cursoDemo,['idUsuario'=>$ids['B'],'nombreCurso'=>'Copia Demo','fechaInicioCurso'=>'2026-01-01','fechaFinCurso'=>'2026-12-31']);
 verificar($copia>0 && (int)ModeloCursos::mdlBuscarCursoPorId($copia)['id_institucion']===$demo, 'Duplicación mantiene institución automáticamente');
 $materiasCopia=ModeloMaterias::mdlBuscarMateriaXcurso('join-1-curso',$copia);
@@ -160,7 +224,9 @@ verificar(ModeloCursos::mdlInscripcionesCurso($copia)===[], 'Duplicación no cop
 $materiaMovida=$datosMateria; $materiaMovida['idSeccion']=$materiaDemo; $materiaMovida['id_curso']=$copia;
 denegado(function() use($materiaMovida) { ModeloMaterias::mdlModificarMateria('secciones',$materiaMovida); }, 'Cambio de curso de una materia no rompe referencias de entregas');
 $consulta=$pdo->prepare('SELECT * FROM actividades WHERE id_curso=?'); $consulta->execute([$copia]); $actividadesCopia=$consulta->fetchAll(PDO::FETCH_ASSOC);
-verificar(count($actividadesCopia)===1 && (int)$actividadesCopia[0]['id_institucion']===$demo && $actividadesCopia[0]['estadoActividad']==='BORRADOR', 'Duplicación conserva solo actividades coherentes en borrador e institución actual');
+verificar(count($actividadesCopia)===3
+    && count(array_filter($actividadesCopia,static function($actividad) use($demo){return (int)$actividad['id_institucion']===$demo&&$actividad['estadoActividad']==='BORRADOR';}))===3,
+    'Duplicación conserva solo actividades coherentes en borrador e institución actual');
 $consulta=$pdo->prepare('SELECT COUNT(*) FROM actividades_opciones o INNER JOIN actividades_preguntas p ON p.idPregunta=o.id_pregunta WHERE p.id_actividad=?');
 $consulta->execute([$actividadesCopia[0]['idActividad']]);
 verificar((int)$consulta->fetchColumn()===1, 'Duplicación preserva preguntas y opciones de la actividad propia');
@@ -209,6 +275,11 @@ denegado(function() use($claseDemo) { ModeloAsistencias::mdlClase($claseDemo); }
 denegado(function() use($materiaDemo) { ModeloAsistencias::mdlClasesSeccion($materiaDemo); }, 'Listado de asistencia ajeno se rechaza por materia');
 denegado(function() use($materiaDemo) { ModeloCalificaciones::mdlCalificacionesPorSeccion($materiaDemo); }, 'Calificaciones de otra institución no se revelan por materia');
 denegado(function() use($evaluacionDemo) { ModeloCalificaciones::mdlCalificacionesEvaluacion($evaluacionDemo); }, 'Planilla de evaluación ajena no se revela por ID');
+verificar(ModeloActividades::mdlBuscarPorId($actividadDemo)===null, 'Actividad de otra institución no se revela por ID');
+denegado(function() use($actividadDemo) { ModeloActividades::mdlEliminarActividad($actividadDemo); }, 'Actividad ajena no puede eliminarse por ID manipulado');
+denegado(function() use($actividadModelo,$ids) { ModeloActividades::mdlContarIntentosUsuario($actividadModelo,$ids['A']); }, 'Intentos de otra institución no se cuentan por ID');
+verificar(ModeloMensajes::mdlMensajeDetalle($mensajeDemo,$ids['A'])===null&&ModeloMensajes::mdlContarMensajesNoLeidos($ids['A'])===0, 'Cambio de institución oculta mensajes y contadores del tenant anterior');
+denegado(function() use($mensajeDemo,$ids) { ModeloMensajes::mdlMarcarLeido($mensajeDemo,$ids['A']); }, 'Acción sobre mensaje de otra institución se rechaza por ID');
 verificar(ModeloCalificaciones::mdlResumenCierresGenerales()===[], 'Resumen general no filtra cierres desde otra institución');
 verificar(ModeloCalificaciones::mdlCalificacionesGenerales()===[], 'Historial general no mezcla notas ni cierres de otra institución');
 verificar(array_column(ModeloCalificaciones::mdlSeccionesParaCalificaciones(),'idSeccion')===[$materiaMM], 'Tarjetas agregadas cambian junto con la institución activa');
@@ -230,5 +301,29 @@ denegado(function() { ControladorCursos::crtDuplicarCurso(); }, 'POST de duplica
 $_POST=[];
 ControladorInstitucion::limpiar();
 denegado(function() { ModeloCursos::mdlListarCursos(); }, 'Ausencia de contexto seleccionado rechaza listado');
+$_SESSION=[];
+$publicas=ModeloActividades::mdlListarPublicas();
+verificar(in_array($actividadPublica,array_map('intval',array_column($publicas,'idActividad')),true), 'Catálogo público conserva actividades de instituciones activas sin exigir membresía');
+$publicaPorSlug=ModeloActividades::mdlBuscarPorSlug('actividad-publica-demo');
+verificar((int)($publicaPorSlug['idActividad']??0)===$actividadPublica, 'Ruta pública resuelve el slug sin aceptar un tenant enviado por el visitante');
+verificar(ModeloActividades::mdlBuscarPorSlug('actividad-modelo-demo')===null, 'Ruta pública no revela una actividad privada aunque esté publicada');
+verificar(count(ModeloActividades::mdlPreguntasConOpciones($actividadPublica))===1, 'Preguntas públicas heredan la institución de la actividad publicada');
+$intentoVisitante=ModeloActividades::mdlRegistrarIntento([
+    'id_actividad'=>$actividadPublica,'id_usuario'=>0,'nombreVisitante'=>'Visitante Ensayo',
+    'emailVisitante'=>'visitante@campus.example','puntaje'=>1,'estadoIntento'=>'ENTREGADO','ipVisitante'=>'127.0.0.1'
+],[[
+    'id_pregunta'=>$preguntaPublica['idPregunta'],'id_opcion'=>$preguntaPublica['opciones'][0]['idOpcion'],
+    'textoRespuesta'=>'Sí','esCorrecta'=>1,'puntajeObtenido'=>1
+]]);
+verificar($intentoVisitante>0, 'Visitante registra intento únicamente en una actividad pública habilitada');
+denegado(function() use($actividadModelo,$preguntaModelo) {
+    ModeloActividades::mdlRegistrarIntento([
+        'id_actividad'=>$actividadModelo,'id_usuario'=>0,'nombreVisitante'=>'Visitante Ensayo',
+        'emailVisitante'=>'visitante@campus.example','puntaje'=>0,'estadoIntento'=>'ENTREGADO','ipVisitante'=>'127.0.0.1'
+    ],[[
+        'id_pregunta'=>$preguntaModelo['idPregunta'],'id_opcion'=>$preguntaModelo['opciones'][0]['idOpcion'],
+        'textoRespuesta'=>'Sí','esCorrecta'=>0,'puntajeObtenido'=>0
+    ]]);
+}, 'Visitante no puede forzar un intento sobre una actividad privada');
 echo "Ensayo de recursos conservado: $base\n";
 ob_end_flush();

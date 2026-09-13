@@ -46,16 +46,7 @@ class ModeloPanel
             $usuariosConectados = self::contar('SELECT COUNT(*) AS total FROM usuarios WHERE activo = 1 AND ultimaConexion >= (NOW() - INTERVAL 60 MINUTE)');
             $cursos = self::contar('SELECT COUNT(*) AS total FROM cursos');
             $secciones = self::contar('SELECT COUNT(*) AS total FROM secciones');
-            $mensajes = self::contar(
-                'SELECT COUNT(*) AS total
-                 FROM mensajes_participantes
-                 WHERE id_usuario = :idUsuario
-                   AND rolParticipante = "DESTINATARIO"
-                   AND leido = 0
-                   AND enPapelera = 0
-                   AND eliminado = 0',
-                [':idUsuario' => $idUsuario]
-            );
+            $mensajes = ModeloMensajes::mdlContarMensajesNoLeidos($idUsuario);
             $pendientes = self::contar(
                 'SELECT COUNT(*) AS total
                  FROM entregaslecciones e
@@ -138,16 +129,7 @@ class ModeloPanel
                    AND c.idCalificacion IS NULL',
                 [':idUsuario' => $idUsuario]
             );
-            $mensajes = self::contar(
-                'SELECT COUNT(*) AS total
-                 FROM mensajes_participantes
-                 WHERE id_usuario = :idUsuario
-                   AND rolParticipante = "DESTINATARIO"
-                   AND leido = 0
-                   AND enPapelera = 0
-                   AND eliminado = 0',
-                [':idUsuario' => $idUsuario]
-            );
+            $mensajes = ModeloMensajes::mdlContarMensajesNoLeidos($idUsuario);
             $promedio = self::listar(
                 'SELECT COALESCE(ROUND(AVG(c.calificacion), 2), 0) AS total
                  FROM calificaciones c
@@ -214,16 +196,7 @@ class ModeloPanel
              WHERE id_estudiante = :idUsuario',
             [':idUsuario' => $idUsuario]
         );
-        $mensajes = self::contar(
-            'SELECT COUNT(*) AS total
-             FROM mensajes_participantes
-             WHERE id_usuario = :idUsuario
-               AND rolParticipante = "DESTINATARIO"
-               AND leido = 0
-               AND enPapelera = 0
-               AND eliminado = 0',
-            [':idUsuario' => $idUsuario]
-        );
+        $mensajes = ModeloMensajes::mdlContarMensajesNoLeidos($idUsuario);
         $promedio = self::listar(
             'SELECT COALESCE(ROUND(AVG(calificacion), 2), 0) AS total
              FROM calificaciones
@@ -272,20 +245,7 @@ class ModeloPanel
 
     private static function actividadMensajes($idUsuario, $limite = 3)
     {
-        return self::listar(
-            'SELECT m.idMensaje, m.contenidoMensaje, m.fechaMensaje,
-                    u.nombreUsuario, u.apellidoUsuario, u.imgUsuario
-             FROM mensajes_participantes mp
-             INNER JOIN mensajes m ON m.idMensaje = mp.id_mensaje
-             INNER JOIN usuarios u ON u.idUsuario = m.id_remitente
-             WHERE mp.id_usuario = :idUsuario
-              AND mp.rolParticipante = "DESTINATARIO"
-              AND mp.leido = 0
-              AND mp.eliminado = 0
-             ORDER BY mp.leido ASC, m.fechaMensaje DESC
-             LIMIT ' . (int) $limite,
-            [':idUsuario' => $idUsuario]
-        );
+        return ModeloMensajes::mdlMensajesRecientesRecibidos($idUsuario,$limite);
     }
 
     private static function actividadPosteos($idUsuario, $rol, $limite = 2)

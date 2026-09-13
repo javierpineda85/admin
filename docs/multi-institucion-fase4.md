@@ -58,6 +58,21 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
 - Los historiales generales combinan tareas, evaluaciones y cierres después de
   aplicar el tenant a cada origen. Los resúmenes y tarjetas de materias también
   filtran sus agregados, evitando conteos o nombres de otras instituciones.
+- Actividades y plantillas validan institución, curso, materia y autor en altas,
+  edición, borrado, listados y accesos por ID. Preguntas, opciones, intentos,
+  resultados y métricas heredan el tenant de la actividad; un estudiante debe
+  conservar membresía, rol e inscripción activa para responder.
+- El catálogo público no usa un `idInstitucion` del visitante: deriva la
+  institución desde la actividad y exige que esté activa y que sus relaciones
+  sean coherentes. Los intentos anónimos sólo se aceptan para actividades
+  publicadas, visibles por enlace o públicas y habilitadas para visitantes.
+- Los mensajes toman `id_institucion` de la sesión y validan que remitente y
+  destinatarios sean miembros activos. Bandejas, detalle, lectura, papelera,
+  eliminación, adjuntos y contadores aplican el tenant en SQL. El selector de
+  personas y materias usa membresías, roles e inscripciones institucionales.
+- Los indicadores y la actividad reciente del panel reutilizan el modelo de
+  mensajes aislado, por lo que al cambiar de institución se recalculan sin
+  conservar conversaciones ni contadores del contexto anterior.
 
 ## Pruebas
 
@@ -70,7 +85,7 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260913_214356_eb94c1`, 174 comprobaciones
+Última verificación: `campus_mt_fase2_20260913_215834_1563f3`, 206 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno. Los archivos sintéticos
 se eliminan después de comprobar que la copia mantiene exactamente su contenido.
@@ -78,9 +93,9 @@ se eliminan después de comprobar que la copia mantiene exactamente su contenido
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
 definiendo `CAMPUS_TEST_BASE` con el nombre devuelto por el ensayo de recursos;
-rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus once
-comprobaciones de listados, lecturas y escritura, incluidas materias y clases de
-asistencia. No usa la base original.
+rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus quince
+comprobaciones de listados, lecturas y escritura, incluidas materias, clases de
+asistencia, actividades y contadores de mensajes. No usa la base original.
 
 La duplicación no promete rollback integral ante fallas de almacenamiento:
 las tablas históricas MyISAM no lo permiten. Un error posterior al preflight puede
@@ -91,9 +106,9 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 - Ampliar asistencia con pruebas HTTP cuando se retire el bloqueo preventivo;
   revisar las vistas de calificaciones antes de habilitarlas.
-  con pruebas HTTP cuando se retire el bloqueo preventivo de las aulas.
-- Completar actividades, plantillas, intentos y rutas públicas.
-- Aislar mensajería, notificaciones y agregados de panel.
+- Validar los endpoints HTTP de actividades cuando se retire el bloqueo
+  preventivo de las aulas.
+- Aislar notificaciones y los agregados académicos restantes del panel.
 - Separar todas las lecturas y modificaciones globales de usuarios/perfiles de
   la administración de membresías; aún existen otros métodos legacy sin aislamiento.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas
@@ -101,7 +116,7 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
 - Sustituir SQL de las vistas restantes y validar todos los POST/AJAX y parámetros de recursos.
 - Entregar archivos privados por controlador, bloquear acceso estático y revisar
-  rutas canónicas, adjuntos y contenido enriquecido histórico.
+  rutas canónicas, adjuntos de mensajes y contenido enriquecido histórico.
 - Trasladar preparaciones DDL a migraciones, finalizar restricciones y validar el
   delta de filas creado por el modo habitual después de la expansión.
 - Revisar las escrituras restantes de los demás dominios y sus dependencias;

@@ -1,5 +1,6 @@
 <?php
-require_once('conexion.php');
+require_once __DIR__ . '/conexion.php';
+require_once __DIR__ . '/tenant.modelo.php';
 
 class ModeloActividades
 {
@@ -11,6 +12,10 @@ class ModeloActividades
             return;
         }
 
+        if (ModeloTenant::activo()) {
+            self::$tablasPreparadas = true;
+            return;
+        }
         $pdo = Conexion::conectar();
 
         $pdo->exec("
@@ -228,7 +233,7 @@ class ModeloActividades
                     FROM actividades_intentos
                     GROUP BY id_actividad
                 ) i ON i.id_actividad = a.idActividad
-                WHERE COALESCE(a.esPlantilla, 0) = 0
+                WHERE COALESCE(a.esPlantilla, 0) = 0 AND " . ModeloTenant::actividades('a') . "
             ";
             if ($condicionBusqueda !== '') {
                 $sql .= " AND $condicionBusqueda";
@@ -272,7 +277,7 @@ class ModeloActividades
                     OR s.docente = :idUsuarioDocente
                     OR s.tutor = :idUsuarioTutor
                 )
-                  AND COALESCE(a.esPlantilla, 0) = 0
+                  AND COALESCE(a.esPlantilla, 0) = 0 AND " . ModeloTenant::actividades('a') . "
             ";
             if ($condicionBusqueda !== '') {
                 $sql .= " AND $condicionBusqueda";
@@ -316,6 +321,7 @@ class ModeloActividades
             ) i ON i.id_actividad = a.idActividad
             WHERE a.estadoActividad = 'PUBLICADA'
               AND COALESCE(a.esPlantilla, 0) = 0
+              AND " . ModeloTenant::actividades('a') . "
               AND (
                 a.visibilidad IN ('publica', 'oculta')
                 OR (a.visibilidad = 'privada' AND ac.id_estudiante = :idUsuario)
@@ -369,7 +375,7 @@ class ModeloActividades
                 LEFT JOIN secciones s ON s.idSeccion = a.id_seccion
                 LEFT JOIN cursos c ON c.idCurso = a.id_curso
                 LEFT JOIN usuarios u ON u.idUsuario = a.id_autor
-                WHERE COALESCE(a.esPlantilla, 0) = 1
+                WHERE COALESCE(a.esPlantilla, 0) = 1 AND " . ModeloTenant::actividades('a') . "
             ";
             if ($condicionBusqueda !== '') {
                 $sql .= " AND $condicionBusqueda";
@@ -399,6 +405,7 @@ class ModeloActividades
             LEFT JOIN cursos c ON c.idCurso = a.id_curso
             LEFT JOIN usuarios u ON u.idUsuario = a.id_autor
             WHERE COALESCE(a.esPlantilla, 0) = 1
+              AND " . ModeloTenant::actividades('a') . "
               AND (
                 a.id_autor = :idUsuario
                 OR s.docente = :idUsuarioDocente
@@ -441,6 +448,7 @@ class ModeloActividades
             WHERE a.estadoActividad = 'PUBLICADA'
               AND COALESCE(a.esPlantilla, 0) = 0
               AND a.visibilidad = 'publica'
+              AND " . ModeloTenant::actividadesPublicas('a') . "
             ORDER BY a.fechaCreacion DESC
         ");
         $stmt->execute();
@@ -457,6 +465,7 @@ class ModeloActividades
             LEFT JOIN secciones s ON s.idSeccion = a.id_seccion
             LEFT JOIN cursos c ON c.idCurso = a.id_curso
             WHERE a.idActividad = :idActividad
+              AND " . ModeloTenant::actividades('a') . "
             LIMIT 1
         ");
         $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
@@ -473,7 +482,9 @@ class ModeloActividades
             FROM actividades a
             LEFT JOIN secciones s ON s.idSeccion = a.id_seccion
             LEFT JOIN cursos c ON c.idCurso = a.id_curso
-            WHERE a.slug = :slug
+            WHERE a.slug = :slug AND a.estadoActividad='PUBLICADA'
+              AND a.visibilidad IN ('publica','oculta')
+              AND " . ModeloTenant::actividadesPublicas('a') . "
             LIMIT 1
         ");
         $stmt->bindValue(':slug', (string) $slug, PDO::PARAM_STR);
@@ -484,11 +495,13 @@ class ModeloActividades
     public static function mdlPreguntasConOpciones($idActividad)
     {
         self::prepararTablas();
+        $publica=ModeloTenant::activo() && empty($_SESSION['logueado']);
+        if(!$publica){ModeloTenant::exigirActividad($idActividad);}
 
         $stmt = Conexion::conectar()->prepare("
             SELECT *
-            FROM actividades_preguntas
-            WHERE id_actividad = :idActividad
+            FROM actividades_preguntas ap
+            WHERE id_actividad = :idActividad AND " . ModeloTenant::preguntasActividad('ap',$publica) . "
             ORDER BY orden ASC, idPregunta ASC
         ");
         $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
@@ -529,25 +542,28 @@ class ModeloActividades
     public static function mdlGuardarActividad($datos, $preguntas)
     {
         self::prepararTablas();
+        self::validarContextoActividad($datos);
 
         $pdo = Conexion::conectar();
+        $institucional=ModeloTenant::activo();
         $stmt = $pdo->prepare("
             INSERT INTO actividades (
                 tituloActividad, slug, descripcionActividad, tipoActividad, visibilidad,
                 estadoActividad, id_curso, id_seccion, id_autor, puntajeMaximo,
                 intentosPermitidos, permiteVisitantes, esPlantilla, alcancePlantilla,
                 destacadaPublica, id_actividad_origen,
-                recursoExternoUrl, recursoExternoEmbed
-            ) VALUES (
+                recursoExternoUrl, recursoExternoEmbed".($institucional?', id_institucion':'')."
+            ) ".($institucional?'SELECT ':'VALUES (')."
                 :tituloActividad, :slug, :descripcionActividad, :tipoActividad, :visibilidad,
                 :estadoActividad, :id_curso, :id_seccion, :id_autor, :puntajeMaximo,
                 :intentosPermitidos, :permiteVisitantes, :esPlantilla, :alcancePlantilla,
                 :destacadaPublica, :id_actividad_origen,
-                :recursoExternoUrl, :recursoExternoEmbed
-            )
+                :recursoExternoUrl, :recursoExternoEmbed".($institucional?', :id_institucion':'')."
+            ".($institucional?' WHERE '.ModeloTenant::sesionActiva():')')."
         ");
 
         self::bindActividad($stmt, $datos, true);
+        if($institucional){$stmt->bindValue(':id_institucion',ModeloTenant::id(),PDO::PARAM_INT);}
         if (!$stmt->execute()) {
             return 'error';
         }
@@ -560,6 +576,8 @@ class ModeloActividades
     public static function mdlActualizarActividad($idActividad, $datos, $preguntas)
     {
         self::prepararTablas();
+        ModeloTenant::exigirActividad($idActividad);
+        self::validarContextoActividad($datos);
 
         $stmt = Conexion::conectar()->prepare("
             UPDATE actividades
@@ -581,7 +599,7 @@ class ModeloActividades
                 recursoExternoUrl = :recursoExternoUrl,
                 recursoExternoEmbed = :recursoExternoEmbed,
                 fechaActualizacion = NOW()
-            WHERE idActividad = :idActividad
+            WHERE idActividad = :idActividad AND " . ModeloTenant::actividades('actividades') . "
         ");
 
         self::bindActividad($stmt, $datos, false);
@@ -620,9 +638,21 @@ class ModeloActividades
         $stmt->bindValue(':recursoExternoEmbed', $datos['recursoExternoEmbed'], PDO::PARAM_STR);
     }
 
+    private static function validarContextoActividad(array $datos)
+    {
+        if(!ModeloTenant::activo()){return;}
+        ModeloTenant::exigirUsuario((int)($datos['id_autor'] ?? ($_SESSION['usuario']['id'] ?? 0)),['ADMINISTRADOR','DOCENTE']);
+        $idCurso=(int)($datos['id_curso'] ?? 0);
+        $idSeccion=(int)($datos['id_seccion'] ?? 0);
+        if($idSeccion>0){ModeloTenant::exigirSeccionCurso($idSeccion,$idCurso);}
+        elseif($idCurso>0){ModeloTenant::exigirCurso($idCurso);}
+        if(!empty($datos['id_actividad_origen'])){ModeloTenant::exigirActividad((int)$datos['id_actividad_origen']);}
+    }
+
     public static function mdlActualizarMetadatosActividad($idActividad, array $cambios)
     {
         self::prepararTablas();
+        ModeloTenant::exigirActividad($idActividad);
 
         $mapa = [
             'esPlantilla' => 'esPlantilla',
@@ -646,7 +676,7 @@ class ModeloActividades
             return 'ok';
         }
 
-        $sql = "UPDATE actividades SET " . implode(', ', $sets) . ", fechaActualizacion = NOW() WHERE idActividad = :idActividad";
+        $sql = "UPDATE actividades SET " . implode(', ', $sets) . ", fechaActualizacion = NOW() WHERE idActividad = :idActividad AND " . ModeloTenant::actividades('actividades');
         $stmt = Conexion::conectar()->prepare($sql);
         foreach ($parametros as $clave => $valor) {
             if (is_int($valor)) {
@@ -725,6 +755,7 @@ class ModeloActividades
     public static function mdlEliminarActividad($idActividad)
     {
         self::prepararTablas();
+        ModeloTenant::exigirActividad($idActividad);
 
         $pdo = Conexion::conectar();
 
@@ -733,12 +764,12 @@ class ModeloActividades
                 DELETE r
                 FROM actividades_respuestas r
                 INNER JOIN actividades_intentos i ON i.idIntento = r.id_intento
-                WHERE i.id_actividad = :idActividad
+                WHERE i.id_actividad = :idActividad AND " . ModeloTenant::actividadId($idActividad) . "
             ");
             $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
             $stmt->execute();
 
-            $stmt = $pdo->prepare("DELETE FROM actividades_intentos WHERE id_actividad = :idActividad");
+            $stmt = $pdo->prepare("DELETE FROM actividades_intentos WHERE id_actividad = :idActividad AND " . ModeloTenant::actividadId($idActividad));
             $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
             $stmt->execute();
 
@@ -746,16 +777,16 @@ class ModeloActividades
                 DELETE o
                 FROM actividades_opciones o
                 INNER JOIN actividades_preguntas p ON p.idPregunta = o.id_pregunta
-                WHERE p.id_actividad = :idActividad
+                WHERE p.id_actividad = :idActividad AND " . ModeloTenant::actividadId($idActividad) . "
             ");
             $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
             $stmt->execute();
 
-            $stmt = $pdo->prepare("DELETE FROM actividades_preguntas WHERE id_actividad = :idActividad");
+            $stmt = $pdo->prepare("DELETE FROM actividades_preguntas WHERE id_actividad = :idActividad AND " . ModeloTenant::actividadId($idActividad));
             $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
             $stmt->execute();
 
-            $stmt = $pdo->prepare("DELETE FROM actividades WHERE idActividad = :idActividad");
+            $stmt = $pdo->prepare("DELETE FROM actividades WHERE idActividad = :idActividad AND " . ModeloTenant::actividades('actividades'));
             $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
             $stmt->execute();
 
@@ -768,13 +799,34 @@ class ModeloActividades
     public static function mdlRegistrarIntento($datosIntento, array $respuestas)
     {
         self::prepararTablas();
-
+        $idActividad=(int)$datosIntento['id_actividad'];
+        $idUsuario=(int)($datosIntento['id_usuario'] ?? 0);
+        $publica=ModeloTenant::activo()&&$idUsuario<=0;
+        if($publica){ModeloTenant::exigirActividadPublica($idActividad);}
+        else{
+            ModeloTenant::exigirActividad($idActividad);
+            if(ModeloTenant::activo()){
+                ModeloTenant::exigirUsuario($idUsuario,['ADMINISTRADOR','DOCENTE','ESTUDIANTE']);
+                $actividad=self::mdlBuscarPorId($idActividad);
+                if((int)($actividad['id_curso']??0)>0){
+                    $pdoValidacion=Conexion::conectar();
+                    $gestor=$pdoValidacion->query('SELECT 1 WHERE '.ModeloTenant::usuarioIdConRol($idUsuario,['ADMINISTRADOR','DOCENTE']))->fetchColumn();
+                    if(!$gestor){ModeloTenant::exigirInscripcion($idUsuario,(int)$actividad['id_curso']);}
+                }
+            }
+        }
+        $alcance=$publica?ModeloTenant::actividadPublicaId($idActividad):ModeloTenant::actividadId($idActividad);
+        foreach($respuestas as $respuesta){
+            $pregunta=Conexion::conectar()->prepare('SELECT 1 FROM actividades_preguntas ap WHERE ap.idPregunta=? AND ap.id_actividad=? AND '.ModeloTenant::preguntasActividad('ap',$publica));
+            $pregunta->execute([(int)$respuesta['id_pregunta'],$idActividad]);
+            if(!$pregunta->fetchColumn()){throw new RuntimeException('Acceso institucional denegado.');}
+        }
         $stmt = Conexion::conectar()->prepare("
             INSERT INTO actividades_intentos (
                 id_actividad, id_usuario, nombreVisitante, emailVisitante, puntaje, estadoIntento, ipVisitante
-            ) VALUES (
+            ) ".(ModeloTenant::activo()?'SELECT ':'VALUES (')."
                 :id_actividad, :id_usuario, :nombreVisitante, :emailVisitante, :puntaje, :estadoIntento, :ipVisitante
-            )
+            ".(ModeloTenant::activo()?' WHERE '.$alcance:')')."
         ");
         $stmt->bindValue(':id_actividad', (int) $datosIntento['id_actividad'], PDO::PARAM_INT);
         $stmt->bindValue(':id_usuario', $datosIntento['id_usuario'] ?: null, $datosIntento['id_usuario'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
@@ -784,7 +836,7 @@ class ModeloActividades
         $stmt->bindValue(':estadoIntento', $datosIntento['estadoIntento'], PDO::PARAM_STR);
         $stmt->bindValue(':ipVisitante', $datosIntento['ipVisitante'], PDO::PARAM_STR);
 
-        if (!$stmt->execute()) {
+        if (!$stmt->execute() || (ModeloTenant::activo() && $stmt->rowCount()!==1)) {
             return 0;
         }
 
@@ -812,12 +864,13 @@ class ModeloActividades
     public static function mdlContarIntentosUsuario($idActividad, $idUsuario)
     {
         self::prepararTablas();
+        ModeloTenant::exigirActividad($idActividad);
 
         $stmt = Conexion::conectar()->prepare("
             SELECT COUNT(*) AS total
             FROM actividades_intentos
             WHERE id_actividad = :idActividad
-              AND id_usuario = :idUsuario
+              AND id_usuario = :idUsuario AND " . ModeloTenant::intentosActividad('actividades_intentos') . "
         ");
         $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
@@ -828,12 +881,13 @@ class ModeloActividades
     public static function mdlIntentosActividad($idActividad)
     {
         self::prepararTablas();
+        ModeloTenant::exigirActividad($idActividad);
 
         $stmt = Conexion::conectar()->prepare("
             SELECT i.*, u.nombreUsuario, u.apellidoUsuario, u.email
             FROM actividades_intentos i
             LEFT JOIN usuarios u ON u.idUsuario = i.id_usuario
-            WHERE i.id_actividad = :idActividad
+            WHERE i.id_actividad = :idActividad AND " . ModeloTenant::intentosActividad('i') . "
             ORDER BY i.fechaEntrega DESC
         ");
         $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
@@ -844,6 +898,7 @@ class ModeloActividades
     public static function mdlDetalleIntentosActividad($idActividad)
     {
         self::prepararTablas();
+        ModeloTenant::exigirActividad($idActividad);
 
         $stmt = Conexion::conectar()->prepare("
             SELECT
@@ -878,7 +933,7 @@ class ModeloActividades
             LEFT JOIN usuarios u ON u.idUsuario = i.id_usuario
             LEFT JOIN actividades_respuestas r ON r.id_intento = i.idIntento
             LEFT JOIN actividades_preguntas p ON p.idPregunta = r.id_pregunta
-            WHERE i.id_actividad = :idActividad
+            WHERE i.id_actividad = :idActividad AND " . ModeloTenant::intentosActividad('i') . "
             ORDER BY i.fechaEntrega DESC, i.idIntento DESC, p.orden ASC, p.idPregunta ASC
         ");
         $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
@@ -889,6 +944,7 @@ class ModeloActividades
     public static function mdlMetricasPreguntasActividad($idActividad)
     {
         self::prepararTablas();
+        ModeloTenant::exigirActividad($idActividad);
 
         $stmt = Conexion::conectar()->prepare("
             SELECT
@@ -908,7 +964,7 @@ class ModeloActividades
             FROM actividades_preguntas p
             LEFT JOIN actividades_respuestas r ON r.id_pregunta = p.idPregunta
             LEFT JOIN actividades_intentos i ON i.idIntento = r.id_intento AND i.id_actividad = :idActividad
-            WHERE p.id_actividad = :idActividad
+            WHERE p.id_actividad = :idActividad AND " . ModeloTenant::preguntasActividad('p') . "
             GROUP BY
                 p.idPregunta, p.textoPregunta, p.tipoPregunta, p.codigoBase, p.lenguajeCodigo,
                 p.variantesCodigo, p.respuestaCorrecta, p.puntaje, p.orden
@@ -922,6 +978,7 @@ class ModeloActividades
     public static function mdlErroresFrecuentesActividad($idActividad)
     {
         self::prepararTablas();
+        ModeloTenant::exigirActividad($idActividad);
 
         $stmt = Conexion::conectar()->prepare("
             SELECT
@@ -932,7 +989,7 @@ class ModeloActividades
             FROM actividades_respuestas r
             INNER JOIN actividades_intentos i ON i.idIntento = r.id_intento
             INNER JOIN actividades_preguntas p ON p.idPregunta = r.id_pregunta
-            WHERE i.id_actividad = :idActividad
+            WHERE i.id_actividad = :idActividad AND " . ModeloTenant::intentosActividad('i') . "
               AND r.esCorrecta = 0
               AND TRIM(COALESCE(r.textoRespuesta, '')) <> ''
             GROUP BY p.idPregunta, p.tipoPregunta, TRIM(COALESCE(r.textoRespuesta, ''))

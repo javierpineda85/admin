@@ -223,6 +223,76 @@ class ModeloTenant
             AND ' . self::cursos('estado_c') . ' AND ' . self::periodos('estado_p') . ')';
     }
 
+    public static function actividades($alias = 'a')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return $alias . '.id_institucion=' . self::id() . ' AND ' . self::sesionActiva() . '
+            AND ((' . $alias . '.id_curso IS NULL AND ' . $alias . '.id_seccion IS NULL)
+                OR EXISTS (SELECT 1 FROM cursos actividad_c WHERE actividad_c.idCurso=' . $alias . '.id_curso
+                    AND ' . self::cursos('actividad_c') . ' AND (' . $alias . '.id_seccion IS NULL OR EXISTS
+                        (SELECT 1 FROM secciones actividad_s WHERE actividad_s.idSeccion=' . $alias . '.id_seccion
+                            AND actividad_s.id_curso=actividad_c.idCurso))))';
+    }
+
+    /** Alcance deliberadamente público: no requiere membresía, pero sí tenant activo y relaciones coherentes. */
+    public static function actividadesPublicas($alias = 'a')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM instituciones actividad_i WHERE actividad_i.idInstitucion=' . $alias . '.id_institucion AND actividad_i.activo=1)
+            AND ((' . $alias . '.id_curso IS NULL AND ' . $alias . '.id_seccion IS NULL)
+                OR EXISTS (SELECT 1 FROM cursos actividad_pc WHERE actividad_pc.idCurso=' . $alias . '.id_curso
+                    AND actividad_pc.id_institucion=' . $alias . '.id_institucion
+                    AND (' . $alias . '.id_seccion IS NULL OR EXISTS (SELECT 1 FROM secciones actividad_ps
+                        WHERE actividad_ps.idSeccion=' . $alias . '.id_seccion AND actividad_ps.id_curso=actividad_pc.idCurso))))';
+    }
+
+    public static function preguntasActividad($alias = 'ap', $publica = false)
+    {
+        self::identificador($alias);
+        $alcance = $publica ? self::actividadesPublicas('pregunta_a') : self::actividades('pregunta_a');
+        return 'EXISTS (SELECT 1 FROM actividades pregunta_a WHERE pregunta_a.idActividad=' . $alias . '.id_actividad AND ' . $alcance
+            . ($publica ? " AND pregunta_a.estadoActividad='PUBLICADA' AND pregunta_a.visibilidad IN ('publica','oculta')" : '') . ')';
+    }
+
+    public static function intentosActividad($alias = 'ai', $publica = false)
+    {
+        self::identificador($alias);
+        $alcance = $publica ? self::actividadesPublicas('intento_a') : self::actividades('intento_a');
+        return 'EXISTS (SELECT 1 FROM actividades intento_a WHERE intento_a.idActividad=' . $alias . '.id_actividad AND ' . $alcance . ')';
+    }
+
+    public static function mensajes($alias = 'm')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return $alias . '.id_institucion=' . self::id() . ' AND ' . self::sesionActiva();
+    }
+
+    public static function mensajeId($idMensaje)
+    {
+        return self::activo()
+            ? 'EXISTS (SELECT 1 FROM mensajes mensaje_tenant WHERE mensaje_tenant.idMensaje=' . (int)$idMensaje . ' AND ' . self::mensajes('mensaje_tenant') . ')'
+            : '1=1';
+    }
+
+    public static function participanteMensaje($alias = 'mp')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM mensajes mensaje_p WHERE mensaje_p.idMensaje=' . $alias . '.id_mensaje AND ' . self::mensajes('mensaje_p') . ')';
+    }
+
+    public static function exigirParticipanteMensaje($idMensaje, $idUsuario)
+    {
+        if (!self::activo()) { return; }
+        $stmt=Conexion::conectar()->prepare('SELECT 1 FROM mensajes_participantes mp INNER JOIN mensajes m ON m.idMensaje=mp.id_mensaje
+            WHERE mp.id_mensaje=? AND mp.id_usuario=? AND mp.eliminado=0 AND ' . self::mensajes('m'));
+        $stmt->execute([(int)$idMensaje,(int)$idUsuario]);
+        if(!$stmt->fetchColumn()){throw new RuntimeException('Acceso institucional denegado.');}
+    }
+
     public static function adjuntosEntrega($alias = 'entregaslecciones_adjuntos')
     {
         if (!self::activo()) { return '1=1'; }
@@ -342,6 +412,34 @@ class ModeloTenant
         $stmt = Conexion::conectar()->prepare('SELECT 1 FROM evaluaciones ev WHERE ev.idEvaluacion=? AND ' . self::evaluaciones('ev'));
         $stmt->execute([(int)$idEvaluacion]);
         if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
+    }
+
+    public static function exigirActividad($idActividad)
+    {
+        if (!self::activo()) { return; }
+        $stmt=Conexion::conectar()->prepare('SELECT 1 FROM actividades a WHERE a.idActividad=? AND '.self::actividades('a'));
+        $stmt->execute([(int)$idActividad]);
+        if(!$stmt->fetchColumn()){throw new RuntimeException('Acceso institucional denegado.');}
+    }
+
+    public static function actividadId($idActividad)
+    {
+        return self::activo() ? 'EXISTS (SELECT 1 FROM actividades actividad_id WHERE actividad_id.idActividad='.(int)$idActividad.' AND '.self::actividades('actividad_id').')' : '1=1';
+    }
+
+    public static function actividadPublicaId($idActividad)
+    {
+        if (!self::activo()) { return '1=1'; }
+        return 'EXISTS (SELECT 1 FROM actividades actividad_publica WHERE actividad_publica.idActividad='.(int)$idActividad.
+            " AND actividad_publica.estadoActividad='PUBLICADA' AND actividad_publica.visibilidad IN ('publica','oculta')
+            AND actividad_publica.permiteVisitantes=1 AND ".self::actividadesPublicas('actividad_publica').')';
+    }
+
+    public static function exigirActividadPublica($idActividad)
+    {
+        if(!self::activo()){return;}
+        $stmt=Conexion::conectar()->query('SELECT 1 WHERE '.self::actividadPublicaId($idActividad));
+        if(!$stmt||!$stmt->fetchColumn()){throw new RuntimeException('Acceso institucional denegado.');}
     }
 
     public static function exigirInscripcion($idEstudiante, $idCurso)

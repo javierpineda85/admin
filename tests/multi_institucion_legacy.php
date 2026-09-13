@@ -12,6 +12,8 @@ require __DIR__ . '/../modelos/materias.modelo.php';
 require __DIR__ . '/../modelos/lecciones.modelo.php';
 require __DIR__ . '/../modelos/asistencias.modelo.php';
 require __DIR__ . '/../modelos/calificaciones.modelo.php';
+require __DIR__ . '/../modelos/actividades.modelo.php';
+require __DIR__ . '/../modelos/mensajes.modelo.php';
 $pdo = Conexion::conectar();
 function comprobarLegacy($condicion, $mensaje) {
     if (!$condicion) { throw new RuntimeException($mensaje); }
@@ -37,3 +39,11 @@ comprobarLegacy(ModeloCalificaciones::mdlGuardarCalificacion($notaLegacy)==='ok'
 $cantidadHistorial=(int)$pdo->query('SELECT (SELECT COUNT(*) FROM calificaciones)+(SELECT COUNT(*) FROM evaluaciones_calificaciones)+(SELECT COUNT(*) FROM cierres_periodo_calificaciones)')->fetchColumn();
 comprobarLegacy(count(ModeloCalificaciones::mdlCalificacionesGenerales())===$cantidadHistorial, 'Historial general habitual conserva calificaciones y cierres existentes');
 comprobarLegacy(count(ModeloCalificaciones::mdlResumenCierresGenerales())===(int)$pdo->query('SELECT COUNT(*) FROM cierres_periodo_calificaciones')->fetchColumn(), 'Resumen habitual conserva cierres existentes');
+$cantidadActividades=(int)$pdo->query('SELECT COUNT(*) FROM actividades WHERE COALESCE(esPlantilla,0)=0')->fetchColumn();
+comprobarLegacy(count(ModeloActividades::mdlListarParaUsuario(0,'ADMINISTRADOR'))===$cantidadActividades, 'Listado habitual de actividades conserva registros existentes');
+$idActividad=(int)$pdo->query('SELECT MIN(idActividad) FROM actividades')->fetchColumn();
+comprobarLegacy(ModeloActividades::mdlBuscarPorId($idActividad)!==null, 'Consulta habitual de actividad por ID funciona sin contexto');
+$cantidadPublicas=(int)$pdo->query("SELECT COUNT(*) FROM actividades WHERE estadoActividad='PUBLICADA' AND COALESCE(esPlantilla,0)=0 AND visibilidad='publica'")->fetchColumn();
+comprobarLegacy(count(ModeloActividades::mdlListarPublicas())===$cantidadPublicas, 'Catálogo público conserva compatibilidad con contexto desactivado');
+$idUsuarioMensaje=(int)$pdo->query("SELECT id_usuario FROM mensajes_participantes WHERE rolParticipante='DESTINATARIO' ORDER BY idMensajeParticipante LIMIT 1")->fetchColumn();
+comprobarLegacy(ModeloMensajes::mdlContarMensajesRecibidos($idUsuarioMensaje)===(int)$pdo->query("SELECT COUNT(*) FROM mensajes_participantes WHERE id_usuario=".$idUsuarioMensaje." AND rolParticipante='DESTINATARIO' AND enPapelera=0 AND eliminado=0")->fetchColumn(), 'Contador habitual de mensajes conserva compatibilidad sin contexto');

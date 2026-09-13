@@ -1,5 +1,6 @@
 <?php
-require_once('conexion.php');
+require_once __DIR__ . '/conexion.php';
+require_once __DIR__ . '/tenant.modelo.php';
 
 class ModeloMensajes
 {
@@ -30,6 +31,17 @@ class ModeloMensajes
         return strtoupper(trim((string) $rol));
     }
 
+    private static function rolUsuario($columna)
+    {
+        if(!ModeloTenant::activo()){return $columna.'.rol';}
+        return "COALESCE((SELECT GROUP_CONCAT(DISTINCT mr.codigo ORDER BY mr.codigo SEPARATOR ' · ')
+            FROM usuarios_instituciones mui
+            INNER JOIN usuarios_instituciones_roles mur ON mur.id_usuario_institucion=mui.idUsuarioInstitucion
+            INNER JOIN roles mr ON mr.idRol=mur.id_rol
+            WHERE mui.id_usuario=$columna.idUsuario AND mui.id_institucion=".ModeloTenant::id()."
+            AND mui.activo=1 AND mr.codigo IN ('ADMINISTRADOR','DOCENTE','ESTUDIANTE')),'')";
+    }
+
     public static function mdlUsuariosPermitidosParaMensajes($idUsuarioActual, $rolActual)
     {
         return ModeloUsuarios::mdlDestinatariosPermitidos((int) $idUsuarioActual, (string) $rolActual);
@@ -45,6 +57,7 @@ class ModeloMensajes
                 SELECT s.idSeccion, s.tituloSeccion, c.nombreCurso
                 FROM secciones s
                 INNER JOIN cursos c ON c.idCurso = s.id_curso
+                WHERE ' . ModeloTenant::cursos('c') . '
                 ORDER BY c.nombreCurso ASC, s.tituloSeccion ASC
             ');
             $stmt->execute();
@@ -56,7 +69,8 @@ class ModeloMensajes
                 SELECT s.idSeccion, s.tituloSeccion, c.nombreCurso
                 FROM secciones s
                 INNER JOIN cursos c ON c.idCurso = s.id_curso
-                WHERE s.docente = :idUsuario OR s.tutor = :idUsuario
+                WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario)
+                  AND ' . ModeloTenant::cursos('c') . '
                 ORDER BY c.nombreCurso ASC, s.tituloSeccion ASC
             ');
             $stmt->bindValue(':idUsuario', (int) $idUsuarioActual, PDO::PARAM_INT);
@@ -77,7 +91,8 @@ class ModeloMensajes
             WHERE s.idSeccion = :idSeccion
               AND a.estadoInscripcion = "ACTIVA"
               AND u.activo = 1
-              AND u.rol = "ESTUDIANTE"
+              AND ' . ModeloTenant::secciones('s') . '
+              AND ' . ModeloTenant::usuarioConRol('u.idUsuario',['ESTUDIANTE']) . '
         ');
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
         $stmt->execute();
@@ -89,7 +104,6 @@ class ModeloMensajes
     public static function mdlGuardarMensaje(array $datos)
     {
         $pdo = self::pdo();
-        $pdo->beginTransaction();
 
         try {
             $destinatarios = self::idsUnicos($datos['destinatarios'] ?? []);
@@ -97,15 +111,25 @@ class ModeloMensajes
             $contenido = (string) ($datos['contenidoMensaje'] ?? '');
             $fecha = (string) ($datos['fechaMensaje'] ?? date('Y-m-d H:i:s'));
             $idPrimero = $destinatarios[0] ?? $idRemitente;
+            if (ModeloTenant::activo()) {
+                ModeloTenant::exigirUsuario($idRemitente,['ADMINISTRADOR','DOCENTE','ESTUDIANTE']);
+                foreach ($destinatarios as $idDestinatario) {
+                    ModeloTenant::exigirUsuario($idDestinatario,['ADMINISTRADOR','DOCENTE','ESTUDIANTE']);
+                }
+            }
+            $pdo->beginTransaction();
 
+            $institucional=ModeloTenant::activo();
             $stmt = $pdo->prepare('
-                INSERT INTO mensajes (id_remitente, id_destinatario, contenidoMensaje, fechaMensaje)
-                VALUES (:id_remitente, :id_destinatario, :contenidoMensaje, :fechaMensaje)
+                INSERT INTO mensajes (id_remitente, id_destinatario, contenidoMensaje, fechaMensaje'.($institucional?', id_institucion':'').')
+                '.($institucional?'SELECT':'VALUES (').' :id_remitente, :id_destinatario, :contenidoMensaje, :fechaMensaje'.($institucional?', :id_institucion':'').'
+                '.($institucional?'WHERE '.ModeloTenant::sesionActiva():')').'
             ');
             $stmt->bindValue(':id_remitente', $idRemitente, PDO::PARAM_INT);
             $stmt->bindValue(':id_destinatario', (int) $idPrimero, PDO::PARAM_INT);
             $stmt->bindValue(':contenidoMensaje', $contenido, PDO::PARAM_STR);
             $stmt->bindValue(':fechaMensaje', $fecha, PDO::PARAM_STR);
+            if($institucional){$stmt->bindValue(':id_institucion',ModeloTenant::id(),PDO::PARAM_INT);}
             if (!$stmt->execute()) {
                 $pdo->rollBack();
                 return 'error';
@@ -165,6 +189,11 @@ class ModeloMensajes
 
             $pdo->commit();
             return $idMensaje;
+        } catch (RuntimeException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -191,6 +220,7 @@ class ModeloMensajes
             WHERE mp.id_usuario = :idUsuario
               AND mp.rolParticipante = "DESTINATARIO"
               AND mp.eliminado = 0
+              AND ' . ModeloTenant::mensajes('m') . '
         ';
     }
 
@@ -216,6 +246,7 @@ class ModeloMensajes
             WHERE mp.id_usuario = :idUsuario
               AND mp.rolParticipante = "REMITENTE"
               AND mp.eliminado = 0
+              AND ' . ModeloTenant::mensajes('m') . '
         ';
     }
 
@@ -233,6 +264,7 @@ class ModeloMensajes
             WHERE mp.id_usuario = :idUsuario
               AND mp.enPapelera = 1
               AND mp.eliminado = 0
+              AND ' . ModeloTenant::mensajes('m') . '
         ';
     }
 
@@ -240,11 +272,13 @@ class ModeloMensajes
     {
         $stmt = self::pdo()->prepare('
             SELECT COUNT(*) AS total
-            FROM mensajes_participantes
-            WHERE id_usuario = :idUsuario
-              AND rolParticipante = "DESTINATARIO"
-              AND enPapelera = 0
-              AND eliminado = 0
+            FROM mensajes_participantes mp
+            INNER JOIN mensajes m ON m.idMensaje=mp.id_mensaje
+            WHERE mp.id_usuario = :idUsuario
+              AND mp.rolParticipante = "DESTINATARIO"
+              AND mp.enPapelera = 0
+              AND mp.eliminado = 0
+              AND ' . ModeloTenant::mensajes('m') . '
         ');
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
         $stmt->execute();
@@ -255,11 +289,13 @@ class ModeloMensajes
     {
         $stmt = self::pdo()->prepare('
             SELECT COUNT(*) AS total
-            FROM mensajes_participantes
-            WHERE id_usuario = :idUsuario
-              AND rolParticipante = "REMITENTE"
-              AND enPapelera = 0
-              AND eliminado = 0
+            FROM mensajes_participantes mp
+            INNER JOIN mensajes m ON m.idMensaje=mp.id_mensaje
+            WHERE mp.id_usuario = :idUsuario
+              AND mp.rolParticipante = "REMITENTE"
+              AND mp.enPapelera = 0
+              AND mp.eliminado = 0
+              AND ' . ModeloTenant::mensajes('m') . '
         ');
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
         $stmt->execute();
@@ -270,10 +306,12 @@ class ModeloMensajes
     {
         $stmt = self::pdo()->prepare('
             SELECT COUNT(*) AS total
-            FROM mensajes_participantes
-            WHERE id_usuario = :idUsuario
-              AND enPapelera = 1
-              AND eliminado = 0
+            FROM mensajes_participantes mp
+            INNER JOIN mensajes m ON m.idMensaje=mp.id_mensaje
+            WHERE mp.id_usuario = :idUsuario
+              AND mp.enPapelera = 1
+              AND mp.eliminado = 0
+              AND ' . ModeloTenant::mensajes('m') . '
         ');
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
         $stmt->execute();
@@ -284,12 +322,14 @@ class ModeloMensajes
     {
         $stmt = self::pdo()->prepare('
             SELECT COUNT(*) AS total
-            FROM mensajes_participantes
-            WHERE id_usuario = :idUsuario
-              AND rolParticipante = "DESTINATARIO"
-              AND leido = 0
-              AND enPapelera = 0
-              AND eliminado = 0
+            FROM mensajes_participantes mp
+            INNER JOIN mensajes m ON m.idMensaje=mp.id_mensaje
+            WHERE mp.id_usuario = :idUsuario
+              AND mp.rolParticipante = "DESTINATARIO"
+              AND mp.leido = 0
+              AND mp.enPapelera = 0
+              AND mp.eliminado = 0
+              AND ' . ModeloTenant::mensajes('m') . '
         ');
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
         $stmt->execute();
@@ -346,13 +386,14 @@ class ModeloMensajes
             SELECT mp.idMensajeParticipante, mp.id_mensaje, mp.id_usuario, mp.rolParticipante, mp.leido, mp.fechaLeido,
                    mp.enPapelera, mp.fechaPapelera,
                    m.idMensaje, m.id_remitente, m.contenidoMensaje, m.fechaMensaje,
-                   u.nombreUsuario, u.apellidoUsuario, u.email, u.rol
+                   u.nombreUsuario, u.apellidoUsuario, u.email, ' . self::rolUsuario('u') . ' AS rol
             FROM mensajes_participantes mp
             INNER JOIN mensajes m ON m.idMensaje = mp.id_mensaje
             INNER JOIN usuarios u ON u.idUsuario = m.id_remitente
             WHERE mp.id_mensaje = :idMensaje
               AND mp.id_usuario = :idUsuario
               AND mp.eliminado = 0
+              AND ' . ModeloTenant::mensajes('m') . '
             LIMIT 1
         ');
         $stmt->bindValue(':idMensaje', (int) $idMensaje, PDO::PARAM_INT);
@@ -371,10 +412,14 @@ class ModeloMensajes
 
     public static function mdlAdjuntosPorMensaje($idMensaje)
     {
+        if(ModeloTenant::activo()){
+            ModeloTenant::exigirParticipanteMensaje($idMensaje,(int)($_SESSION['usuario']['id']??0));
+        }
         $stmt = self::pdo()->prepare('
             SELECT idAdjunto, id_mensaje, nombreOriginal, nombreGuardado, rutaArchivo, mimeType, tamanoArchivo, fechaAdjunto
             FROM mensajes_adjuntos
             WHERE id_mensaje = :idMensaje
+              AND ' . ModeloTenant::mensajeId($idMensaje) . '
             ORDER BY idAdjunto ASC
         ');
         $stmt->bindValue(':idMensaje', (int) $idMensaje, PDO::PARAM_INT);
@@ -384,13 +429,18 @@ class ModeloMensajes
 
     public static function mdlDestinatariosPorMensaje($idMensaje)
     {
+        if(ModeloTenant::activo()){
+            ModeloTenant::exigirParticipanteMensaje($idMensaje,(int)($_SESSION['usuario']['id']??0));
+        }
         $stmt = self::pdo()->prepare('
-            SELECT u.idUsuario, u.nombreUsuario, u.apellidoUsuario, u.rol, mp.leido, mp.enPapelera
+            SELECT u.idUsuario, u.nombreUsuario, u.apellidoUsuario, ' . self::rolUsuario('u') . ' AS rol, mp.leido, mp.enPapelera
             FROM mensajes_participantes mp
+            INNER JOIN mensajes m ON m.idMensaje=mp.id_mensaje
             INNER JOIN usuarios u ON u.idUsuario = mp.id_usuario
             WHERE mp.id_mensaje = :idMensaje
               AND mp.rolParticipante = "DESTINATARIO"
               AND mp.eliminado = 0
+              AND ' . ModeloTenant::mensajes('m') . '
             ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC
         ');
         $stmt->bindValue(':idMensaje', (int) $idMensaje, PDO::PARAM_INT);
@@ -400,14 +450,16 @@ class ModeloMensajes
 
     public static function mdlMarcarLeido($idMensaje, $idUsuario)
     {
+        ModeloTenant::exigirParticipanteMensaje($idMensaje,$idUsuario);
         $stmt = self::pdo()->prepare('
-            UPDATE mensajes_participantes
+            UPDATE mensajes_participantes mp
             SET leido = 1,
                 fechaLeido = NOW()
-            WHERE id_mensaje = :idMensaje
-              AND id_usuario = :idUsuario
-              AND rolParticipante = "DESTINATARIO"
-              AND eliminado = 0
+            WHERE mp.id_mensaje = :idMensaje
+              AND mp.id_usuario = :idUsuario
+              AND mp.rolParticipante = "DESTINATARIO"
+              AND mp.eliminado = 0
+              AND ' . ModeloTenant::participanteMensaje('mp') . '
         ');
         $stmt->bindValue(':idMensaje', (int) $idMensaje, PDO::PARAM_INT);
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
@@ -416,14 +468,16 @@ class ModeloMensajes
 
     public static function mdlMarcarNoLeido($idMensaje, $idUsuario)
     {
+        ModeloTenant::exigirParticipanteMensaje($idMensaje,$idUsuario);
         $stmt = self::pdo()->prepare('
-            UPDATE mensajes_participantes
+            UPDATE mensajes_participantes mp
             SET leido = 0,
                 fechaLeido = NULL
-            WHERE id_mensaje = :idMensaje
-              AND id_usuario = :idUsuario
-              AND rolParticipante = "DESTINATARIO"
-              AND eliminado = 0
+            WHERE mp.id_mensaje = :idMensaje
+              AND mp.id_usuario = :idUsuario
+              AND mp.rolParticipante = "DESTINATARIO"
+              AND mp.eliminado = 0
+              AND ' . ModeloTenant::participanteMensaje('mp') . '
         ');
         $stmt->bindValue(':idMensaje', (int) $idMensaje, PDO::PARAM_INT);
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
@@ -432,13 +486,15 @@ class ModeloMensajes
 
     public static function mdlMoverAPapelera($idMensaje, $idUsuario)
     {
+        ModeloTenant::exigirParticipanteMensaje($idMensaje,$idUsuario);
         $stmt = self::pdo()->prepare('
-            UPDATE mensajes_participantes
+            UPDATE mensajes_participantes mp
             SET enPapelera = 1,
                 fechaPapelera = NOW()
-            WHERE id_mensaje = :idMensaje
-              AND id_usuario = :idUsuario
-              AND eliminado = 0
+            WHERE mp.id_mensaje = :idMensaje
+              AND mp.id_usuario = :idUsuario
+              AND mp.eliminado = 0
+              AND ' . ModeloTenant::participanteMensaje('mp') . '
         ');
         $stmt->bindValue(':idMensaje', (int) $idMensaje, PDO::PARAM_INT);
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
@@ -447,13 +503,15 @@ class ModeloMensajes
 
     public static function mdlRestaurarDePapelera($idMensaje, $idUsuario)
     {
+        ModeloTenant::exigirParticipanteMensaje($idMensaje,$idUsuario);
         $stmt = self::pdo()->prepare('
-            UPDATE mensajes_participantes
+            UPDATE mensajes_participantes mp
             SET enPapelera = 0,
                 fechaPapelera = NULL
-            WHERE id_mensaje = :idMensaje
-              AND id_usuario = :idUsuario
-              AND eliminado = 0
+            WHERE mp.id_mensaje = :idMensaje
+              AND mp.id_usuario = :idUsuario
+              AND mp.eliminado = 0
+              AND ' . ModeloTenant::participanteMensaje('mp') . '
         ');
         $stmt->bindValue(':idMensaje', (int) $idMensaje, PDO::PARAM_INT);
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
@@ -462,12 +520,14 @@ class ModeloMensajes
 
     public static function mdlEliminarPermanente($idMensaje, $idUsuario)
     {
+        ModeloTenant::exigirParticipanteMensaje($idMensaje,$idUsuario);
         $pdo = self::pdo();
         $stmt = $pdo->prepare('
-            UPDATE mensajes_participantes
+            UPDATE mensajes_participantes mp
             SET eliminado = 1
-            WHERE id_mensaje = :idMensaje
-              AND id_usuario = :idUsuario
+            WHERE mp.id_mensaje = :idMensaje
+              AND mp.id_usuario = :idUsuario
+              AND ' . ModeloTenant::participanteMensaje('mp') . '
         ');
         $stmt->bindValue(':idMensaje', (int) $idMensaje, PDO::PARAM_INT);
         $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
@@ -475,15 +535,15 @@ class ModeloMensajes
             return 'error';
         }
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) AS total FROM mensajes_participantes WHERE id_mensaje = :idMensaje AND eliminado = 0');
+        $stmt = $pdo->prepare('SELECT COUNT(*) AS total FROM mensajes_participantes mp WHERE mp.id_mensaje = :idMensaje AND mp.eliminado = 0 AND ' . ModeloTenant::participanteMensaje('mp'));
         $stmt->bindValue(':idMensaje', (int) $idMensaje, PDO::PARAM_INT);
         $stmt->execute();
         $restantes = (int) (($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0));
 
         if ($restantes === 0) {
-            $pdo->prepare('DELETE FROM mensajes_adjuntos WHERE id_mensaje = :idMensaje')->execute([':idMensaje' => (int) $idMensaje]);
-            $pdo->prepare('DELETE FROM mensajes_participantes WHERE id_mensaje = :idMensaje')->execute([':idMensaje' => (int) $idMensaje]);
-            $pdo->prepare('DELETE FROM mensajes WHERE idMensaje = :idMensaje')->execute([':idMensaje' => (int) $idMensaje]);
+            $pdo->prepare('DELETE FROM mensajes_adjuntos WHERE id_mensaje = :idMensaje AND ' . ModeloTenant::mensajeId($idMensaje))->execute([':idMensaje' => (int) $idMensaje]);
+            $pdo->prepare('DELETE FROM mensajes_participantes WHERE id_mensaje = :idMensaje AND ' . ModeloTenant::mensajeId($idMensaje))->execute([':idMensaje' => (int) $idMensaje]);
+            $pdo->prepare('DELETE FROM mensajes WHERE idMensaje = :idMensaje AND ' . ModeloTenant::mensajes('mensajes'))->execute([':idMensaje' => (int) $idMensaje]);
         }
 
         return 'ok';

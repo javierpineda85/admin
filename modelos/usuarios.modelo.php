@@ -568,6 +568,40 @@ class ModeloUsuarios
     {
         $rolActual = strtoupper(trim((string) $rolActual));
 
+        if (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true) {
+            require_once __DIR__ . '/tenant.modelo.php';
+            $prioridadRol="CASE
+                WHEN ".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR'])." THEN 'ADMINISTRADOR'
+                WHEN ".ModeloTenant::usuarioConRol('u.idUsuario',['DOCENTE'])." THEN 'DOCENTE'
+                ELSE 'ESTUDIANTE' END";
+            if (in_array($rolActual,['ADMINISTRADOR','DOCENTE'],true)) {
+                $stmt=Conexion::conectar()->prepare("SELECT DISTINCT u.idUsuario,u.nombreUsuario,u.apellidoUsuario,u.email,$prioridadRol rol
+                    FROM usuarios u INNER JOIN usuarios_instituciones ui ON ui.id_usuario=u.idUsuario
+                    WHERE ui.id_institucion=? AND ui.activo=1 AND u.activo=1 AND u.idUsuario<>?
+                    AND ".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR','DOCENTE','ESTUDIANTE'])."
+                    ORDER BY apellidoUsuario,nombreUsuario");
+                $stmt->execute([ModeloTenant::id(),(int)$idUsuarioActual]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+            $stmt=Conexion::conectar()->prepare("SELECT DISTINCT u.idUsuario,u.nombreUsuario,u.apellidoUsuario,u.email,$prioridadRol rol
+                FROM usuarios u
+                WHERE u.activo=1 AND u.idUsuario<>:actual
+                AND ".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR','DOCENTE','ESTUDIANTE'])."
+                AND ((".ModeloTenant::usuarioConRol('u.idUsuario',['ESTUDIANTE'])." AND EXISTS(
+                    SELECT 1 FROM asignacioncursos a1 INNER JOIN asignacioncursos a2 ON a2.id_seccion=a1.id_seccion
+                    INNER JOIN cursos c ON c.idCurso=a1.id_seccion
+                    WHERE a1.id_estudiante=:actual1 AND a2.id_estudiante=u.idUsuario
+                    AND a1.estadoInscripcion='ACTIVA' AND a2.estadoInscripcion='ACTIVA' AND ".ModeloTenant::cursos('c')."))
+                OR (".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR','DOCENTE'])." AND EXISTS(
+                    SELECT 1 FROM asignacioncursos a INNER JOIN cursos c ON c.idCurso=a.id_seccion
+                    INNER JOIN secciones s ON s.id_curso=c.idCurso
+                    WHERE a.id_estudiante=:actual2 AND a.estadoInscripcion='ACTIVA'
+                    AND (s.docente=u.idUsuario OR s.tutor=u.idUsuario) AND ".ModeloTenant::cursos('c').")))
+                ORDER BY rol,apellidoUsuario,nombreUsuario");
+            $stmt->execute([':actual'=>(int)$idUsuarioActual,':actual1'=>(int)$idUsuarioActual,':actual2'=>(int)$idUsuarioActual]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         if (in_array($rolActual, ['ADMINISTRADOR', 'DOCENTE'], true)) {
             $stmt = Conexion::conectar()->prepare("
                 SELECT idUsuario, nombreUsuario, apellidoUsuario, email, rol
@@ -622,6 +656,7 @@ class ModeloUsuarios
             WHERE a.id_estudiante = :idEstudiante
               AND a.estadoInscripcion='ACTIVA'
               AND (s.docente = :idDocente OR s.tutor = :idDocente)
+              AND " . (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true ? ModeloTenant::secciones('s') : '1=1') . "
         ");
         $stmt->bindParam(":idEstudiante", $idEstudiante, PDO::PARAM_INT);
         $stmt->bindParam(":idDocente", $idDocente, PDO::PARAM_INT);
@@ -640,6 +675,8 @@ class ModeloUsuarios
             WHERE a1.id_estudiante = :idUsuario1
               AND a2.id_estudiante = :idUsuario2
               AND a1.estadoInscripcion='ACTIVA' AND a2.estadoInscripcion='ACTIVA'
+              AND " . (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true
+                  ? 'EXISTS (SELECT 1 FROM cursos c WHERE c.idCurso=a1.id_seccion AND '.ModeloTenant::cursos('c').')' : '1=1') . "
         ");
         $stmt->bindParam(":idUsuario1", $idUsuario1, PDO::PARAM_INT);
         $stmt->bindParam(":idUsuario2", $idUsuario2, PDO::PARAM_INT);
