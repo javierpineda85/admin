@@ -45,6 +45,13 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
 - Los listados de alumnos evaluables ya no consultan `usuarios.rol`: usan el rol
   de la membresía actual. En modo institucional, la preparación de calificaciones
   y evaluaciones tampoco intenta ejecutar DDL durante la petición.
+- Ciclos lectivos e instrumentos de evaluación usan catálogos separados por
+  institución. Los períodos heredan el tenant desde el ciclo y las evaluaciones
+  validan conjuntamente curso, materia, período, instrumento y autor.
+- Las evaluaciones y sus planillas filtran el tenant en accesos por ID, edición,
+  eliminación y calificación. Una nota de evaluación exige inscripción activa y
+  rol ESTUDIANTE. La migración `03_catalogos_calificacion` reemplaza las claves
+  únicas globales por claves compuestas con institución y puede reanudarse.
 
 ## Pruebas
 
@@ -57,7 +64,7 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260913_211132_3102d4`, 146 comprobaciones
+Última verificación: `campus_mt_fase2_20260913_213755_4f56fc`, 161 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno. Los archivos sintéticos
 se eliminan después de comprobar que la copia mantiene exactamente su contenido.
@@ -76,7 +83,8 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 ## Trabajo pendiente antes de finalizar y habilitar
 
-- Completar calificaciones generales, evaluaciones, ciclos y períodos; ampliar asistencia
+- Completar calificaciones generales, cierres y cambios de estado de períodos;
+  ampliar asistencia
   con pruebas HTTP cuando se retire el bloqueo preventivo de las aulas.
 - Completar actividades, plantillas, intentos y rutas públicas.
 - Aislar mensajería, notificaciones y agregados de panel.

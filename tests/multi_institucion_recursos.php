@@ -10,10 +10,14 @@ require_once __DIR__ . '/../modelos/asistencias.modelo.php';
 require_once __DIR__ . '/../modelos/calificaciones.modelo.php';
 foreach (['secciones', 'lecciones', 'asignacioncursos', 'recursoslecciones', 'entregaslecciones', 'posteos',
     'calificaciones','entregaslecciones_adjuntos','archivoslecciones','actividades','actividades_preguntas','actividades_opciones',
-    'asistencia_clases','asistencia_registros'] as $tabla) {
+    'asistencia_clases','asistencia_registros','ciclos_lectivos','periodos_calificacion','instrumentos_evaluacion',
+    'periodos_seccion_estado','cierres_periodo_calificaciones','evaluaciones','evaluaciones_calificaciones'] as $tabla) {
     $pdo->exec("CREATE TABLE `$tabla` LIKE `$origen`.`$tabla`");
 }
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_01_expandir.sql');
+ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_03_catalogos_calificacion.sql');
+ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_03_catalogos_calificacion.sql');
+verificar((int)$pdo->query("SELECT COUNT(*) FROM campus_migraciones WHERE codigo='multi_institucion_03_catalogos_calificacion'")->fetchColumn()===1, 'Migración de catálogos de calificación es reanudable e idempotente');
 function denegado(callable $operacion, $mensaje) {
     try { $operacion(); } catch (RuntimeException $e) {
         verificar(strpos($e->getMessage(), 'institucional') !== false, $mensaje);
@@ -28,6 +32,16 @@ $datosCurso = ['nombreCurso'=>'Curso MenteMotion','contenidoCurso'=>'Contenido d
     'creadoPor'=>$ids['A'],'responsable'=>$ids['A'],'modalidadCalificacion'=>'DOS_TRAMOS','intensificacionActiva'=>1];
 verificar(ModeloCursos::mdlGuardarCurso('cursos',$datosCurso)==='ok', 'Curso nuevo obtiene institución desde contexto');
 $cursoMM=(int)$pdo->lastInsertId();
+$datosMateriaMM=['tituloSeccion'=>'Materia MenteMotion','contenidoSeccion'=>'Prueba','id_curso'=>$cursoMM,
+    'docente'=>$ids['A'],'tutor'=>0,'bannerSeccion'=>'','colorInicioBanner'=>'#000000','colorFinBanner'=>'#ffffff','creadoPor'=>$ids['A']];
+verificar(ModeloMaterias::mdlGuardarMateria('secciones',$datosMateriaMM)==='ok', 'Materia de MenteMotion queda vinculada a su curso');
+$materiaMM=(int)$pdo->lastInsertId();
+$contextoMM=ModeloCalificaciones::mdlContextoAcademicoSeccion($materiaMM);
+verificar(!empty($contextoMM['periodos'])&&!empty($contextoMM['instrumentos']), 'MenteMotion obtiene catálogos de calificación institucionales');
+$evaluacionMM=ModeloCalificaciones::mdlCrearEvaluacion(['id_seccion'=>$materiaMM,'id_curso'=>$cursoMM,
+    'id_periodo'=>$contextoMM['periodos'][0]['idPeriodo'],'id_instrumento'=>$contextoMM['instrumentos'][0]['idInstrumento'],
+    'id_autor'=>$ids['A'],'temaEvaluacion'=>'Evaluación MenteMotion','fechaEvaluacion'=>'2026-09-20']);
+verificar($evaluacionMM>0, 'Evaluación se crea dentro del catálogo de MenteMotion');
 sesionPara($ids['B']);
 $datosCurso['nombreCurso']='Curso Demo'; $datosCurso['creadoPor']=$ids['B']; $datosCurso['responsable']=$ids['B'];
 ModeloCursos::mdlGuardarCurso('cursos',$datosCurso); $cursoDemo=(int)$pdo->lastInsertId();
@@ -46,6 +60,25 @@ $datosMateria=['tituloSeccion'=>'Materia Demo','contenidoSeccion'=>'Prueba','id_
 verificar(ModeloMaterias::mdlGuardarMateria('secciones',$datosMateria)==='ok', 'Materia se crea con docente de la institución');
 $materiaDemo=(int)$pdo->lastInsertId();
 verificar(ModeloMaterias::mdlActualizarDocentesMateria($materiaDemo,$ids['B'],0)==='ok', 'Escritura de materia propia aplica filtro institucional');
+$contextoDemo=ModeloCalificaciones::mdlContextoAcademicoSeccion($materiaDemo);
+verificar((int)$contextoDemo['ciclo']['idCicloLectivo']!==(int)$contextoMM['ciclo']['idCicloLectivo'], 'Cada institución usa un ciclo lectivo independiente para el mismo año');
+verificar($contextoDemo['instrumentos'][0]['nombre']===$contextoMM['instrumentos'][0]['nombre']
+    && (int)$contextoDemo['instrumentos'][0]['idInstrumento']!==(int)$contextoMM['instrumentos'][0]['idInstrumento'], 'Instrumentos con el mismo nombre poseen IDs institucionales diferentes');
+$evaluacionDemo=ModeloCalificaciones::mdlCrearEvaluacion(['id_seccion'=>$materiaDemo,'id_curso'=>$cursoDemo,
+    'id_periodo'=>$contextoDemo['periodos'][0]['idPeriodo'],'id_instrumento'=>$contextoDemo['instrumentos'][0]['idInstrumento'],
+    'id_autor'=>$ids['B'],'temaEvaluacion'=>'Evaluación Demo','fechaEvaluacion'=>'2026-09-20']);
+verificar($evaluacionDemo>0 && ModeloCalificaciones::mdlEvaluacionPorId($evaluacionDemo)['temaEvaluacion']==='Evaluación Demo', 'Evaluación propia puede crearse y consultarse');
+verificar(ModeloCalificaciones::mdlGuardarCalificacionesEvaluacion($evaluacionDemo,[['id_estudiante'=>$ids['A'],'calificacion'=>9,'estadoAsistencia'=>'PRESENTE','devolucion'=>'Muy bien']])==='ok', 'Calificación de evaluación valida inscripción y tenant');
+verificar(count(ModeloCalificaciones::mdlCalificacionesEvaluacion($evaluacionDemo))===1, 'Planilla de evaluación propia devuelve su calificación');
+$notaEvaluacionAjena=[['id_estudiante'=>$ids['C'],'calificacion'=>10,'estadoAsistencia'=>'PRESENTE','devolucion'=>'']];
+denegado(function() use($evaluacionDemo,$notaEvaluacionAjena) { ModeloCalificaciones::mdlGuardarCalificacionesEvaluacion($evaluacionDemo,$notaEvaluacionAjena); }, 'Evaluación no admite calificar un usuario ajeno a la institución');
+verificar(ModeloCalificaciones::mdlEvaluacionPorId($evaluacionMM)===null, 'Evaluación de otra institución no se revela por ID');
+denegado(function() use($evaluacionMM,$ids) { ModeloCalificaciones::mdlGuardarCalificacionesEvaluacion($evaluacionMM,[['id_estudiante'=>$ids['A'],'calificacion'=>10]]); }, 'No se puede calificar una evaluación de otra institución');
+denegado(function() use($evaluacionMM) { ModeloCalificaciones::mdlEliminarEvaluacion($evaluacionMM); }, 'Evaluación ajena no puede eliminarse por ID manipulado');
+$evaluacionPeriodoCruzado=['id_seccion'=>$materiaDemo,'id_curso'=>$cursoDemo,
+    'id_periodo'=>$contextoMM['periodos'][0]['idPeriodo'],'id_instrumento'=>$contextoDemo['instrumentos'][0]['idInstrumento'],
+    'id_autor'=>$ids['B'],'temaEvaluacion'=>'Período cruzado','fechaEvaluacion'=>'2026-09-21'];
+denegado(function() use($evaluacionPeriodoCruzado) { ModeloCalificaciones::mdlCrearEvaluacion($evaluacionPeriodoCruzado); }, 'Evaluación rechaza período de otra institución');
 $claseDemo=ModeloAsistencias::mdlCrearClase($materiaDemo,$cursoDemo,'2026-09-13','Clase Demo',$ids['B']);
 verificar($claseDemo>0, 'Asistencia crea una clase dentro de la institución activa');
 $registrosDemo=ModeloAsistencias::mdlRegistrosClase($claseDemo);
@@ -155,13 +188,14 @@ $pdo->prepare('UPDATE usuarios_instituciones SET activo=1 WHERE id_usuario=? AND
 sesionPara($ids['A']);
 ControladorInstitucion::seleccionar($mm,ControladorInstitucion::csrf(),ControladorInstitucion::version());
 verificar(ModeloMaterias::mdlBuscarMateriaPorId($materiaDemo)===false, 'Docente no puede leer materia ajena por ID');
-verificar(ModeloMaterias::mdlListarMateriasGestion()===[], 'Listado de materias excluye otras instituciones');
+verificar(array_column(ModeloMaterias::mdlListarMateriasGestion(),'idSeccion')===[$materiaMM], 'Listado de materias conserva solo las de la institución activa');
 denegado(function() use($leccionDemo) { ModeloLecciones::mdlBuscarLeccionPorId($leccionDemo); }, 'Lección ajena denegada por ID');
 denegado(function() use($recursoDemo) { ModeloLecciones::mdlBuscarRecursoPorId($recursoDemo); }, 'Recurso ajeno denegado por ID');
 denegado(function() use($leccionDemo) { ModeloLecciones::mdlEliminarLeccion($leccionDemo); }, 'Borrado de lección ajena rechazado antes de eliminar dependencias');
 denegado(function() use($claseDemo) { ModeloAsistencias::mdlClase($claseDemo); }, 'Clase de asistencia ajena no se revela por ID');
 denegado(function() use($materiaDemo) { ModeloAsistencias::mdlClasesSeccion($materiaDemo); }, 'Listado de asistencia ajeno se rechaza por materia');
 denegado(function() use($materiaDemo) { ModeloCalificaciones::mdlCalificacionesPorSeccion($materiaDemo); }, 'Calificaciones de otra institución no se revelan por materia');
+denegado(function() use($evaluacionDemo) { ModeloCalificaciones::mdlCalificacionesEvaluacion($evaluacionDemo); }, 'Planilla de evaluación ajena no se revela por ID');
 denegado(function() use($cursoDemo,$ids) { ModeloCursos::mdlDuplicarCurso($cursoDemo,['idUsuario'=>$ids['A']]); }, 'Duplicación de curso ajeno rechazada antes de crear datos');
 $datosMateria['idSeccion']=$materiaDemo;
 denegado(function() use($datosMateria) { ModeloMaterias::mdlModificarMateria('secciones',$datosMateria); }, 'Docente no puede modificar materia de otra institución');

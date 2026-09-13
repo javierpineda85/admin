@@ -92,29 +92,40 @@ class ModeloCalificaciones
     public static function mdlContextoAcademicoSeccion($idSeccion)
     {
         self::prepararTablasEvaluaciones();
+        ModeloTenant::exigirSeccion($idSeccion);
         $pdo=Conexion::conectar();
-        $stmt=$pdo->prepare('SELECT c.idCurso,c.id_ciclo_lectivo,c.fechaInicioCurso,c.modalidadCalificacion,c.intensificacionActiva FROM secciones s INNER JOIN cursos c ON c.idCurso=s.id_curso WHERE s.idSeccion=?');
+        $stmt=$pdo->prepare('SELECT c.idCurso,c.id_ciclo_lectivo,c.fechaInicioCurso,c.modalidadCalificacion,c.intensificacionActiva FROM secciones s INNER JOIN cursos c ON c.idCurso=s.id_curso WHERE s.idSeccion=? AND '.ModeloTenant::cursos('c'));
         $stmt->execute([(int)$idSeccion]); $curso=$stmt->fetch(PDO::FETCH_ASSOC);
         if(!$curso){return ['ciclo'=>null,'periodos'=>[],'instrumentos'=>[]];}
         $anio=(int)substr((string)($curso['fechaInicioCurso']??''),0,4); if($anio<2000){$anio=(int)date('Y');}
-        $pdo->prepare('INSERT IGNORE INTO ciclos_lectivos (nombre,anio) VALUES (?,?)')->execute(['Ciclo lectivo '.$anio,$anio]);
-        $q=$pdo->prepare('SELECT * FROM ciclos_lectivos WHERE anio=? LIMIT 1'); $q->execute([$anio]); $ciclo=$q->fetch(PDO::FETCH_ASSOC);
+        if(ModeloTenant::activo()){
+            $pdo->prepare('INSERT IGNORE INTO ciclos_lectivos (nombre,anio,id_institucion) SELECT ?,?,? WHERE '.ModeloTenant::sesionActiva())->execute(['Ciclo lectivo '.$anio,$anio,ModeloTenant::id()]);
+        }else{$pdo->prepare('INSERT IGNORE INTO ciclos_lectivos (nombre,anio) VALUES (?,?)')->execute(['Ciclo lectivo '.$anio,$anio]);}
+        $q=$pdo->prepare('SELECT * FROM ciclos_lectivos cl WHERE anio=? AND '.ModeloTenant::ciclosLectivos('cl').' LIMIT 1'); $q->execute([$anio]); $ciclo=$q->fetch(PDO::FETCH_ASSOC);
+        if(!$ciclo){throw new RuntimeException('Acceso institucional denegado.');}
         $idCiclo=(int)$ciclo['idCicloLectivo'];
-        $pdo->prepare('UPDATE cursos SET id_ciclo_lectivo=? WHERE idCurso=?')->execute([$idCiclo,(int)$curso['idCurso']]);
+        $pdo->prepare('UPDATE cursos c SET id_ciclo_lectivo=? WHERE idCurso=? AND '.ModeloTenant::cursos('c'))->execute([$idCiclo,(int)$curso['idCurso']]);
         foreach([['Primer período','REGULAR'],['Segundo período','REGULAR'],['Período único','REGULAR'],['Calificación final','FINAL'],['Intensificación','INTENSIFICACION']] as $orden=>$periodo){
             $pdo->prepare('INSERT IGNORE INTO periodos_calificacion (id_ciclo,nombre,tipo,orden) VALUES (?,?,?,?)')->execute([$idCiclo,$periodo[0],$periodo[1],$orden+1]);
+        }
+        if(ModeloTenant::activo()){
+            foreach(['Examen escrito','Lección oral','Concepto','Trabajo práctico','Carpeta','Acreditación de aprendizaje prioritario','Integradora'] as $orden=>$nombre){
+                $pdo->prepare('INSERT IGNORE INTO instrumentos_evaluacion(nombre,activo,orden,id_institucion) SELECT ?,1,?,? WHERE '.ModeloTenant::sesionActiva())->execute([$nombre,$orden+1,ModeloTenant::id()]);
+            }
         }
         $nombres=strtoupper((string)($curso['modalidadCalificacion']??'DOS_TRAMOS'))==='UNICO'?['Período único','Calificación final']:['Primer período','Segundo período','Calificación final'];
         $qInt=$pdo->prepare("SELECT COUNT(*) FROM periodos_calificacion p LEFT JOIN evaluaciones e ON e.id_periodo=p.idPeriodo AND e.id_seccion=? LEFT JOIN cierres_periodo_calificaciones cp ON cp.id_periodo=p.idPeriodo AND cp.id_seccion=? WHERE p.id_ciclo=? AND p.tipo='INTENSIFICACION' AND (e.idEvaluacion IS NOT NULL OR cp.idCierrePeriodo IS NOT NULL)");$qInt->execute([(int)$idSeccion,(int)$idSeccion,$idCiclo]);
         if(!empty($curso['intensificacionActiva'])||(int)$qInt->fetchColumn()>0){$nombres[]='Intensificación';}
-        $marcas=implode(',',array_fill(0,count($nombres),'?'));$q=$pdo->prepare("SELECT p.*,COALESCE(pe.estado,'ABIERTO') estado FROM periodos_calificacion p LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=p.idPeriodo AND pe.id_seccion=? WHERE p.id_ciclo=? AND p.nombre IN ($marcas) ORDER BY FIELD(p.nombre,'Primer período','Segundo período','Período único','Calificación final','Intensificación'),p.idPeriodo");$q->execute(array_merge([(int)$idSeccion,$idCiclo],$nombres));$periodos=$q->fetchAll(PDO::FETCH_ASSOC);
-        if($periodos){$pdo->prepare('UPDATE evaluaciones SET id_periodo=? WHERE id_curso=? AND id_periodo IS NULL')->execute([(int)$periodos[0]['idPeriodo'],(int)$curso['idCurso']]);}
-        return ['ciclo'=>$ciclo,'periodos'=>$periodos,'instrumentos'=>$pdo->query('SELECT * FROM instrumentos_evaluacion WHERE activo=1 ORDER BY orden,nombre')->fetchAll(PDO::FETCH_ASSOC)];
+        $marcas=implode(',',array_fill(0,count($nombres),'?'));$q=$pdo->prepare("SELECT p.*,COALESCE(pe.estado,'ABIERTO') estado FROM periodos_calificacion p LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=p.idPeriodo AND pe.id_seccion=? AND ".ModeloTenant::estadoPeriodoSeccion('pe')." WHERE p.id_ciclo=? AND p.nombre IN ($marcas) AND ".ModeloTenant::periodos('p')." ORDER BY FIELD(p.nombre,'Primer período','Segundo período','Período único','Calificación final','Intensificación'),p.idPeriodo");$q->execute(array_merge([(int)$idSeccion,$idCiclo],$nombres));$periodos=$q->fetchAll(PDO::FETCH_ASSOC);
+        if($periodos){$pdo->prepare('UPDATE evaluaciones ev SET id_periodo=? WHERE id_curso=? AND id_periodo IS NULL AND '.ModeloTenant::evaluaciones('ev'))->execute([(int)$periodos[0]['idPeriodo'],(int)$curso['idCurso']]);}
+        return ['ciclo'=>$ciclo,'periodos'=>$periodos,'instrumentos'=>$pdo->query('SELECT * FROM instrumentos_evaluacion ie WHERE activo=1 AND '.ModeloTenant::instrumentosEvaluacion('ie').' ORDER BY orden,nombre')->fetchAll(PDO::FETCH_ASSOC)];
     }
 
     public static function mdlPeriodoPorId($idPeriodo,$idSeccion=0)
     {
-        self::prepararTablasEvaluaciones(); $stmt=Conexion::conectar()->prepare("SELECT p.*,COALESCE(pe.estado,'ABIERTO') estado FROM periodos_calificacion p LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=p.idPeriodo AND pe.id_seccion=? WHERE p.idPeriodo=? LIMIT 1");
+        self::prepararTablasEvaluaciones();
+        if(ModeloTenant::activo()){ModeloTenant::exigirPeriodoSeccion($idPeriodo,$idSeccion);}
+        $stmt=Conexion::conectar()->prepare("SELECT p.*,COALESCE(pe.estado,'ABIERTO') estado FROM periodos_calificacion p LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=p.idPeriodo AND pe.id_seccion=? AND ".ModeloTenant::estadoPeriodoSeccion('pe')." WHERE p.idPeriodo=? AND ".ModeloTenant::periodos('p')." LIMIT 1");
         $stmt->execute([(int)$idSeccion,(int)$idPeriodo]); return $stmt->fetch(PDO::FETCH_ASSOC)?:null;
     }
 
@@ -445,11 +456,16 @@ class ModeloCalificaciones
     public static function mdlCrearEvaluacion(array $datos)
     {
         self::prepararTablasEvaluaciones();
+        ModeloTenant::exigirSeccionCurso($datos['id_seccion'],$datos['id_curso']);
+        ModeloTenant::exigirPeriodoSeccion($datos['id_periodo'],$datos['id_seccion']);
+        ModeloTenant::exigirInstrumentoEvaluacion($datos['id_instrumento']);
+        ModeloTenant::exigirUsuario($datos['id_autor'], ['ADMINISTRADOR','DOCENTE']);
 
         $pdo = Conexion::conectar();
         $stmt = $pdo->prepare('
             INSERT INTO evaluaciones (id_seccion, id_curso, id_periodo, id_instrumento, id_autor, temaEvaluacion, fechaEvaluacion)
-            VALUES (:id_seccion, :id_curso, :id_periodo, :id_instrumento, :id_autor, :temaEvaluacion, :fechaEvaluacion)
+            SELECT :id_seccion, :id_curso, :id_periodo, :id_instrumento, :id_autor, :temaEvaluacion, :fechaEvaluacion
+            WHERE ' . ModeloTenant::cursoId($datos['id_curso']) . ' AND ' . ModeloTenant::sesionActiva() . '
         ');
         $stmt->bindValue(':id_seccion', (int) $datos['id_seccion'], PDO::PARAM_INT);
         $stmt->bindValue(':id_curso', (int) $datos['id_curso'], PDO::PARAM_INT);
@@ -469,11 +485,12 @@ class ModeloCalificaciones
     public static function mdlActualizarEvaluacion(array $datos)
     {
         self::prepararTablasEvaluaciones();
+        ModeloTenant::exigirEvaluacion($datos['idEvaluacion']);
 
         $stmt = Conexion::conectar()->prepare("
             UPDATE evaluaciones
             SET temaEvaluacion = :temaEvaluacion
-            WHERE idEvaluacion = :idEvaluacion
+            WHERE idEvaluacion = :idEvaluacion AND " . ModeloTenant::evaluaciones('evaluaciones') . "
         ");
         $stmt->bindValue(':temaEvaluacion', (string) $datos['temaEvaluacion'], PDO::PARAM_STR);
         $stmt->bindValue(':idEvaluacion', (int) $datos['idEvaluacion'], PDO::PARAM_INT);
@@ -484,12 +501,13 @@ class ModeloCalificaciones
     public static function mdlEliminarEvaluacion($idEvaluacion)
     {
         self::prepararTablasEvaluaciones();
+        ModeloTenant::exigirEvaluacion($idEvaluacion);
 
         $stmt = Conexion::conectar()->prepare('
             DELETE e, ec
             FROM evaluaciones e
             LEFT JOIN evaluaciones_calificaciones ec ON ec.id_evaluacion = e.idEvaluacion
-            WHERE e.idEvaluacion = :idEvaluacion
+            WHERE e.idEvaluacion = :idEvaluacion AND ' . ModeloTenant::evaluaciones('e') . '
         ');
         $stmt->bindValue(':idEvaluacion', (int) $idEvaluacion, PDO::PARAM_INT);
 
@@ -508,7 +526,7 @@ class ModeloCalificaciones
             LEFT JOIN periodos_calificacion p ON p.idPeriodo=e.id_periodo
             LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=e.id_periodo AND pe.id_seccion=e.id_seccion
             LEFT JOIN instrumentos_evaluacion i ON i.idInstrumento=e.id_instrumento
-            WHERE e.idEvaluacion = :idEvaluacion
+            WHERE e.idEvaluacion = :idEvaluacion AND ' . ModeloTenant::evaluaciones('e') . '
             LIMIT 1
         ');
         $stmt->bindValue(':idEvaluacion', (int) $idEvaluacion, PDO::PARAM_INT);
@@ -519,6 +537,7 @@ class ModeloCalificaciones
     public static function mdlEvaluacionesPorSeccion($idSeccion)
     {
         self::prepararTablasEvaluaciones();
+        ModeloTenant::exigirSeccion($idSeccion);
 
         $stmt = Conexion::conectar()->prepare("
             SELECT e.*, u.nombreUsuario, u.apellidoUsuario, p.nombre AS nombrePeriodo, COALESCE(pe.estado,'ABIERTO') AS estadoPeriodo,
@@ -530,11 +549,11 @@ class ModeloCalificaciones
                    ROUND(AVG(CASE WHEN ec.estadoAsistencia='PRESENTE' THEN ec.calificacion END), 2) AS promedio
             FROM evaluaciones e
             LEFT JOIN usuarios u ON u.idUsuario = e.id_autor
-            LEFT JOIN evaluaciones_calificaciones ec ON ec.id_evaluacion = e.idEvaluacion
+            LEFT JOIN evaluaciones_calificaciones ec ON ec.id_evaluacion = e.idEvaluacion AND " . ModeloTenant::calificacionesEvaluacion('ec') . "
             LEFT JOIN periodos_calificacion p ON p.idPeriodo=e.id_periodo
             LEFT JOIN periodos_seccion_estado pe ON pe.id_periodo=e.id_periodo AND pe.id_seccion=e.id_seccion
             LEFT JOIN instrumentos_evaluacion i ON i.idInstrumento=e.id_instrumento
-            WHERE e.id_seccion = :idSeccion
+            WHERE e.id_seccion = :idSeccion AND " . ModeloTenant::evaluaciones('e') . "
             GROUP BY e.idEvaluacion
             ORDER BY e.fechaEvaluacion DESC, e.idEvaluacion DESC
         ");
@@ -546,6 +565,8 @@ class ModeloCalificaciones
     public static function mdlEvaluacionesPorEstudiante($idSeccion, $idEstudiante)
     {
         self::prepararTablasEvaluaciones();
+        ModeloTenant::exigirSeccion($idSeccion);
+        ModeloTenant::exigirUsuario($idEstudiante, ['ESTUDIANTE']);
 
         $stmt = Conexion::conectar()->prepare('
             SELECT e.idEvaluacion, e.temaEvaluacion, e.fechaEvaluacion, p.nombre AS nombrePeriodo,
@@ -556,6 +577,8 @@ class ModeloCalificaciones
             LEFT JOIN instrumentos_evaluacion i ON i.idInstrumento=e.id_instrumento
             WHERE e.id_seccion = :idSeccion
               AND ec.id_estudiante = :idEstudiante
+              AND ' . ModeloTenant::evaluaciones('e') . '
+              AND ' . ModeloTenant::calificacionesEvaluacion('ec') . '
             ORDER BY e.fechaEvaluacion DESC, e.idEvaluacion DESC
         ');
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -595,12 +618,13 @@ class ModeloCalificaciones
     public static function mdlCalificacionesEvaluacion($idEvaluacion)
     {
         self::prepararTablasEvaluaciones();
+        ModeloTenant::exigirEvaluacion($idEvaluacion);
 
         $stmt = Conexion::conectar()->prepare('
             SELECT ec.*, u.nombreUsuario, u.apellidoUsuario, u.email
             FROM evaluaciones_calificaciones ec
             INNER JOIN usuarios u ON u.idUsuario = ec.id_estudiante
-            WHERE ec.id_evaluacion = :idEvaluacion
+            WHERE ec.id_evaluacion = :idEvaluacion AND ' . ModeloTenant::calificacionesEvaluacion('ec') . '
             ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC
         ');
         $stmt->bindValue(':idEvaluacion', (int) $idEvaluacion, PDO::PARAM_INT);
@@ -611,12 +635,18 @@ class ModeloCalificaciones
     public static function mdlGuardarCalificacionesEvaluacion($idEvaluacion, array $calificaciones)
     {
         self::prepararTablasEvaluaciones();
-
+        ModeloTenant::exigirEvaluacion($idEvaluacion);
+        $evaluacion=self::mdlEvaluacionPorId($idEvaluacion);
+        foreach ($calificaciones as $calificacion) {
+            ModeloTenant::exigirInscripcion((int)$calificacion['id_estudiante'],(int)$evaluacion['id_curso']);
+        }
         $stmt = Conexion::conectar()->prepare('
             INSERT INTO evaluaciones_calificaciones
                 (id_evaluacion, id_estudiante, calificacion, estadoAsistencia, devolucion, fechaActualizacion)
-            VALUES
-                (:id_evaluacion, :id_estudiante, :calificacion, :estadoAsistencia, :devolucion, NOW())
+            SELECT :id_evaluacion, :id_estudiante, :calificacion, :estadoAsistencia, :devolucion, NOW()
+            FROM evaluaciones ev INNER JOIN usuarios eval_u ON eval_u.idUsuario=:id_estudiante_validado
+            WHERE ev.idEvaluacion=:id_evaluacion_validada AND ' . ModeloTenant::evaluaciones('ev') . '
+              AND ' . ModeloTenant::usuarioConRol('eval_u.idUsuario', ['ESTUDIANTE']) . '
             ON DUPLICATE KEY UPDATE
                 calificacion = VALUES(calificacion),
                 estadoAsistencia = VALUES(estadoAsistencia),
@@ -627,7 +657,9 @@ class ModeloCalificaciones
         try {
             foreach ($calificaciones as $calificacion) {
                 $stmt->bindValue(':id_evaluacion', (int) $idEvaluacion, PDO::PARAM_INT);
+                $stmt->bindValue(':id_evaluacion_validada', (int) $idEvaluacion, PDO::PARAM_INT);
                 $stmt->bindValue(':id_estudiante', (int) $calificacion['id_estudiante'], PDO::PARAM_INT);
+                $stmt->bindValue(':id_estudiante_validado', (int) $calificacion['id_estudiante'], PDO::PARAM_INT);
                 $esAusente = ($calificacion['estadoAsistencia'] ?? 'PRESENTE') === 'AUSENTE';
                 $stmt->bindValue(':calificacion', $esAusente ? null : (string) $calificacion['calificacion'], $esAusente ? PDO::PARAM_NULL : PDO::PARAM_STR);
                 $stmt->bindValue(':estadoAsistencia', $esAusente ? 'AUSENTE' : 'PRESENTE', PDO::PARAM_STR);

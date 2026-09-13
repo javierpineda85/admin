@@ -158,6 +158,71 @@ class ModeloTenant
             AND ' . self::asistenciaClases('asistencia_ac') . ')';
     }
 
+    public static function ciclosLectivos($alias = 'cl')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return $alias . '.id_institucion=' . self::id() . ' AND ' . self::sesionActiva();
+    }
+
+    public static function instrumentosEvaluacion($alias = 'ie')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return $alias . '.id_institucion=' . self::id() . ' AND ' . self::sesionActiva();
+    }
+
+    public static function periodos($alias = 'p')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM ciclos_lectivos periodo_cl WHERE periodo_cl.idCicloLectivo=' . $alias . '.id_ciclo
+            AND ' . self::ciclosLectivos('periodo_cl') . ')';
+    }
+
+    public static function evaluaciones($alias = 'ev')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM secciones evaluacion_s
+            INNER JOIN cursos evaluacion_c ON evaluacion_c.idCurso=evaluacion_s.id_curso
+            WHERE evaluacion_s.idSeccion=' . $alias . '.id_seccion
+            AND evaluacion_c.idCurso=' . $alias . '.id_curso AND ' . self::cursos('evaluacion_c') . '
+            AND ('. $alias . '.id_periodo IS NULL OR EXISTS (SELECT 1 FROM periodos_calificacion evaluacion_p
+                WHERE evaluacion_p.idPeriodo=' . $alias . '.id_periodo AND evaluacion_p.id_ciclo=evaluacion_c.id_ciclo_lectivo
+                AND ' . self::periodos('evaluacion_p') . '))
+            AND (' . $alias . '.id_instrumento IS NULL OR EXISTS (SELECT 1 FROM instrumentos_evaluacion evaluacion_i
+                WHERE evaluacion_i.idInstrumento=' . $alias . '.id_instrumento AND ' . self::instrumentosEvaluacion('evaluacion_i') . ')))';
+    }
+
+    public static function calificacionesEvaluacion($alias = 'ec')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM evaluaciones evaluacion_ec WHERE evaluacion_ec.idEvaluacion=' . $alias . '.id_evaluacion
+            AND ' . self::evaluaciones('evaluacion_ec') . ')';
+    }
+
+    public static function cierresPeriodo($alias = 'cp')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM secciones cierre_s INNER JOIN cursos cierre_c ON cierre_c.idCurso=cierre_s.id_curso
+            INNER JOIN periodos_calificacion cierre_p ON cierre_p.idPeriodo=' . $alias . '.id_periodo
+            WHERE cierre_s.idSeccion=' . $alias . '.id_seccion AND cierre_p.id_ciclo=cierre_c.id_ciclo_lectivo
+            AND ' . self::cursos('cierre_c') . ' AND ' . self::periodos('cierre_p') . ')';
+    }
+
+    public static function estadoPeriodoSeccion($alias = 'pe')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM secciones estado_s INNER JOIN cursos estado_c ON estado_c.idCurso=estado_s.id_curso
+            INNER JOIN periodos_calificacion estado_p ON estado_p.idPeriodo=' . $alias . '.id_periodo
+            WHERE estado_s.idSeccion=' . $alias . '.id_seccion AND estado_p.id_ciclo=estado_c.id_ciclo_lectivo
+            AND ' . self::cursos('estado_c') . ' AND ' . self::periodos('estado_p') . ')';
+    }
+
     public static function adjuntosEntrega($alias = 'entregaslecciones_adjuntos')
     {
         if (!self::activo()) { return '1=1'; }
@@ -232,6 +297,42 @@ class ModeloTenant
         if ($seccion === false || ($idSeccion !== null && (int)$seccion !== (int)$idSeccion)) {
             throw new RuntimeException('Acceso institucional denegado.');
         }
+    }
+
+    public static function exigirPeriodoSeccion($idPeriodo, $idSeccion)
+    {
+        if (!self::activo()) { return; }
+        self::exigirSeccion($idSeccion);
+        $stmt = Conexion::conectar()->prepare('SELECT 1 FROM secciones s INNER JOIN cursos c ON c.idCurso=s.id_curso
+            INNER JOIN periodos_calificacion p ON p.idPeriodo=? AND p.id_ciclo=c.id_ciclo_lectivo
+            WHERE s.idSeccion=? AND ' . self::cursos('c') . ' AND ' . self::periodos('p'));
+        $stmt->execute([(int)$idPeriodo, (int)$idSeccion]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
+    }
+
+    public static function exigirInstrumentoEvaluacion($idInstrumento)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT 1 FROM instrumentos_evaluacion ie WHERE ie.idInstrumento=? AND ' . self::instrumentosEvaluacion('ie'));
+        $stmt->execute([(int)$idInstrumento]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
+    }
+
+    public static function exigirSeccionCurso($idSeccion, $idCurso)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT 1 FROM secciones s INNER JOIN cursos c ON c.idCurso=s.id_curso
+            WHERE s.idSeccion=? AND c.idCurso=? AND ' . self::cursos('c'));
+        $stmt->execute([(int)$idSeccion,(int)$idCurso]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
+    }
+
+    public static function exigirEvaluacion($idEvaluacion)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT 1 FROM evaluaciones ev WHERE ev.idEvaluacion=? AND ' . self::evaluaciones('ev'));
+        $stmt->execute([(int)$idEvaluacion]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
     }
 
     public static function exigirInscripcion($idEstudiante, $idCurso)
