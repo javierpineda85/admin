@@ -83,10 +83,9 @@ class ControladorUsuarios
         }
 
         $idCurso = (int) ($seccion['id_curso'] ?? 0);
-        $rolReal = ControladorPermisos::rolReal();
-        $puedeEntrar = $rolReal === 'ADMINISTRADOR'
-            || ($rolReal === 'DOCENTE' && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual))
-            || ($rolReal === 'ESTUDIANTE' && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, $idCurso));
+        $puedeEntrar = ControladorPermisos::tieneRol('ADMINISTRADOR')
+            || (ControladorPermisos::tieneRol('DOCENTE') && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual))
+            || (ControladorPermisos::tieneRol('ESTUDIANTE') && ControladorCursos::crtEstudianteInscriptoCurso($idUsuarioActual, $idCurso));
 
         if (!$puedeEntrar) {
             return false;

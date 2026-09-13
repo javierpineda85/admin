@@ -1,6 +1,7 @@
 <?php
 
 require_once 'modelos/usuarios.modelo.php';
+require_once __DIR__ . '/institucion.controller.php';
 
 class ControladorAuth
 {
@@ -50,6 +51,7 @@ class ControladorAuth
     {
         ModeloUsuarios::mdlActualizarUltimaConexion($usuario['idUsuario']);
 
+        ControladorInstitucion::limpiar();
         session_regenerate_id(true);
 
         $_SESSION['logueado'] = true;
@@ -64,6 +66,17 @@ class ControladorAuth
         ];
 
         unset($_SESSION['login_error']);
+
+        if (ControladorInstitucion::activo()) {
+            unset($_SESSION['usuario']['rol']);
+            if (!ControladorInstitucion::refrescar()) {
+                $_SESSION = [];
+                header('Location: index.php?r=login', true, 303);
+                exit;
+            }
+            header('Location: index.php?r=' . ControladorInstitucion::rutaDestino(), true, 303);
+            exit;
+        }
 
         header('Location: index.php');
         exit;
@@ -230,7 +243,7 @@ class ControladorAuth
 
         $usuarioLocal = ModeloUsuarios::mdlSincronizarUsuarioWordPress($usuarioWp);
         if (!$usuarioLocal || (int) ($usuarioLocal['activo'] ?? 0) !== 1) {
-            $error = 'Tu cuenta no tiene un rol habilitado para ingresar a Campus.';
+            $error = 'Tu cuenta no está disponible para ingresar a Campus.';
             self::registrarAuthDebug('Usuario WP sin rol habilitado o sincronizacion fallida', [
                 'email' => $email,
                 'userId' => (int) ($usuarioWp['ID'] ?? 0),
@@ -264,18 +277,27 @@ class ControladorAuth
         $errorLocal = null;
         $errorWordPress = null;
 
-        if (in_array($modo, ['LOCAL', 'HYBRID'], true)) {
-            $usuarioLocal = self::autenticarLocal($email, $password, $errorLocal);
-            if ($usuarioLocal) {
-                self::iniciarSesionUsuario($usuarioLocal);
+        try {
+            if (in_array($modo, ['LOCAL', 'HYBRID'], true)) {
+                $usuarioLocal = self::autenticarLocal($email, $password, $errorLocal);
+                if ($usuarioLocal) {
+                    self::iniciarSesionUsuario($usuarioLocal);
+                }
             }
-        }
 
-        if (in_array($modo, ['WORDPRESS', 'HYBRID'], true)) {
-            $usuarioWordPress = self::autenticarWordPress($email, $password, $errorWordPress);
-            if ($usuarioWordPress) {
-                self::iniciarSesionUsuario($usuarioWordPress);
+            if (in_array($modo, ['WORDPRESS', 'HYBRID'], true)) {
+                $usuarioWordPress = self::autenticarWordPress($email, $password, $errorWordPress);
+                if ($usuarioWordPress) {
+                    self::iniciarSesionUsuario($usuarioWordPress);
+                }
             }
+        } catch (Throwable $e) {
+            if (!ControladorInstitucion::activo()) { throw $e; }
+            ControladorInstitucion::limpiar();
+            unset($_SESSION['logueado'], $_SESSION['usuario'], $_SESSION['ultima_actividad']);
+            error_log('No se pudo autenticar la identidad institucional: ' . get_class($e));
+            $_SESSION['login_error'] = 'No se pudo validar tu cuenta. Intentá nuevamente más tarde.';
+            return;
         }
 
         $_SESSION['login_error'] = $errorWordPress ?: $errorLocal ?: 'No se pudo iniciar sesion.';

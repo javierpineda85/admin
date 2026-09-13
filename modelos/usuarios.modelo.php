@@ -22,6 +22,12 @@ class ModeloUsuarios
 
     public static function mdlObtenerUsuarioPorEmail($email)
     {
+        if (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true) {
+            $stmt = Conexion::conectar()->prepare('SELECT * FROM usuarios WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) LIMIT 2');
+            $stmt->execute([(string) $email]);
+            $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return count($usuarios) === 1 ? $usuarios[0] : false;
+        }
         $stmt = Conexion::conectar()->prepare("SELECT * FROM usuarios WHERE email = :email LIMIT 1");
         $stmt->bindParam(":email", $email, PDO::PARAM_STR);
         $stmt->execute();
@@ -197,6 +203,10 @@ class ModeloUsuarios
 
         self::mdlAsegurarColumnasIntegracionWordPress();
 
+        if (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true) {
+            return self::sincronizarIdentidadWordPress($usuarioWp);
+        }
+
         $rol = self::resolverRolWordPress($usuarioWp);
         if ($rol === null) {
             return null;
@@ -288,6 +298,50 @@ class ModeloUsuarios
         self::asegurarPerfilBasico($idNuevoUsuario);
 
         return self::mdlObtenerUsuarioPorId($idNuevoUsuario);
+    }
+
+    private static function sincronizarIdentidadWordPress(array $usuarioWp)
+    {
+        $email = strtolower(trim((string) ($usuarioWp['user_email'] ?? '')));
+        // No truncar emails: dos identidades diferentes podrían terminar iguales.
+        if ((int) ($usuarioWp['ID'] ?? 0) <= 0 || (int) ($usuarioWp['user_status'] ?? 0) !== 0 || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 50) {
+            return null;
+        }
+        $pdo = Conexion::conectar();
+        // Usuarios legacy puede ser MyISAM: serializar el alta/sincronización de
+        // identidades hasta que la fase de esquema definitivo imponga unicidad.
+        $candado = 'campus_identidad_' . substr(hash('sha256', DB_NAME), 0, 40);
+        $lock = $pdo->prepare('SELECT GET_LOCK(?, 5)');
+        $lock->execute([$candado]);
+        if ((int) $lock->fetchColumn() !== 1) { return null; }
+        try {
+            $stmt = $pdo->prepare('SELECT * FROM usuarios WHERE wpUserId = ? OR LOWER(TRIM(email)) = ? LIMIT 2');
+            $stmt->execute([(int) $usuarioWp['ID'], $email]);
+            $coincidencias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (count($coincidencias) > 1) { return null; }
+            $existente = $coincidencias[0] ?? null;
+            if ($existente && ((int) $existente['activo'] !== 1
+                || (!empty($existente['wpUserId']) && (int) $existente['wpUserId'] !== (int) $usuarioWp['ID']))) {
+                return null;
+            }
+            [$nombreBase, $apellidoBase] = self::separarNombreApellido($usuarioWp['display_name'] ?? '', $usuarioWp['user_login'] ?? '');
+            $nombre = self::truncarTexto(trim((string) ($usuarioWp['first_name'] ?? '')) ?: $nombreBase, 20);
+            $apellido = self::truncarTexto(trim((string) ($usuarioWp['last_name'] ?? '')) ?: $apellidoBase, 20);
+            if ($existente) {
+                $id = (int) $existente['idUsuario'];
+                // Roles, membresías, estado global, foto y privilegios no vienen de WP.
+                $pdo->prepare("UPDATE usuarios SET nombreUsuario=?, apellidoUsuario=?, email=?, wpUserId=?, origenAuth='WORDPRESS' WHERE idUsuario=?")
+                    ->execute([$nombre, $apellido, $email, (int) $usuarioWp['ID'], $id]);
+            } else {
+                $pdo->prepare("INSERT INTO usuarios(nombreUsuario,apellidoUsuario,email,pass,resetPass,imgUsuario,activo,rol,fechaAlta,wpUserId,origenAuth) VALUES (?,?,?, ?,0,'',1,'',NOW(),?,'WORDPRESS')")
+                    ->execute([$nombre, $apellido, $email, password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT), (int) $usuarioWp['ID']]);
+                $id = (int) $pdo->lastInsertId();
+            }
+            self::asegurarPerfilBasico($id);
+            return self::mdlObtenerUsuarioPorId($id);
+        } finally {
+            $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$candado]);
+        }
     }
 
     public static function mdlObtenerUsuarioPorId($idUsuario)

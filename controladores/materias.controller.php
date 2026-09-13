@@ -11,10 +11,7 @@ class ControladorMaterias
             return true;
         }
 
-        $usuario = ModeloUsuarios::mdlObtenerUsuarioPorId($idUsuario);
-        return $usuario
-            && (int) ($usuario['activo'] ?? 0) === 1
-            && in_array(strtoupper((string) ($usuario['rol'] ?? '')), ['DOCENTE', 'ADMINISTRADOR'], true);
+        return ControladorPermisos::usuarioTieneRolEnInstitucion($idUsuario, ['DOCENTE', 'ADMINISTRADOR']);
     }
 
     private static function eliminarArchivoLocal($ruta)

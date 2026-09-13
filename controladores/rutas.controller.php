@@ -2,6 +2,11 @@
 
 class RutasController
 {
+    public static function rutasInstitucionales()
+    {
+        return ['seleccionar-institucion', 'sin-acceso-institucional', 'institucion-preparada'];
+    }
+
     private static function rutasPublicas()
     {
         return ['login', 'forgot', 'actividad-publica'];
@@ -182,12 +187,9 @@ class RutasController
         $idEstudiante = max(0, (int) ($_GET['idEstudiante'] ?? 0));
 
         if ($activar && $idEstudiante > 0) {
-            $estudiante = ModeloUsuarios::mdlObtenerUsuarioPorId($idEstudiante);
             $rolReal = ControladorPermisos::rolReal();
             $idUsuarioReal = (int) ($_SESSION['usuario']['id'] ?? 0);
-            $puedePrevisualizar = $estudiante
-                && strtoupper((string) ($estudiante['rol'] ?? '')) === 'ESTUDIANTE'
-                && (int) ($estudiante['activo'] ?? 0) === 1;
+            $puedePrevisualizar = ControladorPermisos::usuarioTieneRolEnInstitucion($idEstudiante, ['ESTUDIANTE']);
 
             if ($puedePrevisualizar && $rolReal === 'DOCENTE') {
                 $puedePrevisualizar = false;
@@ -220,6 +222,12 @@ class RutasController
     public static function cargarVista()
     {
         $ruta = isset($_GET['r']) ? trim($_GET['r']) : '';
+        // En ensayo se resuelven antes del layout. Desactivado, no deben caer en Inicio.
+        if (in_array($ruta, self::rutasInstitucionales(), true)) {
+            http_response_code(404);
+            include self::rutaBasePaginas() . '404.php';
+            return;
+        }
         $mapeo = self::mapaRutas();
         $tieneSesion = isset($_SESSION['logueado']) && $_SESSION['logueado'] === true;
 

@@ -42,6 +42,9 @@ class Conexion
             self::$pdo = self::crearPdo(DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD);
             return self::$pdo;
         } catch (PDOException $e) {
+            if (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true) {
+                throw $e;
+            }
             echo 'Error de conexion: ' . $e->getMessage();
             return null;
         }
@@ -64,6 +67,9 @@ class Conexion
 
             return self::$pdoWordPress;
         } catch (PDOException $e) {
+            if (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true) {
+                throw $e;
+            }
             echo 'Error de conexion WordPress: ' . $e->getMessage();
             return null;
         }

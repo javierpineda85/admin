@@ -153,9 +153,7 @@ class ControladorCursos
         if (in_array($accion, ['reasignar_docente_curso', 'quitar_docente_curso'], true)) {
             $idResponsable = $accion === 'quitar_docente_curso' ? 0 : (int) ($_POST['idResponsable'] ?? 0);
             if ($accion === 'reasignar_docente_curso') {
-                $usuario = ModeloUsuarios::mdlObtenerUsuarioPorId($idResponsable);
-                $rol = strtoupper((string) ($usuario['rol'] ?? ''));
-                if (!$usuario || (int) ($usuario['activo'] ?? 0) !== 1 || !in_array($rol, ['DOCENTE', 'ADMINISTRADOR'], true)) {
+                if (!ControladorPermisos::usuarioTieneRolEnInstitucion($idResponsable, ['DOCENTE', 'ADMINISTRADOR'])) {
                     $_SESSION['error_message'] = 'Selecciona un docente o administrador activo.';
                     return 'error';
                 }

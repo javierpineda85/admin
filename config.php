@@ -30,6 +30,11 @@ if (!defined('AUTH_MODE')) {
     define('AUTH_MODE', strtoupper((string) config_env('AUTH_MODE', 'LOCAL')));
 }
 
+// Fase 2: ensayo del contexto. No habilita los módulos académicos sin aislamiento.
+if (!defined('INSTITUCIONES_CONTEXTO_ACTIVO')) {
+    define('INSTITUCIONES_CONTEXTO_ACTIVO', filter_var(config_env('INSTITUCIONES_CONTEXTO_ACTIVO', '0'), FILTER_VALIDATE_BOOLEAN));
+}
+
 if (!defined('SESSION_INACTIVITY_TIMEOUT')) {
     define('SESSION_INACTIVITY_TIMEOUT', max(60, (int) config_env('SESSION_INACTIVITY_TIMEOUT', 1800)));
 }

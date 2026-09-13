@@ -1,5 +1,19 @@
 # Base de datos
 
+## Expansión multiinstitución
+
+`sql/2026-09-14_multi_institucion_00_diagnostico.sql` comprueba relaciones y roles
+sin modificar datos. Requiere las tablas académicas actuales.
+`sql/2026-09-14_multi_institucion_01_expandir.sql` crea instituciones, membresías,
+roles por membresía y el marcador de privilegio global; traslada los datos
+existentes a MenteMotion sin cambiar IDs ni eliminar columnas.
+
+Esta expansión no activa multi-tenancy. Las columnas nuevas admiten NULL para
+preservar los INSERT del código anterior; las restricciones definitivas y los
+índices únicos institucionales quedan pendientes de la activación del código
+aislado. No aplicar el dump base sobre datos existentes. Detalles y evidencia:
+[multi-institucion.md](multi-institucion.md).
+
 ## Archivos principales
 
 - `classroom.sql`: dump base del sistema, pensado como origen limpio del proyecto.
@@ -59,3 +73,14 @@ Campos relevantes agregados al modulo de actividades:
 - Si la base ya existia, ejecutar primero las migraciones.
 - Si se necesita reconstruir desde cero, usar `classroom.sql`.
 - Mantener consistencia en nombres de columnas nuevas antes de crear mas vistas.
+
+## Lecturas del contexto (fase 2)
+
+`ModeloInstituciones` verifica el marcador de expansión y consulta identidad,
+institución y membresía activas, con sus roles. Esta fase no añade otra migración
+ni aplica la expansión automáticamente. Los ensayos usan bases separadas.
+
+La fase 3 agrega una consulta para validar los roles efectivos de cualquier usuario
+en una institución concreta. Exige que usuario, institución y membresía estén
+activos y solo reconoce los códigos académicos habilitados. Las consultas legacy
+que filtran `usuarios.rol` se sustituirán al incorporar el tenant en fase 4.

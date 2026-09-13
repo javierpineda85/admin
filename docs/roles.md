@@ -1,5 +1,20 @@
 # Roles y permisos
 
+## Transición prevista
+
+Se implementó la separación entre identidad global, membresía institucional y múltiples
+roles por membresía para el ensayo. `usuarios.rol` sigue siendo la fuente del modo
+habitual mientras el indicador está desactivado. `usuarios.esSuperAdmin` se agrega
+con valor 0: ningún administrador actual recibe privilegios globales implícitos.
+`secciones.tutor` es docente adjunto, no un rol académico TUTOR independiente.
+Consultar [el diseño y los pendientes](multi-institucion.md).
+
+En el flujo institucional, `rolesReales()` devuelve el conjunto completo y las
+rutas se autorizan por la unión de capacidades. `rolReal()` conserva un rol
+principal compatible: ADMINISTRADOR, DOCENTE y ESTUDIANTE, en ese orden.
+`tieneRol()` se usa para una capacidad concreta. La previsualización limita
+temporalmente los permisos a ESTUDIANTE y el cambio de institución la elimina.
+
 ## Administrador
 
 Puede administrar todo el sistema:
@@ -47,3 +62,11 @@ Accede solo a lo que corresponde a su inscripcion:
 - Solo el administrador puede reasignar o quitar responsables de cursos y actualizar el equipo docente de una materia.
 - WordPress autentica la cuenta, pero el rol academico se administra desde Campus.
 - Las calificaciones siempre guardan nota y devolucion.
+
+## Roles cargados en el ensayo de fase 2
+
+Con el contexto activado se elimina el rol legacy de la sesión y se cargan todos
+los roles de la membresía validada mediante `ControladorInstitucion::roles()`.
+La integración con permisos académicos corresponde a fase 3; las aulas permanecen
+bloqueadas en ensayo. El funcionamiento legacy descrito arriba corresponde al
+indicador desactivado. SuperAdmin no recibe membresías ni bypass académicos.

@@ -1,5 +1,10 @@
 # Flujos de uso
 
+La selección de institución y el panel global SuperAdmin están diseñados, pero aún
+no forman parte de estos flujos operativos. La expansión de esquema no cambia el
+login existente. Consultar [multi-institucion.md](multi-institucion.md) para el flujo
+objetivo y el estado de implementación.
+
 ## Flujo del administrador
 
 1. Inicia sesion.
@@ -54,3 +59,18 @@
 3. Desbloquea el campo de nota con el boton de edicion.
 4. Carga nota y devolucion.
 5. El estudiante ve el resultado en su vista academica o en la tab de calificaciones.
+
+## Login institucional en ensayo (fase 2)
+
+Con `INSTITUCIONES_CONTEXTO_ACTIVO=1`, LOCAL/WORDPRESS/HYBRID autentican identidad
+global. Sin membresías aparece la pantalla sin acceso; una se selecciona sola;
+varias muestran tarjetas. El cambio usa POST con CSRF y versión de contexto,
+revalida la membresía y renueva la sesión. La salida es `institucion-preparada`:
+las aulas están bloqueadas hasta completar permisos y aislamiento. El selector
+del header queda para fase 6. Por defecto el indicador vale 0 y conserva los
+flujos habituales descritos arriba.
+
+La autorización de fase 3 usa todos los roles de la membresía. Una persona puede
+ser, por ejemplo, ADMINISTRADOR y DOCENTE en la misma institución. Responsables,
+docentes adjuntos y estudiantes de previsualización deben tener membresía y rol
+activos dentro de la institución seleccionada.

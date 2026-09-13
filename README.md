@@ -58,3 +58,22 @@ Sistema web tipo classroom para administradores, docentes y estudiantes.
 - [Cierre de integracion WordPress](docs/integracion-wordpress-cierre.md)
 - [Manual de usuario](docs/manual-usuario/manual-usuario.md)
 - [Versiones](docs/versiones.md)
+
+## Evolución multiinstitución
+
+El diseño y seguimiento están en [docs/multi-institucion.md](docs/multi-institucion.md).
+La expansión inicial de esquema está disponible para ensayo; **el aislamiento
+multiinstitución todavía no está implementado**. No habilitar una segunda institución
+en el Campus actual. El ensayo `php tests/multi_institucion_migracion.php` crea una
+base nueva, conserva la original y verifica preservación de datos y reejecución.
+
+La fase 2 agrega contexto central y selección institucional. El indicador
+`INSTITUCIONES_CONTEXTO_ACTIVO` vale 0 por defecto. Usar 1 solamente en una base
+migrada de ensayo: las aulas quedan bloqueadas hasta completar permisos y
+aislamiento. `php tests/multi_institucion_contexto.php` prueba contexto y login
+HTTP LOCAL/WORDPRESS/HYBRID con cuentas sintéticas en una base separada, sin correo
+ni conexión con WordPress de producción.
+
+La fase 3 conecta los roles de membresía con `ControladorPermisos`, admite roles
+simultáneos y valida institucionalmente las personas asignables. Las rutas
+académicas siguen cerradas hasta completar la fase 4.

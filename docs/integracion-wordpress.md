@@ -58,3 +58,11 @@ Si la base ya estaba creada, Campus intenta agregar esas columnas automaticament
 ## Nota sobre hashes antiguos
 
 Si WordPress tiene contraseñas antiguas con hash tipo `phpass`, es importante definir `WP_ROOT_PATH` apuntando a la instalacion real de WordPress para poder cargar `wp-includes/class-phpass.php`.
+
+## Ensayo multiinstitución (fase 2)
+
+Con `INSTITUCIONES_CONTEXTO_ACTIVO=1`, WordPress sincroniza identidad sin conceder
+roles, membresías ni SuperAdmin. Una cuenta nueva queda sin acceso institucional.
+Se rechazan cuentas inactivas e identidades ambiguas. La conducta anterior de este
+documento corresponde al modo legacy, desactivado el nuevo contexto por defecto.
+Consultar multi-institucion.md para los límites y las pruebas locales del ensayo.

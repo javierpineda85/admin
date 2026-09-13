@@ -1,5 +1,13 @@
 # Arquitectura
 
+## Evolución multiinstitución en preparación
+
+El diseño y el estado de las fases están en [multi-institucion.md](multi-institucion.md).
+La fase inicial agrega esquema compatible. Las fases 2 y 3 incorporan autenticación,
+contexto y roles institucionales en ensayo; el aislamiento académico no está implementado.
+El relevamiento de roles, SQL y entradas de controladores está en
+[multi-institucion-inventario.md](multi-institucion-inventario.md).
+
 ## Resumen
 
 El proyecto usa una estructura PHP clasica con separacion por capas:
@@ -50,3 +58,15 @@ El proyecto usa una estructura PHP clasica con separacion por capas:
   - el permiso en `ControladorPermisos`,
   - el controlador en `index.php` o en el autoload,
   - la vista en `vistas/paginas/`.
+
+## Contexto central implementado en fase 2
+
+`ControladorInstitucion` y `ModeloInstituciones` validan contexto antes del HTML,
+desde `index.php`. Con `INSTITUCIONES_CONTEXTO_ACTIVO=1` habilitan login y selección
+en ensayo, bloqueando las rutas académicas hasta su aislamiento. Por defecto el
+indicador está desactivado y permanece el flujo habitual. Véase multi-institucion.md.
+
+La fase 3 concentra capacidades en `ControladorPermisos`: toma todos los roles del
+contexto, autoriza por su unión y conserva un rol principal estable para las vistas
+legacy. Las personas asignables se validan contra membresía y rol activos mediante
+`ModeloInstituciones`.
