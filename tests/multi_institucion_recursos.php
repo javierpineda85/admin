@@ -10,11 +10,14 @@ require_once __DIR__ . '/../modelos/asistencias.modelo.php';
 require_once __DIR__ . '/../modelos/calificaciones.modelo.php';
 require_once __DIR__ . '/../modelos/actividades.modelo.php';
 require_once __DIR__ . '/../modelos/mensajes.modelo.php';
+require_once __DIR__ . '/../modelos/notificaciones.modelo.php';
+require_once __DIR__ . '/../modelos/panel.modelo.php';
 foreach (['secciones', 'lecciones', 'asignacioncursos', 'recursoslecciones', 'entregaslecciones', 'posteos',
     'calificaciones','entregaslecciones_adjuntos','archivoslecciones','actividades','actividades_preguntas','actividades_opciones',
     'asistencia_clases','asistencia_registros','ciclos_lectivos','periodos_calificacion','instrumentos_evaluacion',
     'periodos_seccion_estado','cierres_periodo_calificaciones','evaluaciones','evaluaciones_calificaciones',
-    'actividades_intentos','actividades_respuestas','mensajes','mensajes_participantes','mensajes_adjuntos'] as $tabla) {
+    'actividades_intentos','actividades_respuestas','mensajes','mensajes_participantes','mensajes_adjuntos',
+    'notificaciones','notificaciones_lecturas'] as $tabla) {
     $pdo->exec("CREATE TABLE `$tabla` LIKE `$origen`.`$tabla`");
 }
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_01_expandir.sql');
@@ -205,12 +208,27 @@ denegado(function() use($ids) { ModeloMensajes::mdlGuardarMensaje([
 ]); }, 'Mensaje rechaza destinatario sin membresía en la institución');
 $detalleMensajeB=ModeloMensajes::mdlMensajeDetalle($mensajeDemo,$ids['B']);
 verificar($detalleMensajeB!==null&&count($detalleMensajeB['destinatarios'])===1, 'Remitente consulta detalle y destinatarios dentro del tenant');
+$notificacionDemo=ModeloNotificaciones::mdlRegistrarNotificacion([
+    'id_usuario'=>$ids['A'],'tipoNotificacion'=>'ACTIVIDAD_PUBLICADA','referenciaTipo'=>'ACTIVIDAD',
+    'referenciaId'=>$actividadPublica,'tituloNotificacion'=>'Actividad Demo','detalleNotificacion'=>'Nueva actividad',
+    'urlNotificacion'=>'index.php?r=ver-actividad&idActividad='.$actividadPublica
+]);
+verificar($notificacionDemo==='ok'&&(int)$pdo->query('SELECT id_institucion FROM notificaciones ORDER BY idNotificacion DESC LIMIT 1')->fetchColumn()===$demo, 'Notificación obtiene institución desde el contexto y valida su recurso');
+denegado(function() use($ids,$actividadPublica) { ModeloNotificaciones::mdlRegistrarNotificacion([
+    'id_usuario'=>$ids['C'],'tipoNotificacion'=>'ACTIVIDAD_PUBLICADA','referenciaTipo'=>'ACTIVIDAD',
+    'referenciaId'=>$actividadPublica,'tituloNotificacion'=>'Cruce','detalleNotificacion'=>'','urlNotificacion'=>''
+]); }, 'Notificación rechaza destinatario de otra institución');
 sesionPara($ids['A']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
 $destinatariosEstudiante=ModeloMensajes::mdlUsuariosPermitidosParaMensajes($ids['A'],'ESTUDIANTE');
 verificar(in_array($ids['B'],array_map('intval',array_column($destinatariosEstudiante,'idUsuario')),true)
     && !in_array($ids['C'],array_map('intval',array_column($destinatariosEstudiante,'idUsuario')),true), 'Estudiante sólo encuentra compañeros y responsables de cursos del tenant');
 verificar(ModeloMensajes::mdlContarMensajesNoLeidos($ids['A'])===1&&ModeloMensajes::mdlMensajeDetalle($mensajeDemo,$ids['A'])!==null, 'Destinatario ve el mensaje únicamente dentro de su contexto institucional');
 verificar(ModeloMensajes::mdlMarcarLeido($mensajeDemo,$ids['A'])==='ok'&&ModeloMensajes::mdlContarMensajesNoLeidos($ids['A'])===0, 'Lectura del mensaje se modifica dentro del tenant');
+$notificacionesDemo=ModeloNotificaciones::mdlListarNotificacionesUsuario($ids['A']);
+verificar(count($notificacionesDemo)===1, 'Destinatario lista únicamente notificaciones de la institución activa');
+$claveNotificacion='notificacion:'.(int)$notificacionesDemo[0]['idNotificacion'];
+verificar(ModeloPanel::mdlMarcarNotificacionLeida($ids['A'],$claveNotificacion)==='ok'
+    && (int)$pdo->query('SELECT id_institucion FROM notificaciones_lecturas ORDER BY idNotificacionLectura DESC LIMIT 1')->fetchColumn()===$demo, 'Marca de lectura se registra dentro del contexto institucional');
 sesionPara($ids['B']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
 $actividadEliminar=ModeloActividades::mdlGuardarActividad(array_merge($datosActividad,['slug'=>'actividad-eliminar-demo']),$preguntasActividad);
 verificar(ModeloActividades::mdlEliminarActividad($actividadEliminar)==='ok'&&ModeloActividades::mdlBuscarPorId($actividadEliminar)===null, 'Eliminación de actividad propia limpia sus dependencias');
@@ -280,6 +298,7 @@ denegado(function() use($actividadDemo) { ModeloActividades::mdlEliminarActivida
 denegado(function() use($actividadModelo,$ids) { ModeloActividades::mdlContarIntentosUsuario($actividadModelo,$ids['A']); }, 'Intentos de otra institución no se cuentan por ID');
 verificar(ModeloMensajes::mdlMensajeDetalle($mensajeDemo,$ids['A'])===null&&ModeloMensajes::mdlContarMensajesNoLeidos($ids['A'])===0, 'Cambio de institución oculta mensajes y contadores del tenant anterior');
 denegado(function() use($mensajeDemo,$ids) { ModeloMensajes::mdlMarcarLeido($mensajeDemo,$ids['A']); }, 'Acción sobre mensaje de otra institución se rechaza por ID');
+verificar(ModeloNotificaciones::mdlListarNotificacionesUsuario($ids['A'])===[], 'Cambio de institución oculta notificaciones del tenant anterior');
 verificar(ModeloCalificaciones::mdlResumenCierresGenerales()===[], 'Resumen general no filtra cierres desde otra institución');
 verificar(ModeloCalificaciones::mdlCalificacionesGenerales()===[], 'Historial general no mezcla notas ni cierres de otra institución');
 verificar(array_column(ModeloCalificaciones::mdlSeccionesParaCalificaciones(),'idSeccion')===[$materiaMM], 'Tarjetas agregadas cambian junto con la institución activa');

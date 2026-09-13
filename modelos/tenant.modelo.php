@@ -284,6 +284,20 @@ class ModeloTenant
         return 'EXISTS (SELECT 1 FROM mensajes mensaje_p WHERE mensaje_p.idMensaje=' . $alias . '.id_mensaje AND ' . self::mensajes('mensaje_p') . ')';
     }
 
+    public static function notificaciones($alias = 'n')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return $alias . '.id_institucion=' . self::id() . ' AND ' . self::sesionActiva();
+    }
+
+    public static function lecturasNotificaciones($alias = 'nl')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return $alias . '.id_institucion=' . self::id() . ' AND ' . self::sesionActiva();
+    }
+
     public static function exigirParticipanteMensaje($idMensaje, $idUsuario)
     {
         if (!self::activo()) { return; }

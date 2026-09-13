@@ -439,6 +439,11 @@ class ModeloPanel
             return;
         }
 
+        if(ModeloTenant::activo()){
+            self::$tablaLecturasPreparada=true;
+            return;
+        }
+
         try {
             Conexion::conectar()->exec('
                 CREATE TABLE IF NOT EXISTS notificaciones_lecturas (
@@ -464,8 +469,9 @@ class ModeloPanel
         try {
             $stmt = Conexion::conectar()->prepare('
                 SELECT claveNotificacion
-                FROM notificaciones_lecturas
-                WHERE id_usuario = :idUsuario
+                FROM notificaciones_lecturas nl
+                WHERE nl.id_usuario = :idUsuario
+                  AND ' . ModeloTenant::lecturasNotificaciones('nl') . '
             ');
             $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
             $stmt->execute();
@@ -594,13 +600,20 @@ class ModeloPanel
             return 'error';
         }
 
+        if(ModeloTenant::activo()&&(int)($_SESSION['usuario']['id']??0)!==(int)$idUsuario){
+            throw new RuntimeException('Acceso institucional denegado.');
+        }
+
         try {
+            $institucional=ModeloTenant::activo();
             $stmt = Conexion::conectar()->prepare('
-                INSERT IGNORE INTO notificaciones_lecturas (id_usuario, claveNotificacion)
-                VALUES (:idUsuario, :clave)
+                INSERT IGNORE INTO notificaciones_lecturas (id_usuario, claveNotificacion'.($institucional?', id_institucion':'').')
+                '.($institucional?'SELECT':'VALUES (').' :idUsuario, :clave'.($institucional?', :idInstitucion':'').'
+                '.($institucional?'WHERE '.ModeloTenant::sesionActiva():')').'
             ');
             $stmt->bindValue(':idUsuario', (int) $idUsuario, PDO::PARAM_INT);
             $stmt->bindValue(':clave', $clave, PDO::PARAM_STR);
+            if($institucional){$stmt->bindValue(':idInstitucion',ModeloTenant::id(),PDO::PARAM_INT);}
             return $stmt->execute() ? 'ok' : 'error';
         } catch (Exception $e) {
             return 'error';

@@ -14,6 +14,7 @@ require __DIR__ . '/../modelos/asistencias.modelo.php';
 require __DIR__ . '/../modelos/calificaciones.modelo.php';
 require __DIR__ . '/../modelos/actividades.modelo.php';
 require __DIR__ . '/../modelos/mensajes.modelo.php';
+require __DIR__ . '/../modelos/notificaciones.modelo.php';
 $pdo = Conexion::conectar();
 function comprobarLegacy($condicion, $mensaje) {
     if (!$condicion) { throw new RuntimeException($mensaje); }
@@ -47,3 +48,5 @@ $cantidadPublicas=(int)$pdo->query("SELECT COUNT(*) FROM actividades WHERE estad
 comprobarLegacy(count(ModeloActividades::mdlListarPublicas())===$cantidadPublicas, 'Catálogo público conserva compatibilidad con contexto desactivado');
 $idUsuarioMensaje=(int)$pdo->query("SELECT id_usuario FROM mensajes_participantes WHERE rolParticipante='DESTINATARIO' ORDER BY idMensajeParticipante LIMIT 1")->fetchColumn();
 comprobarLegacy(ModeloMensajes::mdlContarMensajesRecibidos($idUsuarioMensaje)===(int)$pdo->query("SELECT COUNT(*) FROM mensajes_participantes WHERE id_usuario=".$idUsuarioMensaje." AND rolParticipante='DESTINATARIO' AND enPapelera=0 AND eliminado=0")->fetchColumn(), 'Contador habitual de mensajes conserva compatibilidad sin contexto');
+$idUsuarioNotificacion=(int)$pdo->query('SELECT id_usuario FROM notificaciones ORDER BY idNotificacion LIMIT 1')->fetchColumn();
+comprobarLegacy(count(ModeloNotificaciones::mdlListarNotificacionesUsuario($idUsuarioNotificacion))===(int)$pdo->query('SELECT COUNT(*) FROM notificaciones WHERE id_usuario='.$idUsuarioNotificacion)->fetchColumn(), 'Listado habitual de notificaciones conserva compatibilidad sin contexto');

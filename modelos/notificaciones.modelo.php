@@ -1,5 +1,6 @@
 <?php
-require_once('conexion.php');
+require_once __DIR__ . '/conexion.php';
+require_once __DIR__ . '/tenant.modelo.php';
 
 class ModeloNotificaciones
 {
@@ -8,6 +9,11 @@ class ModeloNotificaciones
     private static function prepararTabla()
     {
         if (self::$tablaPreparada) {
+            return;
+        }
+
+        if(ModeloTenant::activo()){
+            self::$tablaPreparada=true;
             return;
         }
 
@@ -43,8 +49,9 @@ class ModeloNotificaciones
              INNER JOIN usuarios u ON u.idUsuario = a.id_estudiante
              WHERE a.id_seccion = :idCurso
                AND a.estadoInscripcion = "ACTIVA"
-               AND u.rol = "ESTUDIANTE"
                AND u.activo = 1
+               AND EXISTS (SELECT 1 FROM cursos c WHERE c.idCurso=a.id_seccion AND ' . ModeloTenant::cursos('c') . ')
+               AND ' . ModeloTenant::usuarioConRol('u.idUsuario',['ESTUDIANTE']) . '
              ORDER BY u.apellidoUsuario ASC, u.nombreUsuario ASC'
         );
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
@@ -56,12 +63,22 @@ class ModeloNotificaciones
     {
         self::prepararTabla();
 
+        if(ModeloTenant::activo()){
+            ModeloTenant::exigirUsuario((int)$datos['id_usuario'],['ESTUDIANTE']);
+            $tipo=strtoupper((string)($datos['referenciaTipo']??''));
+            if($tipo==='LECCION'){ModeloTenant::exigirLeccion((int)$datos['referenciaId']);}
+            elseif($tipo==='ACTIVIDAD'){ModeloTenant::exigirActividad((int)$datos['referenciaId']);}
+            else{throw new RuntimeException('Referencia institucional no válida.');}
+        }
+
         try {
+            $institucional=ModeloTenant::activo();
             $stmt = Conexion::conectar()->prepare(
                 'INSERT IGNORE INTO notificaciones
-                    (id_usuario, tipoNotificacion, referenciaTipo, referenciaId, tituloNotificacion, detalleNotificacion, urlNotificacion)
-                 VALUES
-                    (:id_usuario, :tipoNotificacion, :referenciaTipo, :referenciaId, :tituloNotificacion, :detalleNotificacion, :urlNotificacion)'
+                    (id_usuario, tipoNotificacion, referenciaTipo, referenciaId, tituloNotificacion, detalleNotificacion, urlNotificacion'.($institucional?', id_institucion':'').')
+                 '.($institucional?'SELECT':'VALUES (').'
+                    :id_usuario, :tipoNotificacion, :referenciaTipo, :referenciaId, :tituloNotificacion, :detalleNotificacion, :urlNotificacion'.($institucional?', :id_institucion':'').'
+                 '.($institucional?'WHERE '.ModeloTenant::sesionActiva():')')
             );
             $stmt->bindValue(':id_usuario', (int) $datos['id_usuario'], PDO::PARAM_INT);
             $stmt->bindValue(':tipoNotificacion', (string) $datos['tipoNotificacion'], PDO::PARAM_STR);
@@ -70,6 +87,7 @@ class ModeloNotificaciones
             $stmt->bindValue(':tituloNotificacion', (string) $datos['tituloNotificacion'], PDO::PARAM_STR);
             $stmt->bindValue(':detalleNotificacion', (string) ($datos['detalleNotificacion'] ?? ''), PDO::PARAM_STR);
             $stmt->bindValue(':urlNotificacion', (string) ($datos['urlNotificacion'] ?? ''), PDO::PARAM_STR);
+            if($institucional){$stmt->bindValue(':id_institucion',ModeloTenant::id(),PDO::PARAM_INT);}
             if (!$stmt->execute()) {
                 return 'error';
             }
@@ -90,6 +108,7 @@ class ModeloNotificaciones
                         tituloNotificacion, detalleNotificacion, urlNotificacion, fechaNotificacion
                  FROM notificaciones
                  WHERE id_usuario = :idUsuario
+                   AND ' . ModeloTenant::notificaciones('notificaciones') . '
                  ORDER BY fechaNotificacion DESC, idNotificacion DESC
                  LIMIT ' . (int) $limite
             );
