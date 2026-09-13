@@ -115,6 +115,26 @@ class ModeloTenant
                 (SELECT 1 FROM lecciones nota_l WHERE nota_l.idLeccion=' . $alias . '.id_modulo AND nota_l.id_modulo=nota_s.idSeccion)))';
     }
 
+    public static function asistenciaClases($alias = 'ac')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM secciones asistencia_s
+            INNER JOIN cursos asistencia_c ON asistencia_c.idCurso=asistencia_s.id_curso
+            WHERE asistencia_s.idSeccion=' . $alias . '.id_seccion
+            AND asistencia_c.idCurso=' . $alias . '.id_curso
+            AND ' . self::cursos('asistencia_c') . ')';
+    }
+
+    public static function asistenciaRegistros($alias = 'ar')
+    {
+        if (!self::activo()) { return '1=1'; }
+        self::identificador($alias);
+        return 'EXISTS (SELECT 1 FROM asistencia_clases asistencia_ac
+            WHERE asistencia_ac.idClase=' . $alias . '.id_clase
+            AND ' . self::asistenciaClases('asistencia_ac') . ')';
+    }
+
     public static function adjuntosEntrega($alias = 'entregaslecciones_adjuntos')
     {
         if (!self::activo()) { return '1=1'; }
@@ -177,6 +197,18 @@ class ModeloTenant
         $fila=$stmt->fetch(PDO::FETCH_ASSOC);
         if (!$fila) { throw new RuntimeException('Acceso institucional denegado.'); }
         self::exigirLeccion($fila['id_leccion'],$fila['id_seccion'],$fila['id_curso']);
+    }
+
+    public static function exigirClaseAsistencia($idClase, $idSeccion = null)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT ac.id_seccion FROM asistencia_clases ac
+            WHERE ac.idClase=? AND ' . self::asistenciaClases('ac'));
+        $stmt->execute([(int)$idClase]);
+        $seccion = $stmt->fetchColumn();
+        if ($seccion === false || ($idSeccion !== null && (int)$seccion !== (int)$idSeccion)) {
+            throw new RuntimeException('Acceso institucional denegado.');
+        }
     }
 
     public static function exigirInscripcion($idEstudiante, $idCurso)

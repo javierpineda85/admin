@@ -1,6 +1,6 @@
 # Fase 4: aislamiento de recursos, en curso
 
-Este bloque está sobre `b7ab21d87447dff6363842aebfc7a8fc641b999e`.
+El primer bloque quedó registrado en `6e9a6dd5302ac3a7b1aebab5a6fa1393d079015e`.
 El flujo institucional sigue en ensayo y las aulas permanecen bloqueadas.
 No habilitarlo en producción: la fase 4 todavía no está completa.
 
@@ -32,6 +32,12 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
 - Las entregas incoherentes se excluyen de lecturas y agregados. La eliminación
   de una lección se bloquea ante dependencias inconsistentes y una materia no
   puede cambiar de curso en modo institucional, para preservar las referencias.
+- Asistencia deriva el tenant por la relación clase/sección/curso. Altas,
+  listados y actualizaciones rechazan combinaciones cruzadas, filtran alumnos por
+  inscripción y rol institucional activos, y no exponen clases incoherentes por ID.
+  El controlador valida la sección antes de conceder acceso a un administrador.
+- `2026-09-14_multi_institucion_02_asistencias.sql` prepara las tablas requeridas;
+  las peticiones institucionales ya no ejecutan DDL para crearlas.
 
 ## Pruebas
 
@@ -44,7 +50,7 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260913_202009_cdd89a`, 129 comprobaciones
+Última verificación: `campus_mt_fase2_20260913_203321_c1d88d`, 139 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno. Los archivos sintéticos
 se eliminan después de comprobar que la copia mantiene exactamente su contenido.
@@ -52,8 +58,9 @@ se eliminan después de comprobar que la copia mantiene exactamente su contenido
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
 definiendo `CAMPUS_TEST_BASE` con el nombre devuelto por el ensayo de recursos;
-rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus cinco
-comprobaciones de listados, lecturas y escritura. No usa la base original.
+rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus siete
+comprobaciones de listados, lecturas y escritura, incluidas materias y clases de
+asistencia. No usa la base original.
 
 La duplicación no promete rollback integral ante fallas de almacenamiento:
 las tablas históricas MyISAM no lo permiten. Un error posterior al preflight puede
@@ -62,7 +69,8 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 ## Trabajo pendiente antes de finalizar y habilitar
 
-- Completar calificaciones, evaluaciones, ciclos, períodos y asistencia.
+- Completar calificaciones, evaluaciones, ciclos y períodos; ampliar asistencia
+  con pruebas HTTP cuando se retire el bloqueo preventivo de las aulas.
 - Completar actividades, plantillas, intentos y rutas públicas.
 - Aislar mensajería, notificaciones y agregados de panel.
 - Separar todas las lecturas y modificaciones globales de usuarios/perfiles de

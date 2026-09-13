@@ -10,6 +10,7 @@ require __DIR__ . '/../config.php';
 require __DIR__ . '/../modelos/cursos.modelo.php';
 require __DIR__ . '/../modelos/materias.modelo.php';
 require __DIR__ . '/../modelos/lecciones.modelo.php';
+require __DIR__ . '/../modelos/asistencias.modelo.php';
 $pdo = Conexion::conectar();
 function comprobarLegacy($condicion, $mensaje) {
     if (!$condicion) { throw new RuntimeException($mensaje); }
@@ -24,3 +25,7 @@ $idLeccion=(int)$pdo->query('SELECT MIN(idLeccion) FROM lecciones')->fetchColumn
 $leccion=ModeloLecciones::mdlBuscarLeccionPorId($idLeccion);
 comprobarLegacy($leccion!==null, 'Consulta de lección habitual funciona sin contexto');
 comprobarLegacy(ModeloLecciones::mdlActualizarLeccion('lecciones',$leccion)==='ok', 'Escritura de lección habitual conserva compatibilidad');
+$seccionesAsistencia=ModeloAsistencias::mdlSecciones();
+comprobarLegacy(count($seccionesAsistencia)>0, 'Listado habitual de asistencia conserva materias existentes');
+$idSeccionAsistencia=(int)$pdo->query('SELECT MIN(id_seccion) FROM asistencia_clases')->fetchColumn();
+comprobarLegacy(count(ModeloAsistencias::mdlClasesSeccion($idSeccionAsistencia))>0, 'Consulta habitual de clases funciona sin contexto');

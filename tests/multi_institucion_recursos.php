@@ -6,8 +6,10 @@ require __DIR__ . '/multi_institucion_contexto.php';
 require_once __DIR__ . '/../modelos/cursos.modelo.php';
 require_once __DIR__ . '/../modelos/materias.modelo.php';
 require_once __DIR__ . '/../modelos/lecciones.modelo.php';
+require_once __DIR__ . '/../modelos/asistencias.modelo.php';
 foreach (['secciones', 'lecciones', 'asignacioncursos', 'recursoslecciones', 'entregaslecciones', 'posteos',
-    'calificaciones','entregaslecciones_adjuntos','archivoslecciones','actividades','actividades_preguntas','actividades_opciones'] as $tabla) {
+    'calificaciones','entregaslecciones_adjuntos','archivoslecciones','actividades','actividades_preguntas','actividades_opciones',
+    'asistencia_clases','asistencia_registros'] as $tabla) {
     $pdo->exec("CREATE TABLE `$tabla` LIKE `$origen`.`$tabla`");
 }
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_01_expandir.sql');
@@ -43,6 +45,20 @@ $datosMateria=['tituloSeccion'=>'Materia Demo','contenidoSeccion'=>'Prueba','id_
 verificar(ModeloMaterias::mdlGuardarMateria('secciones',$datosMateria)==='ok', 'Materia se crea con docente de la institución');
 $materiaDemo=(int)$pdo->lastInsertId();
 verificar(ModeloMaterias::mdlActualizarDocentesMateria($materiaDemo,$ids['B'],0)==='ok', 'Escritura de materia propia aplica filtro institucional');
+$claseDemo=ModeloAsistencias::mdlCrearClase($materiaDemo,$cursoDemo,'2026-09-13','Clase Demo',$ids['B']);
+verificar($claseDemo>0, 'Asistencia crea una clase dentro de la institución activa');
+$registrosDemo=ModeloAsistencias::mdlRegistrosClase($claseDemo);
+verificar(array_column($registrosDemo,'id_estudiante')==[$ids['A']], 'Asistencia incorpora solo estudiantes activos de la institución y del curso');
+verificar(ModeloAsistencias::mdlGuardar($claseDemo,[$ids['A']=>'AUSENTE'],[$ids['A']=>'Ensayo'],$ids['B'])==='ok', 'Asistencia propia se actualiza con contexto institucional');
+verificar((string)$pdo->query('SELECT estado FROM asistencia_registros WHERE id_clase='.(int)$claseDemo)->fetchColumn()==='AUSENTE', 'Estado de asistencia queda persistido');
+denegado(function() use($materiaDemo,$cursoMM,$ids) {
+    ModeloAsistencias::mdlCrearClase($materiaDemo,$cursoMM,'2026-09-14','Curso cruzado',$ids['B']);
+}, 'Asistencia rechaza combinación de materia y curso de instituciones diferentes');
+$pdo->prepare('INSERT INTO asistencia_clases(id_seccion,id_curso,fechaClase,tema,creadaPor) VALUES(?,?,?,?,?)')
+    ->execute([$materiaDemo,$cursoMM,'2026-09-15','Dato incoherente',$ids['B']]);
+$claseIncoherente=(int)$pdo->lastInsertId();
+denegado(function() use($claseIncoherente) { ModeloAsistencias::mdlClase($claseIncoherente); }, 'Asistencia histórica incoherente no se revela por ID');
+verificar(array_column(ModeloAsistencias::mdlClasesSeccion($materiaDemo),'idClase')==[$claseDemo], 'Listado de asistencia excluye clases con curso cruzado');
 $leccion=['nombreLeccion'=>'Lección Demo','tipoLeccion'=>'MATERIAL','contenidoLeccion'=>'Contenido privado',
     'estadoLeccion'=>'PUBLICADA','fechaPublicacionLeccion'=>null,'id_modulo'=>$materiaDemo];
 verificar(ModeloLecciones::mdlGuardarLeccion('lecciones',$leccion)==='ok', 'Lección hereda institución desde materia');
@@ -131,6 +147,8 @@ verificar(ModeloMaterias::mdlListarMateriasGestion()===[], 'Listado de materias 
 denegado(function() use($leccionDemo) { ModeloLecciones::mdlBuscarLeccionPorId($leccionDemo); }, 'Lección ajena denegada por ID');
 denegado(function() use($recursoDemo) { ModeloLecciones::mdlBuscarRecursoPorId($recursoDemo); }, 'Recurso ajeno denegado por ID');
 denegado(function() use($leccionDemo) { ModeloLecciones::mdlEliminarLeccion($leccionDemo); }, 'Borrado de lección ajena rechazado antes de eliminar dependencias');
+denegado(function() use($claseDemo) { ModeloAsistencias::mdlClase($claseDemo); }, 'Clase de asistencia ajena no se revela por ID');
+denegado(function() use($materiaDemo) { ModeloAsistencias::mdlClasesSeccion($materiaDemo); }, 'Listado de asistencia ajeno se rechaza por materia');
 denegado(function() use($cursoDemo,$ids) { ModeloCursos::mdlDuplicarCurso($cursoDemo,['idUsuario'=>$ids['A']]); }, 'Duplicación de curso ajeno rechazada antes de crear datos');
 $datosMateria['idSeccion']=$materiaDemo;
 denegado(function() use($datosMateria) { ModeloMaterias::mdlModificarMateria('secciones',$datosMateria); }, 'Docente no puede modificar materia de otra institución');
@@ -139,7 +157,9 @@ $datosMateria['id_curso']=$cursoMM;
 denegado(function() use($datosMateria) { ModeloMaterias::mdlGuardarMateria('secciones',$datosMateria); }, 'Materia rechaza docente sin membresía institucional');
 require_once __DIR__ . '/../controladores/cursos.controller.php';
 require_once __DIR__ . '/../controladores/lecciones.controller.php';
+require_once __DIR__ . '/../controladores/asistencias.controller.php';
 denegado(function() use($cursoDemo) { ControladorCursos::crtPuedeGestionarCurso($cursoDemo); }, 'Controlador no concede gestión de curso ajeno');
+denegado(function() use($materiaDemo) { ControladorAsistencias::crtPuedeGestionar($materiaDemo); }, 'Controlador no concede gestión de asistencia ajena a un administrador institucional');
 $_POST=['accion_curso'=>'duplicar_curso','idCurso'=>$cursoDemo];
 denegado(function() { ControladorCursos::crtDuplicarCurso(); }, 'POST de duplicación manipulado rechazado por controlador');
 $_POST=[];
