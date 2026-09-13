@@ -276,6 +276,12 @@ try {
         if (is_file($archivoPrueba)) { unlink($archivoPrueba); }
     }
 }
+$panelDemo=ModeloPanel::mdlResumenDashboard($ids['B'],'ADMINISTRADOR');
+$tarjetasDemo=array_column($panelDemo['tarjetas'],'value','label');
+verificar((int)$tarjetasDemo['Usuarios activos']===2
+    && (int)$tarjetasDemo['Cursos']===(int)$pdo->query('SELECT COUNT(*) FROM cursos WHERE id_institucion='.$demo)->fetchColumn()
+    && (int)$tarjetasDemo['Secciones']===(int)$pdo->query('SELECT COUNT(*) FROM secciones s INNER JOIN cursos c ON c.idCurso=s.id_curso WHERE c.id_institucion='.$demo)->fetchColumn(),
+    'Panel administrador calcula usuarios, cursos y materias sólo para su institución');
 // Simula revocación entre preparación y ejecución de SQL.
 $preparada=$pdo->prepare('SELECT idCurso FROM cursos c WHERE ' . ModeloTenant::cursos());
 $pdo->prepare('UPDATE usuarios_instituciones SET activo=0 WHERE id_usuario=? AND id_institucion=?')->execute([$ids['B'],$demo]);
@@ -284,6 +290,9 @@ verificar($preparada->fetchAll(PDO::FETCH_ASSOC)===[], 'SQL ya preparado respeta
 $pdo->prepare('UPDATE usuarios_instituciones SET activo=1 WHERE id_usuario=? AND id_institucion=?')->execute([$ids['B'],$demo]);
 sesionPara($ids['A']);
 ControladorInstitucion::seleccionar($mm,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+$panelMM=ModeloPanel::mdlResumenDashboard($ids['A'],'DOCENTE');
+$tarjetasMM=array_column($panelMM['tarjetas'],'value','label');
+verificar((int)$tarjetasMM['Secciones a cargo']===1&&(int)$tarjetasMM['Lecciones']===0, 'Panel docente se recalcula al cambiar a MenteMotion');
 verificar(ModeloMaterias::mdlBuscarMateriaPorId($materiaDemo)===false, 'Docente no puede leer materia ajena por ID');
 verificar(array_column(ModeloMaterias::mdlListarMateriasGestion(),'idSeccion')===[$materiaMM], 'Listado de materias conserva solo las de la institución activa');
 denegado(function() use($leccionDemo) { ModeloLecciones::mdlBuscarLeccionPorId($leccionDemo); }, 'Lección ajena denegada por ID');

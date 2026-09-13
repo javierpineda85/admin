@@ -77,6 +77,10 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
   estudiante. Tanto el alta como el listado y las marcas de lectura guardan y
   filtran `id_institucion`; el modo institucional tampoco ejecuta DDL durante
   una petición.
+- Las tarjetas, pendientes y fuentes de actividad reciente del panel filtran
+  miembros, cursos, materias, lecciones, entregas, posteos y calificaciones con
+  el contexto central. Los `LEFT JOIN` de notas también descartan relaciones
+  incoherentes para no alterar los conteos de pendientes.
 
 ## Pruebas
 
@@ -89,7 +93,7 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260913_220238_94a776`, 211 comprobaciones
+Última verificación: `campus_mt_fase2_20260913_220816_3ab1c3`, 213 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno. Los archivos sintéticos
 se eliminan después de comprobar que la copia mantiene exactamente su contenido.
@@ -97,7 +101,7 @@ se eliminan después de comprobar que la copia mantiene exactamente su contenido
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
 definiendo `CAMPUS_TEST_BASE` con el nombre devuelto por el ensayo de recursos;
-rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus dieciséis
+rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus diecisiete
 comprobaciones de listados, lecturas y escritura, incluidas materias, clases de
 asistencia, actividades y contadores de mensajes. No usa la base original.
 
@@ -112,7 +116,6 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
   revisar las vistas de calificaciones antes de habilitarlas.
 - Validar los endpoints HTTP de actividades cuando se retire el bloqueo
   preventivo de las aulas.
-- Aislar los agregados académicos restantes del panel.
 - Separar todas las lecturas y modificaciones globales de usuarios/perfiles de
   la administración de membresías; aún existen otros métodos legacy sin aislamiento.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas

@@ -1,7 +1,8 @@
 <?php
-require_once('conexion.php');
-require_once('mensajes.modelo.php');
-require_once('notificaciones.modelo.php');
+require_once __DIR__ . '/conexion.php';
+require_once __DIR__ . '/mensajes.modelo.php';
+require_once __DIR__ . '/notificaciones.modelo.php';
+require_once __DIR__ . '/tenant.modelo.php';
 
 class ModeloPanel
 {
@@ -42,19 +43,25 @@ class ModeloPanel
         $rol = self::normalizarRol($rol);
 
         if ($rol === 'ADMINISTRADOR') {
-            $usuariosActivos = self::contar('SELECT COUNT(*) AS total FROM usuarios WHERE activo = 1');
-            $usuariosConectados = self::contar('SELECT COUNT(*) AS total FROM usuarios WHERE activo = 1 AND ultimaConexion >= (NOW() - INTERVAL 60 MINUTE)');
-            $cursos = self::contar('SELECT COUNT(*) AS total FROM cursos');
-            $secciones = self::contar('SELECT COUNT(*) AS total FROM secciones');
+            if(ModeloTenant::activo()){
+                $usuariosActivos = self::contar('SELECT COUNT(*) AS total FROM usuarios_instituciones ui INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario WHERE ui.id_institucion='.ModeloTenant::id().' AND ui.activo=1 AND u.activo=1 AND '.ModeloTenant::sesionActiva());
+                $usuariosConectados = self::contar('SELECT COUNT(*) AS total FROM usuarios_instituciones ui INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario WHERE ui.id_institucion='.ModeloTenant::id().' AND ui.activo=1 AND u.activo=1 AND u.ultimaConexion >= (NOW() - INTERVAL 60 MINUTE) AND '.ModeloTenant::sesionActiva());
+            }else{
+                $usuariosActivos = self::contar('SELECT COUNT(*) AS total FROM usuarios WHERE activo = 1');
+                $usuariosConectados = self::contar('SELECT COUNT(*) AS total FROM usuarios WHERE activo = 1 AND ultimaConexion >= (NOW() - INTERVAL 60 MINUTE)');
+            }
+            $cursos = self::contar('SELECT COUNT(*) AS total FROM cursos c WHERE '.ModeloTenant::cursos('c'));
+            $secciones = self::contar('SELECT COUNT(*) AS total FROM secciones s WHERE '.ModeloTenant::secciones('s'));
             $mensajes = ModeloMensajes::mdlContarMensajesNoLeidos($idUsuario);
             $pendientes = self::contar(
                 'SELECT COUNT(*) AS total
                  FROM entregaslecciones e
                  LEFT JOIN calificaciones c
-                   ON c.id_estudiante = e.id_estudiante
-                  AND c.id_seccion = e.id_seccion
-                  AND c.id_modulo = e.id_leccion
-                 WHERE c.idCalificacion IS NULL'
+                  ON c.id_estudiante = e.id_estudiante
+                 AND c.id_seccion = e.id_seccion
+                 AND c.id_modulo = e.id_leccion
+                 AND ' . ModeloTenant::calificaciones('c') . '
+                 WHERE c.idCalificacion IS NULL AND ' . ModeloTenant::entregas('e')
             );
 
             return [
@@ -107,14 +114,14 @@ class ModeloPanel
             $secciones = self::contar(
                 'SELECT COUNT(DISTINCT s.idSeccion) AS total
                  FROM secciones s
-                 WHERE s.docente = :idUsuario OR s.tutor = :idUsuario',
+                 WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario) AND ' . ModeloTenant::secciones('s'),
                 [':idUsuario' => $idUsuario]
             );
             $lecciones = self::contar(
                 'SELECT COUNT(DISTINCT l.idLeccion) AS total
                  FROM lecciones l
                  INNER JOIN secciones s ON s.idSeccion = l.id_modulo
-                 WHERE s.docente = :idUsuario OR s.tutor = :idUsuario',
+                 WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario) AND ' . ModeloTenant::lecciones('l'),
                 [':idUsuario' => $idUsuario]
             );
             $pendientes = self::contar(
@@ -122,11 +129,12 @@ class ModeloPanel
                  FROM entregaslecciones e
                  INNER JOIN secciones s ON s.idSeccion = e.id_seccion
                  LEFT JOIN calificaciones c
-                   ON c.id_estudiante = e.id_estudiante
-                  AND c.id_seccion = e.id_seccion
-                  AND c.id_modulo = e.id_leccion
+                  ON c.id_estudiante = e.id_estudiante
+                 AND c.id_seccion = e.id_seccion
+                 AND c.id_modulo = e.id_leccion
+                 AND ' . ModeloTenant::calificaciones('c') . '
                  WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario)
-                   AND c.idCalificacion IS NULL',
+                   AND c.idCalificacion IS NULL AND ' . ModeloTenant::entregas('e'),
                 [':idUsuario' => $idUsuario]
             );
             $mensajes = ModeloMensajes::mdlContarMensajesNoLeidos($idUsuario);
@@ -134,7 +142,7 @@ class ModeloPanel
                 'SELECT COALESCE(ROUND(AVG(c.calificacion), 2), 0) AS total
                  FROM calificaciones c
                  INNER JOIN secciones s ON s.idSeccion = c.id_seccion
-                 WHERE s.docente = :idUsuario OR s.tutor = :idUsuario',
+                 WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario) AND ' . ModeloTenant::calificaciones('c'),
                 [':idUsuario' => $idUsuario]
             );
 
@@ -180,27 +188,29 @@ class ModeloPanel
         $cursosAsignados = self::contar(
             'SELECT COUNT(DISTINCT a.id_seccion) AS total
              FROM asignacioncursos a
-             WHERE a.id_estudiante = :idUsuario AND a.estadoInscripcion = "ACTIVA"',
+             INNER JOIN cursos c ON c.idCurso=a.id_seccion
+             WHERE a.id_estudiante = :idUsuario AND a.estadoInscripcion = "ACTIVA" AND ' . ModeloTenant::cursos('c'),
             [':idUsuario' => $idUsuario]
         );
         $lecciones = self::contar(
             'SELECT COUNT(DISTINCT l.idLeccion) AS total
              FROM lecciones l
-             INNER JOIN asignacioncursos a ON a.id_seccion = l.id_modulo
-             WHERE a.id_estudiante = :idUsuario AND a.estadoInscripcion = "ACTIVA"',
+             INNER JOIN secciones s ON s.idSeccion=l.id_modulo
+             INNER JOIN asignacioncursos a ON a.id_seccion = s.id_curso
+             WHERE a.id_estudiante = :idUsuario AND a.estadoInscripcion = "ACTIVA" AND ' . ModeloTenant::lecciones('l'),
             [':idUsuario' => $idUsuario]
         );
         $entregas = self::contar(
             'SELECT COUNT(*) AS total
-             FROM entregaslecciones
-             WHERE id_estudiante = :idUsuario',
+             FROM entregaslecciones e
+             WHERE e.id_estudiante = :idUsuario AND ' . ModeloTenant::entregas('e'),
             [':idUsuario' => $idUsuario]
         );
         $mensajes = ModeloMensajes::mdlContarMensajesNoLeidos($idUsuario);
         $promedio = self::listar(
             'SELECT COALESCE(ROUND(AVG(calificacion), 2), 0) AS total
-             FROM calificaciones
-             WHERE id_estudiante = :idUsuario',
+             FROM calificaciones c
+             WHERE c.id_estudiante = :idUsuario AND ' . ModeloTenant::calificaciones('c'),
             [':idUsuario' => $idUsuario]
         );
 
@@ -260,6 +270,7 @@ class ModeloPanel
                  INNER JOIN usuarios u ON u.idUsuario = p.id_autor
                  LEFT JOIN lecciones l ON l.idLeccion = p.id_leccion
                  LEFT JOIN secciones s ON s.idSeccion = l.id_modulo
+                 WHERE ' . ModeloTenant::posteos('p') . '
                  ORDER BY p.fechaPosteo DESC
                  LIMIT ' . (int) $limite
             );
@@ -274,7 +285,8 @@ class ModeloPanel
                  INNER JOIN usuarios u ON u.idUsuario = p.id_autor
                  LEFT JOIN lecciones l ON l.idLeccion = p.id_leccion
                  LEFT JOIN secciones s ON s.idSeccion = l.id_modulo
-                 WHERE s.docente = :idUsuario OR s.tutor = :idUsuario
+                 WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario)
+                   AND ' . ModeloTenant::posteos('p') . '
                  ORDER BY p.fechaPosteo DESC
                  LIMIT ' . (int) $limite,
                 [':idUsuario' => $idUsuario]
@@ -292,6 +304,7 @@ class ModeloPanel
              INNER JOIN asignacioncursos a ON a.id_seccion = p.id_curso
              WHERE a.id_estudiante = :idUsuario
                AND a.estadoInscripcion = "ACTIVA"
+               AND ' . ModeloTenant::posteos('p') . '
              ORDER BY p.fechaPosteo DESC
              LIMIT ' . (int) $limite,
             [':idUsuario' => $idUsuario]
@@ -310,6 +323,7 @@ class ModeloPanel
                  LEFT JOIN lecciones l ON l.idLeccion = e.id_leccion
                  LEFT JOIN secciones s ON s.idSeccion = e.id_seccion
                  WHERE e.id_estudiante = :idUsuario
+                   AND ' . ModeloTenant::entregas('e') . '
                  ORDER BY e.fechaEntrega DESC
                  LIMIT ' . (int) $limite,
                 [':idUsuario' => $idUsuario]
@@ -326,7 +340,8 @@ class ModeloPanel
                  INNER JOIN secciones s ON s.idSeccion = e.id_seccion
                  INNER JOIN usuarios u ON u.idUsuario = e.id_estudiante
                  LEFT JOIN lecciones l ON l.idLeccion = e.id_leccion
-                 WHERE s.docente = :idUsuario OR s.tutor = :idUsuario
+                 WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario)
+                   AND ' . ModeloTenant::entregas('e') . '
                  ORDER BY e.fechaEntrega DESC
                  LIMIT ' . (int) $limite,
                 [':idUsuario' => $idUsuario]
@@ -342,6 +357,7 @@ class ModeloPanel
              INNER JOIN secciones s ON s.idSeccion = e.id_seccion
              INNER JOIN usuarios u ON u.idUsuario = e.id_estudiante
              LEFT JOIN lecciones l ON l.idLeccion = e.id_leccion
+             WHERE ' . ModeloTenant::entregas('e') . '
              ORDER BY e.fechaEntrega DESC
              LIMIT ' . (int) $limite
         );
@@ -371,11 +387,12 @@ class ModeloPanel
              INNER JOIN cursos ON cursos.idCurso = e.id_curso
              INNER JOIN usuarios u ON u.idUsuario = e.id_estudiante
              LEFT JOIN calificaciones c
-               ON c.id_estudiante = e.id_estudiante
-              AND c.id_seccion = e.id_seccion
-              AND c.id_modulo = e.id_leccion
+              ON c.id_estudiante = e.id_estudiante
+             AND c.id_seccion = e.id_seccion
+             AND c.id_modulo = e.id_leccion
+             AND ' . ModeloTenant::calificaciones('c') . '
              WHERE e.estadoEntrega = "ENTREGADA"
-               AND c.idCalificacion IS NULL' . $filtroDocente . '
+               AND c.idCalificacion IS NULL AND ' . ModeloTenant::entregas('e') . $filtroDocente . '
              ORDER BY e.fechaEntrega ASC, s.tituloSeccion ASC, u.apellidoUsuario ASC',
             $params
         );
@@ -393,6 +410,7 @@ class ModeloPanel
                  LEFT JOIN lecciones l ON l.idLeccion = c.id_modulo
                  LEFT JOIN secciones s ON s.idSeccion = c.id_seccion
                  WHERE c.id_estudiante = :idUsuario
+                   AND ' . ModeloTenant::calificaciones('c') . '
                  ORDER BY c.idCalificacion DESC
                  LIMIT ' . (int) $limite,
                 [':idUsuario' => $idUsuario]
@@ -408,7 +426,8 @@ class ModeloPanel
                  INNER JOIN secciones s ON s.idSeccion = c.id_seccion
                  LEFT JOIN lecciones l ON l.idLeccion = c.id_modulo
                  INNER JOIN usuarios u ON u.idUsuario = c.id_estudiante
-                 WHERE s.docente = :idUsuario OR s.tutor = :idUsuario
+                 WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario)
+                   AND ' . ModeloTenant::calificaciones('c') . '
                  ORDER BY c.idCalificacion DESC
                  LIMIT ' . (int) $limite,
                 [':idUsuario' => $idUsuario]
@@ -423,6 +442,7 @@ class ModeloPanel
              INNER JOIN secciones s ON s.idSeccion = c.id_seccion
              LEFT JOIN lecciones l ON l.idLeccion = c.id_modulo
              INNER JOIN usuarios u ON u.idUsuario = c.id_estudiante
+             WHERE ' . ModeloTenant::calificaciones('c') . '
              ORDER BY c.idCalificacion DESC
              LIMIT ' . (int) $limite
         );
@@ -723,10 +743,11 @@ class ModeloPanel
                 'SELECT COUNT(*) AS total
                  FROM entregaslecciones e
                  LEFT JOIN calificaciones c
-                   ON c.id_estudiante = e.id_estudiante
-                  AND c.id_seccion = e.id_seccion
-                  AND c.id_modulo = e.id_leccion
-                 WHERE c.idCalificacion IS NULL'
+                  ON c.id_estudiante = e.id_estudiante
+                 AND c.id_seccion = e.id_seccion
+                 AND c.id_modulo = e.id_leccion
+                 AND ' . ModeloTenant::calificaciones('c') . '
+                 WHERE c.idCalificacion IS NULL AND ' . ModeloTenant::entregas('e')
             );
         } elseif ($rol === 'DOCENTE') {
             $notificaciones += self::contar(
@@ -734,18 +755,19 @@ class ModeloPanel
                  FROM entregaslecciones e
                  INNER JOIN secciones s ON s.idSeccion = e.id_seccion
                  LEFT JOIN calificaciones c
-                   ON c.id_estudiante = e.id_estudiante
-                  AND c.id_seccion = e.id_seccion
-                  AND c.id_modulo = e.id_leccion
+                  ON c.id_estudiante = e.id_estudiante
+                 AND c.id_seccion = e.id_seccion
+                 AND c.id_modulo = e.id_leccion
+                 AND ' . ModeloTenant::calificaciones('c') . '
                  WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario)
-                   AND c.idCalificacion IS NULL',
+                   AND c.idCalificacion IS NULL AND ' . ModeloTenant::entregas('e'),
                 [':idUsuario' => $idUsuario]
             );
         } elseif ($rol === 'ESTUDIANTE') {
             $notificaciones += self::contar(
                 'SELECT COUNT(*) AS total
-                 FROM calificaciones
-                 WHERE id_estudiante = :idUsuario',
+                 FROM calificaciones c
+                 WHERE c.id_estudiante = :idUsuario AND ' . ModeloTenant::calificaciones('c'),
                 [':idUsuario' => $idUsuario]
             );
         }
@@ -754,7 +776,7 @@ class ModeloPanel
             $notificaciones += self::contar(
                 'SELECT COUNT(*) AS total
                  FROM posteos p
-                 WHERE p.fechaPosteo >= (NOW() - INTERVAL 7 DAY)'
+                 WHERE p.fechaPosteo >= (NOW() - INTERVAL 7 DAY) AND ' . ModeloTenant::posteos('p')
             );
         } elseif ($rol === 'DOCENTE') {
             $notificaciones += self::contar(
@@ -763,7 +785,7 @@ class ModeloPanel
                  LEFT JOIN lecciones l ON l.idLeccion = p.id_leccion
                  LEFT JOIN secciones s ON s.idSeccion = l.id_modulo
                  WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario)
-                   AND p.fechaPosteo >= (NOW() - INTERVAL 7 DAY)',
+                   AND p.fechaPosteo >= (NOW() - INTERVAL 7 DAY) AND ' . ModeloTenant::posteos('p'),
                 [':idUsuario' => $idUsuario]
             );
         } elseif ($rol === 'ESTUDIANTE') {
@@ -773,7 +795,8 @@ class ModeloPanel
                  INNER JOIN asignacioncursos a ON a.id_seccion = p.id_curso
                  WHERE a.id_estudiante = :idUsuario
                    AND a.estadoInscripcion = "ACTIVA"
-                   AND p.fechaPosteo >= (NOW() - INTERVAL 7 DAY)',
+                   AND p.fechaPosteo >= (NOW() - INTERVAL 7 DAY)
+                   AND ' . ModeloTenant::posteos('p'),
                 [':idUsuario' => $idUsuario]
             );
         }
