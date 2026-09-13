@@ -1,0 +1,3 @@
+ALTER TABLE calificaciones
+  ADD COLUMN IF NOT EXISTS fechaCalificacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER devolucion,
+  ADD COLUMN IF NOT EXISTS fechaActualizacion DATETIME NULL AFTER fechaCalificacion;

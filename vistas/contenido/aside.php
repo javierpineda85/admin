@@ -193,6 +193,13 @@
             </li>
           <?php endif; ?>
 
+          <li class="nav-item">
+            <a href="index.php?r=calificaciones" class="nav-link">
+              <i class="nav-icon fas fa-chart-line text-primary"></i>
+              <p>Calificaciones</p>
+            </a>
+          </li>
+
           <?php if (ControladorPermisos::puedeVerMenu('actividades')): ?>
             <li class="nav-item">
               <a href="#" class="nav-link">

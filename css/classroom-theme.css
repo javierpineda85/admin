@@ -2850,3 +2850,53 @@ body.classroom-app .classwork-rich-content td {
     padding-right: 1rem;
   }
 }
+.gradebook-closing-header {
+  color: #fff;
+  background: linear-gradient(135deg, #5b21b6, #7c3aed) !important;
+  border-left: 4px solid #4c1d95 !important;
+  box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.gradebook-closing-header small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.gradebook-closing-cell {
+  background: #f5f3ff;
+  border-left: 4px solid #7c3aed !important;
+}
+
+.gradebook-closing-grade,
+.gradebook-closing-pending {
+  display: inline-flex;
+  min-width: 64px;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.gradebook-closing-grade.is-approved {
+  color: #065f46;
+  background: #d1fae5;
+  border: 1px solid #6ee7b7;
+}
+
+.gradebook-closing-grade.is-failed {
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+}
+
+.gradebook-closing-pending {
+  color: #6b7280;
+  background: #fff;
+  border: 1px dashed #a78bfa;
+  font-size: 0.78rem;
+}
+.grade-view-tabs{display:flex;gap:.55rem;overflow-x:auto;padding-bottom:.2rem}.grade-view-tab{display:inline-flex;align-items:center;gap:.5rem;white-space:nowrap;padding:.7rem 1rem;border:1px solid rgba(99,102,241,.18);border-radius:999px;background:#fff;color:#475569;font-weight:600}.grade-view-tab:hover{color:#4f46e5;text-decoration:none}.grade-view-tab.active{color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-color:transparent;box-shadow:0 8px 20px rgba(99,102,241,.2)}
+.grade-summary-table th{white-space:nowrap}.grade-result{display:inline-flex;min-width:3.25rem;justify-content:center;padding:.28rem .58rem;border-radius:999px;font-weight:700}.grade-result.is-approved{color:#08783e;background:#dcfce7}.grade-result.is-failed{color:#b42318;background:#fee4e2}.grade-result.is-empty{color:#64748b;background:#f1f5f9}.grade-subject-card{transition:transform .18s ease,box-shadow .18s ease}.grade-subject-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(15,23,42,.09)}.grade-subject-metric{padding:.4rem .7rem;margin-right:.5rem;border-radius:.65rem;background:#f8fafc;color:#64748b;font-size:.82rem}.grade-subject-metric strong{color:#1e293b}.grade-detail-closing{background:rgba(124,58,237,.055)}.grade-detail-closing td:first-child{box-shadow:inset 4px 0 0 #7c3aed}

@@ -32,6 +32,7 @@ class RutasController
             'editar-materia'  => 'materias/editar-materia.php',
             'detalle-seccion' => 'materias/detalle-seccion.php',
             'calificaciones-seccion' => 'materias/calificaciones-seccion.php',
+            'calificaciones' => 'materias/calificaciones.php',
 
             // Mensajes
             'bandeja-entrada' => 'mensajes/bandeja-entrada.php',

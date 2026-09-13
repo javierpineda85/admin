@@ -1002,7 +1002,7 @@ if (ControladorPermisos::esEstudiante()) {
                                             name="calificaciones[<?php echo (int) $entregaDoc['id_estudiante']; ?>]"
                                             class="form-control form-control-sm batch-grade-input"
                                             min="0"
-                                            max="100"
+                                            max="10"
                                             placeholder="Nota"
                                             aria-label="Nota de <?php echo htmlspecialchars($entregaDoc['apellidoUsuario'] . ' ' . $entregaDoc['nombreUsuario'], ENT_QUOTES, 'UTF-8'); ?>"
                                             value="<?php echo $notaActual ? (int) $notaActual['calificacion'] : ''; ?>"
