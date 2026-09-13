@@ -17,3 +17,4 @@ Dejar claro como esta organizado el proyecto, que hace cada parte y cual es la r
 # Documentación académica
 
 - [Inscripciones históricas y períodos de calificación](inscripciones-y-periodos.md)
+- [Asistencia](asistencia.md)

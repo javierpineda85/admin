@@ -33,6 +33,8 @@ class RutasController
             'detalle-seccion' => 'materias/detalle-seccion.php',
             'calificaciones-seccion' => 'materias/calificaciones-seccion.php',
             'calificaciones' => 'materias/calificaciones.php',
+            'asistencias' => 'materias/asistencias.php',
+            'asistencia-seccion' => 'materias/asistencia-seccion.php',
 
             // Mensajes
             'bandeja-entrada' => 'mensajes/bandeja-entrada.php',
@@ -133,6 +135,8 @@ class RutasController
                 exit;
             }
         }
+
+        if($ruta==='asistencia-seccion'){$idSeccion=(int)($_GET['idSeccion']??0);$resultado=ControladorAsistencias::crtProcesar();if($resultado!==null){$destino='index.php?r=asistencia-seccion&idSeccion='.$idSeccion;if((int)$resultado>0){$destino.='&idClase='.(int)$resultado;}header('Location: '.$destino);exit;}}
 
         if ($ruta === 'editar-curso') {
             $idCurso = (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0);

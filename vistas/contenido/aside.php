@@ -198,6 +198,7 @@
               <i class="nav-icon fas fa-chart-line text-primary"></i>
               <p>Calificaciones</p>
             </a>
+          </li><li class="nav-item"><a href="index.php?r=asistencias" class="nav-link"><i class="nav-icon fas fa-user-check text-success"></i><p>Asistencia</p></a>
           </li>
 
           <?php if (ControladorPermisos::puedeVerMenu('actividades')): ?>
