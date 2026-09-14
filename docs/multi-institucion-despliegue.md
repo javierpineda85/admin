@@ -42,6 +42,18 @@ Comprobar en la base migrada:
 - GESTOR y cualquier código no soportado no recibieron permisos por inferencia.
 - No existen relaciones académicas incoherentes sin informe de regularización.
 
+Ejecutar además el diagnóstico de membresías relacionadas. Cada incidencia debe
+ser cero antes de continuar:
+
+```bash
+mysql campus -e "source sql/2026-09-14_multi_institucion_05_validar_relaciones.sql"
+```
+
+El diagnóstico revisa responsables, docentes, tutores, inscripciones,
+mensajería, autores, entregas, calificaciones y asistencia contra la membresía
+de la institución del recurso. El endurecimiento vuelve a verificar estas
+relaciones y aborta si aparece alguna durante el corte.
+
 Ejecutar la batería sintética antes de cambiar configuración:
 
 ```bash
@@ -70,8 +82,9 @@ el header, cursos, materias, mensajes, archivos, asistencia y calificaciones.
 ## Endurecimiento posterior al corte
 
 Ejecutar `2026-09-14_multi_institucion_04_endurecer.sql` sólo después de validar
-el delta que pudo crear el modo legacy. El script aborta antes de alterar columnas
-si encuentra filas sin tenant o emails duplicados. Si termina correctamente:
+el delta que pudo crear el modo legacy y obtener cero incidencias en el diagnóstico
+de relaciones. El script aborta antes de alterar columnas si encuentra filas sin
+tenant, emails duplicados o relaciones sin membresía institucional. Si termina correctamente:
 
 - los contextos institucionales explícitos pasan a `NOT NULL`;
 - `usuarios.email` queda protegido por unicidad estructural;
