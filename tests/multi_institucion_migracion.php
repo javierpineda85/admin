@@ -182,6 +182,31 @@ try {
 }
 comprobar($rechazoRelacion, 'El endurecimiento se detiene ante una relación sin membresía institucional');
 $pdo->prepare('UPDATE cursos SET responsable=? WHERE idCurso=?')->execute([$responsableOriginal, $idCursoEndurecer]);
+$idUsuarioInexistente = (int) $pdo->query('SELECT COALESCE(MAX(idUsuario),0)+1000 FROM usuarios')->fetchColumn();
+$pdo->prepare('UPDATE cursos SET responsable=? WHERE idCurso=?')->execute([$idUsuarioInexistente, $idCursoEndurecer]);
+$rechazoIdentidadInexistente = false;
+try {
+    ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+} catch (PDOException $e) {
+    $rechazoIdentidadInexistente = $e->getCode()==='45000';
+}
+comprobar($rechazoIdentidadInexistente, 'El endurecimiento detiene referencias a identidades inexistentes');
+$diagnosticoIdentidadInexistente = $pdo->query(file_get_contents(__DIR__ . '/../sql/2026-09-14_multi_institucion_05_validar_relaciones.sql'))->fetchAll(PDO::FETCH_KEY_PAIR);
+comprobar((int) ($diagnosticoIdentidadInexistente['cursos_responsable_sin_membresia'] ?? 0) > 0,
+    'El diagnóstico identifica una referencia a una identidad inexistente');
+$pdo->prepare('UPDATE cursos SET responsable=? WHERE idCurso=?')->execute([$responsableOriginal, $idCursoEndurecer]);
+$pdo->prepare('INSERT INTO usuarios_instituciones (id_usuario,id_institucion) VALUES (?,?)')->execute([$idUsuarioInexistente, $idInicial]);
+$rechazoMembresiaHuerfana = false;
+try {
+    ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+} catch (PDOException $e) {
+    $rechazoMembresiaHuerfana = $e->getCode()==='45000';
+}
+comprobar($rechazoMembresiaHuerfana, 'El endurecimiento detiene membresías asociadas a identidades inexistentes');
+$diagnosticoMembresiaHuerfana = $pdo->query(file_get_contents(__DIR__ . '/../sql/2026-09-14_multi_institucion_05_validar_relaciones.sql'))->fetchAll(PDO::FETCH_KEY_PAIR);
+comprobar((int) ($diagnosticoMembresiaHuerfana['membresias_sin_usuario'] ?? 0) > 0,
+    'El diagnóstico identifica membresías huérfanas');
+$pdo->prepare('DELETE FROM usuarios_instituciones WHERE id_usuario=? AND id_institucion=?')->execute([$idUsuarioInexistente, $idInicial]);
 $idLeccionEndurecer = (int) $pdo->query('SELECT idLeccion FROM lecciones ORDER BY idLeccion LIMIT 1')->fetchColumn();
 $pdo->prepare('INSERT INTO posteos (id_autor,contenidoPosteo,fechaPosteo,id_curso,id_leccion) VALUES (?,?,?,?,NULL)')
     ->execute([$idsUsuarios['B'], 'Preflight sintético', '2026-09-14 10:00:00', $idCursoEndurecer]);
@@ -283,6 +308,21 @@ $pdo->prepare('DELETE FROM cierres_periodo_calificaciones WHERE id_periodo=?')->
 $pdo->prepare('DELETE FROM periodos_seccion_estado WHERE id_periodo=?')->execute([$idPeriodoEndurecer]);
 $pdo->prepare('DELETE FROM periodos_calificacion WHERE idPeriodo=?')->execute([$idPeriodoEndurecer]);
 $pdo->prepare('DELETE FROM ciclos_lectivos WHERE idCicloLectivo=?')->execute([$idCicloEndurecer]);
+// La copia puede heredar incidencias reales ya informadas por el diagnóstico 00.
+// Se retiran sólo del ensayo para probar el DDL; las migraciones no regularizan
+// ni eliminan estos antecedentes en la base de origen.
+$mensajesHuerfanos = $pdo->query('SELECT m.idMensaje FROM mensajes m
+    LEFT JOIN usuarios remitente ON remitente.idUsuario=m.id_remitente
+    LEFT JOIN usuarios destinatario ON destinatario.idUsuario=m.id_destinatario
+    WHERE remitente.idUsuario IS NULL OR destinatario.idUsuario IS NULL')->fetchAll(PDO::FETCH_COLUMN);
+if ($mensajesHuerfanos) {
+    $listaMensajesHuerfanos = implode(',', array_map('intval', $mensajesHuerfanos));
+    $pdo->exec('DELETE FROM mensajes_adjuntos WHERE id_mensaje IN (' . $listaMensajesHuerfanos . ')');
+    $pdo->exec('DELETE FROM mensajes_participantes WHERE id_mensaje IN (' . $listaMensajesHuerfanos . ')');
+    $pdo->exec('DELETE FROM mensajes WHERE idMensaje IN (' . $listaMensajesHuerfanos . ')');
+}
+$pdo->exec('DELETE a FROM asignacioncursos a INNER JOIN cursos c ON c.idCurso=a.id_seccion
+    LEFT JOIN usuarios u ON u.idUsuario=a.id_estudiante WHERE u.idUsuario IS NULL');
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='cursos' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Cursos pasan a exigir institución después del corte');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='mensajes' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Mensajes pasan a exigir institución después del corte');

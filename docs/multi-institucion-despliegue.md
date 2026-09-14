@@ -41,6 +41,8 @@ Comprobar en la base migrada:
   ADMINISTRADOR, DOCENTE y ESTUDIANTE.
 - GESTOR y cualquier código no soportado no recibieron permisos por inferencia.
 - No existen relaciones académicas incoherentes sin informe de regularización.
+- No existen membresías ni referencias institucionales asociadas a identidades
+  que ya no estén presentes en `usuarios`.
 
 Ejecutar además el diagnóstico de membresías relacionadas. Cada incidencia debe
 ser cero antes de continuar:
@@ -55,6 +57,8 @@ de actividades, evaluaciones y posteos, creadores de recursos, entregas,
 calificaciones de tareas y evaluaciones, cierres de período y registros de
 asistencia contra la membresía de la institución del recurso. El endurecimiento
 vuelve a verificar estas relaciones y aborta si aparece alguna durante el corte.
+También informa membresías huérfanas; esta comprobación es necesaria mientras
+`usuarios` conserve el motor legacy y no pueda recibir una clave foránea segura.
 
 Ejecutar la batería sintética antes de cambiar configuración:
 
