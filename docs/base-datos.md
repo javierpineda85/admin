@@ -8,10 +8,11 @@ sin modificar datos. Requiere las tablas académicas actuales.
 roles por membresía y el marcador de privilegio global; traslada los datos
 existentes a MenteMotion sin cambiar IDs ni eliminar columnas.
 
-Esta expansión no activa multi-tenancy. Las columnas nuevas admiten NULL para
-preservar los INSERT del código anterior; las restricciones definitivas y los
-índices únicos institucionales quedan pendientes de la activación del código
-aislado. No aplicar el dump base sobre datos existentes. Detalles y evidencia:
+Esta expansión no activa por sí sola el modo multiinstitución. El código aislado
+se habilita con `INSTITUCIONES_CONTEXTO_ACTIVO=1` sobre una base migrada. Algunas
+columnas nuevas admiten NULL para preservar compatibilidad durante el despliegue;
+las restricciones definitivas se aplicarán después de validar el delta de datos
+legacy. No aplicar el dump base sobre datos existentes. Detalles y evidencia:
 [multi-institucion.md](multi-institucion.md).
 
 ## Archivos principales
@@ -22,7 +23,10 @@ aislado. No aplicar el dump base sobre datos existentes. Detalles y evidencia:
 
 ## Tablas principales
 
-- `usuarios`: credenciales, rol, estado, fechas y ultima conexion.
+- `usuarios`: identidad global, credenciales, rol legacy, `esSuperAdmin`, estado y ultima conexion.
+- `instituciones`: tenant, slug, logo, estado, fechas y configuración reservada.
+- `usuarios_instituciones`: membresías activas o históricas.
+- `roles` y `usuarios_instituciones_roles`: múltiples roles por membresía.
 - `perfiles`: datos personales.
 - `cursos`: aulas principales.
 - `secciones`: materias o clases dentro de un curso.
@@ -82,8 +86,14 @@ ni aplica la expansión automáticamente. Los ensayos usan bases separadas.
 
 La fase 3 agrega una consulta para validar los roles efectivos de cualquier usuario
 en una institución concreta. Exige que usuario, institución y membresía estén
-activos y solo reconoce los códigos académicos habilitados. Las consultas legacy
-que filtran `usuarios.rol` se sustituirán al incorporar el tenant en fase 4.
+  activos y solo reconoce los códigos académicos habilitados. Las lecturas de
+  `usuarios.rol` que permanecen corresponden al modo de compatibilidad con el
+  indicador desactivado; el flujo institucional usa roles de membresía.
+
+Cursos, ciclos lectivos, instrumentos, actividades, mensajes, notificaciones e
+historial incorporan institución explícita cuando la relación no puede deducirse
+sin ambigüedad. Secciones, lecciones, entregas y calificaciones heredan el tenant
+desde el curso y sus relaciones se validan como cadena completa.
 
 En el primer bloque de fase 4, los listados de usuarios y matrículas del curso usan
 roles de membresía. Las referencias redundantes de entregas se comprueban contra

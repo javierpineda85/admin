@@ -1,10 +1,11 @@
 # Multiinstitución: diseño y seguimiento
 
-Estado: fases 1, 2 y 3 implementadas y ensayadas; la fase 4 permite recorrer el
-Campus aislado sobre una base migrada de ensayo. No habilitar una segunda
-institución en producción hasta cerrar sus pendientes y la revisión final.
+Estado: fases 1 a 6 implementadas y ensayadas; la fase 7 mantiene la revisión
+residual, las pruebas y la documentación. El modo multiinstitución puede recorrerse
+sobre una base migrada de ensayo. La activación productiva requiere validar el
+delta legacy y los puntos de despliegue indicados al final.
 
-Fase 4 en curso: [alcance, pruebas y pendientes del aislamiento](multi-institucion-fase4.md).
+Seguimiento del aislamiento: [alcance, pruebas y pendientes operativos](multi-institucion-fase4.md).
 
 ## Arquitectura acordada
 
@@ -66,8 +67,8 @@ petición protegida; las variables de sesión no bastan como prueba de autorizac
 
 Sin membresías se muestra una pantalla sin acceso; con una se selecciona
 automáticamente; con varias se muestran tarjetas con logo, nombre y todos los
-roles. La vista permite cambiar entre membresías válidas; el header queda para fase 6. El cambio
-usa POST con CSRF, renueva el identificador de sesión y elimina la previsualización
+roles. La vista y el selector del header permiten cambiar entre membresías válidas.
+El cambio usa POST con CSRF, renueva el identificador de sesión y elimina la previsualización
 de estudiante, IDs contextuales y estados de navegación de la institución anterior.
 Formularios abiertos en otra pestaña deben rechazarse si su contexto quedó obsoleto.
 
@@ -77,7 +78,7 @@ permisos académicos de todas las instituciones. Su acceso global no habilita un
 bypass genérico en consultas académicas. La cuenta que lo recibirá debe elegirse
 explícitamente; no se hereda de ADMINISTRADOR ni de la lista legacy de WordPress.
 
-## Aislamiento a implementar
+## Aislamiento implementado
 
 Los modelos deben exigir contexto antes de leer o escribir datos institucionales.
 Los listados y agregados llevan predicados SQL; las operaciones por ID comprueban
@@ -118,11 +119,11 @@ un BEGIN alrededor de ALTER TABLE no promete rollback integral. La institución
 obligatoria se exige en una fase posterior compatible con los INSERT nuevos;
 imponerla en la expansión rompería los INSERT del Campus actual.
 
-## Matriz mínima de pruebas pendientes
+## Matriz mínima verificada
 
 En base de prueba: MenteMotion, Instituto Demo, A (DOCENTE/ESTUDIANTE), B
 (ADMINISTRADOR de Demo), C (ESTUDIANTE solo en MenteMotion), SuperAdmin separado.
-Comprobar alternancia, múltiples roles simultáneos, aislamiento de listados,
+La batería comprueba alternancia, múltiples roles simultáneos, aislamiento de listados,
 denegación por IDs de otra institución en lectura/edición/baja/borrado, inscripciones,
 materias, notas, entregas, asistencia, mensajes, adjuntos, suspensión/revocación en
 sesión abierta y protección de credenciales globales. Probar también repetición de
@@ -132,9 +133,8 @@ migración, falta de membresía, WP/HYBRID, recuperación y enlaces públicos.
 
 El inventario adjunto `multi-institucion-inventario.md` enumera lecturas/escrituras
 SQL y referencias a rol del código propio en el punto de partida. Es un inventario
-estático, no una afirmación de que todos los accesos sean explotables ni una
-certificación de aislamiento. Los puntos anteriores siguen pendientes hasta que
-cada fase indique evidencia de verificación.
+  estático del punto de partida. La verificación actual se apoya en predicados de
+  `ModeloTenant`, controles de ruta, pruebas de modelo y peticiones HTTP reales.
 
 ## Archivos afectados por las fases siguientes
 
@@ -186,11 +186,10 @@ rechazarse por defecto y aparecer en un informe de regularización; no deben
 adoptar un tenant enviado por el cliente. Recuperar sus relaciones originales
 exige revisar los antecedentes de esos datos.
 
-Pendiente: finalización del esquema (NOT NULL, unicidad institucional, identidad
-global única y claves foráneas compatibles), cierre residual de fase 4, fases 5–7,
-WordPress de producción, panel SuperAdmin y revisión de archivos históricos. El
-ensayo del esquema **no prueba** esas funcionalidades. No se asignó SuperAdmin a
-una cuenta real.
+Pendiente para producción: finalización del esquema (NOT NULL, identidad global
+única y claves foráneas compatibles), validación del delta creado por el modo
+legacy, WordPress real, correo real y revisión de enlaces embebidos en contenido
+histórico. No se asignó SuperAdmin a una cuenta real.
 
 La documentación histórica de WordPress describe una sincronización de rol y
 estado más amplia que el código actual: el modelo conserva roles locales válidos
@@ -227,8 +226,8 @@ Las respuestas llevan `no-store` y no exponen errores SQL.
 Una selección válida abre el Campus. Antes del renderizado se revalida la
 membresía y `RutasController` rechaza IDs ajenos de los recursos principales.
 Los modelos y el controlador de descargas mantienen la frontera en lecturas y
-escrituras. No activar este ensayo en producción hasta cerrar la fase 4. El
-selector del header queda para fase 6.
+escrituras. El selector del header muestra nombre/logo y sólo aparece como selector
+cuando la identidad tiene más de una membresía activa.
 
 LOCAL, WORDPRESS e HYBRID comparten la salida de autenticación. En el ensayo,
 WordPress sincroniza identidad por ID/email sin modificar roles, membresías ni
@@ -274,11 +273,43 @@ adjunto de una materia y la previsualización de estudiantes dejaron de leer
 
 Con el indicador desactivado, los métodos conservan el único rol legacy. Con el
 contexto activo, `usuarios.rol` se elimina de la sesión y no participa en permisos.
-Los formularios globales de usuarios aún contienen el campo legacy y las consultas
-académicas que clasifican personas todavía filtran `u.rol`; están bloqueadas por
-fase 2 y se reemplazarán junto con sus filtros de tenant en fase 4.
+Los formularios conservan el campo legacy cuando el indicador está desactivado.
+Con contexto activo, los listados y asignaciones clasifican personas mediante los
+roles de la membresía y no autorizan a partir de `usuarios.rol`.
 
-El ensayo `campus_mt_fase2_20260913_194859_160508` completó 82 comprobaciones:
-roles múltiples, prioridad estable, unión de permisos, ausencia de herencia legacy
-y asignaciones aceptadas o rechazadas según institución. Las aulas siguen
-bloqueadas: esta fase verifica la decisión de permisos, no la seguridad SQL.
+El ensayo inicial de fase 3 completó 82 comprobaciones de roles múltiples,
+prioridad estable, unión de permisos, ausencia de herencia legacy y asignaciones
+aceptadas o rechazadas según institución. La batería actual extiende esos casos
+a recursos y peticiones HTTP.
+
+## Fases 4 a 6: aislamiento, SuperAdmin y header (2026-09-14)
+
+`ModeloTenant` aplica el contexto a cursos, secciones, lecciones, entregas,
+calificaciones, asistencia, actividades, mensajes, notificaciones, usuarios,
+paneles y archivos. `RutasController` revalida IDs visibles y ocultos en POST antes
+de ejecutar los controladores. Las descargas privadas usan rutas canónicas y
+comprobación del recurso; los directorios privados bloquean acceso HTTP directo.
+
+La ruta `superadmin` usa controlador, vista, header y aside propios. Sus modelos
+vuelven a consultar que la identidad esté activa y tenga `esSuperAdmin=1`. Permite
+crear/editar/activar/suspender instituciones, contar usuarios y asignar el rol
+ADMINISTRADOR a una cuenta global existente. Un administrador institucional recibe
+403 y SuperAdmin no obtiene acceso académico sin membresía.
+
+El header académico muestra la institución activa y su logo válido. Con más de una
+membresía muestra un selector que envía POST con CSRF y versión de contexto. Al
+cambiar se rotan sesión, roles, permisos, indicadores y datos del tenant.
+
+### Verificación actual
+
+- `php tests/multi_institucion_migracion.php`: preservación e idempotencia de migración.
+- `php tests/multi_institucion_contexto.php`: LOCAL, WORDPRESS, HYBRID, sesiones y selección.
+- `php tests/multi_institucion_recursos.php`: aislamiento de recursos y endpoints HTTP.
+- `php tests/multi_institucion_superadmin.php`: frontera global, CRUD, asignación y CSRF.
+- `CAMPUS_TEST_BASE=<base_sintetica> php tests/multi_institucion_legacy.php`: 26 casos de compatibilidad.
+
+La revisión residual encontró lecturas de `usuarios.rol` únicamente en ramas de
+compatibilidad con el contexto desactivado, sincronización de identidad WordPress
+y campos de presentación cuyo valor institucional ya proviene de una consulta de
+membresía. Las conexiones PDO que permanecen en controladores coordinan
+transacciones o recuperan `lastInsertId`; no ejecutan listados académicos directos.

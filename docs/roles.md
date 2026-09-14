@@ -15,16 +15,23 @@ principal compatible: ADMINISTRADOR, DOCENTE y ESTUDIANTE, en ese orden.
 `tieneRol()` se usa para una capacidad concreta. La previsualización limita
 temporalmente los permisos a ESTUDIANTE y el cambio de institución la elimina.
 
-## Administrador
+## Administrador institucional
 
-Puede administrar todo el sistema:
+Administra únicamente la institución seleccionada:
 
 - Crear, editar, inactivar y reactivar usuarios.
 - Crear y editar cursos.
 - Crear y editar materias.
 - Ver todas las calificaciones.
 - Gestionar mensajes, adjuntos y papelera.
-- Acceder a paneles de seguimiento global.
+- Acceder a los indicadores de su institución.
+
+## SuperAdmin MenteMotion
+
+`usuarios.esSuperAdmin=1` habilita la ruta global `superadmin`. Puede crear,
+editar, activar y suspender instituciones, consultar sus recuentos y asignar el
+rol ADMINISTRADOR a una cuenta global existente. No hereda acceso académico:
+para entrar a cursos necesita además una membresía institucional activa.
 
 ## Docente
 
@@ -70,4 +77,5 @@ los roles de la membresía validada mediante `ControladorInstitucion::roles()`.
 `ControladorPermisos` autoriza las rutas con ese conjunto y el Campus queda
 disponible sobre una base migrada de ensayo. El funcionamiento legacy descrito
 arriba corresponde al indicador desactivado. SuperAdmin no recibe membresías ni
-bypass académicos.
+bypass académicos. El panel global vuelve a comprobar `esSuperAdmin` en el modelo
+antes de cada lectura o escritura.

@@ -1,8 +1,9 @@
-# Fase 4: aislamiento de recursos, en curso
+# Fase 4: aislamiento de recursos
 
 El primer bloque quedó registrado en `6e9a6dd5302ac3a7b1aebab5a6fa1393d079015e`.
-El flujo institucional sigue en ensayo. Una membresía válida ya abre el Campus,
-pero no debe habilitarse en producción: la fase 4 todavía no está completa.
+El flujo institucional permanece bajo indicador de activación. El aislamiento de
+los dominios actuales quedó implementado y cubierto por pruebas; los puntos finales
+son condiciones de despliegue y mantenimiento.
 
 ## Cambios incorporados
 
@@ -132,7 +133,7 @@ cursos y materias de dos instituciones: filtrado de listados, lectura y borrado
 por IDs ajenos, usuarios exclusivamente de otra institución, asignaciones,
 lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 
-Los casos de modelos no equivalen a una certificación de todos los endpoints.
+Los casos de modelo se complementan con peticiones HTTP a los endpoints existentes.
 El bloqueo HTTP preventivo fue retirado en bases migradas de ensayo; `classroom`
 no se modifica.
 
@@ -151,7 +152,7 @@ referencias restantes y físicamente ubicadas dentro de `uploads/lecciones`.
 Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
 directamente a archivos de ambas carpetas protegidas.
 
-Última verificación: `campus_mt_fase2_20260914_153912_c9d6ad`, 318 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_160449_3fa968`, 322 comprobaciones
 correctas. Incluye apertura del panel, listados institucionales, lectura de un curso
 propio y respuestas 403 ante lectura o escritura cruzada de cursos, materias,
 asistencia, calificaciones, actividades, mensajes y usuarios. Por HTTP también
@@ -162,6 +163,8 @@ mensajes; y rechazan IDs relacionados de MenteMotion ocultos en formularios prop
 También registran una actividad pública sin sesión y evitan forzar una privada.
 Los casos ocultos dentro de una URL válida comprueban cursos, usuarios, lecciones,
 recursos, clases, evaluaciones, catálogos y referencias de mensajería de otro tenant.
+También alternan Instituto Demo y MenteMotion desde el selector del header y
+verifican que cambien los cursos y el contexto sin cerrar sesión.
 
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
@@ -177,7 +180,7 @@ limpiar. Si una fila no puede retirarse, conserva las copias físicas para no ro
 referencias parciales. La prueba provoca una falla SQL intermedia real y comprueba
 que los conteos de ocho tablas y los archivos regresen al estado anterior.
 
-## Trabajo pendiente antes de finalizar y habilitar
+## Controles pendientes antes de habilitar en producción
 
 - Mantener la revisión HTTP al incorporar nuevas rutas o nombres de parámetros. El
   inventario actual no contiene endpoints AJAX propios separados de los controladores MVC.
@@ -194,6 +197,5 @@ que los conteos de ocho tablas y los archivos regresen al estado anterior.
   entregas y recursos ya participan del borrado protegido.
 - Trasladar preparaciones DDL a migraciones, finalizar restricciones y validar el
   delta de filas creado por el modo habitual después de la expansión.
-- Revisar las escrituras restantes de los demás dominios y sus dependencias;
-  el refuerzo del bloque de cursos/materias/lecciones no certifica el resto del sistema.
-- Revisión HTTP residual antes de autorizar el indicador en producción.
+- Repetir la batería HTTP contra la configuración real de producción antes de
+  autorizar el indicador y cada vez que se agregue un nuevo dominio o endpoint.

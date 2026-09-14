@@ -1,17 +1,16 @@
 # Flujos de uso
 
-La selección de institución y el panel global SuperAdmin están diseñados, pero aún
-no forman parte de estos flujos operativos. La expansión de esquema no cambia el
-login existente. Consultar [multi-institucion.md](multi-institucion.md) para el flujo
-objetivo y el estado de implementación.
+Con el contexto institucional activo, la selección de institución y el panel
+global SuperAdmin forman parte del flujo operativo. Consultar
+[multi-institucion.md](multi-institucion.md) para despliegue y pruebas.
 
-## Flujo del administrador
+## Flujo del administrador institucional
 
 1. Inicia sesion.
 2. Crea o edita usuarios.
 3. Crea cursos y materias.
 4. Inscribe estudiantes a cursos.
-5. Revisa el panel global.
+5. Revisa el panel de su institución.
 6. Gestiona mensajes, notificaciones y auditoria de usuarios.
 
 ## Flujo del docente
@@ -67,10 +66,20 @@ global. Sin membresías aparece la pantalla sin acceso; una se selecciona sola;
 varias muestran tarjetas. El cambio usa POST con CSRF y versión de contexto,
 revalida la membresía y renueva la sesión. Con un contexto válido se ingresa al
 Campus; las rutas con identificadores institucionales se verifican antes de
-renderizar. El selector del header queda para fase 6. Por defecto el indicador
-vale 0 y conserva los flujos habituales descritos arriba.
+  renderizar. El header muestra la institución activa y, con varias membresías,
+  permite cambiarla mediante POST protegido. Por defecto el indicador vale 0 y
+  conserva los flujos habituales descritos arriba.
 
 La autorización de fase 3 usa todos los roles de la membresía. Una persona puede
 ser, por ejemplo, ADMINISTRADOR y DOCENTE en la misma institución. Responsables,
 docentes adjuntos y estudiantes de previsualización deben tener membresía y rol
 activos dentro de la institución seleccionada.
+
+## Flujo del SuperAdmin
+
+1. Autentica su identidad global con LOCAL, WORDPRESS o HYBRID.
+2. Si no hay un tenant seleccionado, ingresa al panel global MenteMotion.
+3. Crea o edita instituciones, las suspende o reactiva y consulta sus recuentos.
+4. Asigna ADMINISTRADOR a una cuenta global existente mediante su email.
+5. Para operar recursos académicos debe entrar a una institución donde tenga una
+   membresía activa; `esSuperAdmin` no reemplaza esa membresía.

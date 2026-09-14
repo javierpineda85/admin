@@ -62,9 +62,10 @@ Sistema web tipo classroom para administradores, docentes y estudiantes.
 ## Evolución multiinstitución
 
 El diseño y seguimiento están en [docs/multi-institucion.md](docs/multi-institucion.md).
-La expansión inicial de esquema y el aislamiento académico están disponibles para
-ensayo sobre una base migrada. No habilitar una segunda institución en producción
-hasta cerrar los pendientes de la fase 4. El ensayo
+La expansión de esquema, el aislamiento académico, el panel SuperAdmin y el
+selector del header están disponibles para ensayo sobre una base migrada. Antes
+de producción deben validarse el delta de datos legacy y los pendientes de
+despliegue documentados. El ensayo
 `php tests/multi_institucion_migracion.php` crea una base nueva, conserva la original
 y verifica preservación de datos y reejecución.
 
@@ -78,7 +79,7 @@ ni conexión con WordPress de producción.
 La fase 3 conecta los roles de membresía con `ControladorPermisos`, admite roles
 simultáneos y valida institucionalmente las personas asignables.
 
-La fase 4 está en curso. `php tests/multi_institucion_recursos.php` ensaya aislamiento
+La fase 4 se verifica con `php tests/multi_institucion_recursos.php`, que ensaya aislamiento
 de recursos y peticiones HTTP reales sobre datos sintéticos. Los accesos directos a
 cursos, materias, actividades, mensajes, perfiles y membresías pasan por una
 validación central. La batería incluye asistencia, calificaciones, mensajes y
@@ -90,5 +91,7 @@ y elimina archivos físicos sólo después de confirmar el borrado institucional
 rutas compartidas se conservan y ninguna limpieza sale de `uploads/lecciones`.
 La duplicación de cursos compensa filas y archivos parciales si una copia falla sobre
 las tablas históricas MyISAM.
-El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y los
-dominios pendientes antes de habilitar el Campus multiinstitución.
+`php tests/multi_institucion_superadmin.php` verifica el panel global, su CSRF,
+la separación del administrador institucional y la gestión de instituciones.
+El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y
+los controles que deben mantenerse al agregar nuevas rutas.

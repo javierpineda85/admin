@@ -1,10 +1,12 @@
 # Arquitectura
 
-## Evolución multiinstitución en preparación
+## Evolución multiinstitución
 
 El diseño y el estado de las fases están en [multi-institucion.md](multi-institucion.md).
-La fase inicial agrega esquema compatible. Las fases 2 y 3 incorporan autenticación,
-contexto y roles institucionales en ensayo; el aislamiento académico no está implementado.
+Las fases 1 a 6 agregan esquema compatible, autenticación, contexto, roles por
+membresía, aislamiento académico, panel SuperAdmin y selector institucional.
+La activación continúa controlada por `INSTITUCIONES_CONTEXTO_ACTIVO` y requiere
+una base migrada.
 El relevamiento de roles, SQL y entradas de controladores está en
 [multi-institucion-inventario.md](multi-institucion-inventario.md).
 
@@ -71,7 +73,9 @@ contexto, autoriza por su unión y conserva un rol principal estable para las vi
 legacy. Las personas asignables se validan contra membresía y rol activos mediante
 `ModeloInstituciones`.
 
-La fase 4 en curso agrega `ModeloTenant` para construir predicados SQL comunes y
+La fase 4 agrega `ModeloTenant` para construir predicados SQL comunes y
 validar cadenas de pertenencia. `RutasController` rechaza antes de renderizar IDs
 ajenos de cursos, materias, actividades, mensajes y perfiles. Las vistas usan los
-modelos con contexto. Alcance y límites en [multi-institucion-fase4.md](multi-institucion-fase4.md).
+modelos con contexto. `ControladorSuperAdmin` opera en una ruta y layout separados;
+no concede un bypass académico. Alcance y límites en
+[multi-institucion-fase4.md](multi-institucion-fase4.md).
