@@ -6,6 +6,8 @@ sobre una base migrada de ensayo. La activación productiva requiere validar el
 delta legacy y los puntos de despliegue indicados al final.
 
 Seguimiento del aislamiento: [alcance, pruebas y pendientes operativos](multi-institucion-fase4.md).
+El paso a una instalación existente está detallado en
+[la guía de despliegue](multi-institucion-despliegue.md).
 
 ## Arquitectura acordada
 

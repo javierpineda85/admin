@@ -53,6 +53,7 @@ Sistema web tipo classroom para administradores, docentes y estudiantes.
 - [Modulos](docs/modulos.md)
 - [Base de datos](docs/base-datos.md)
 - [Flujos de uso](docs/flujos.md)
+- [Despliegue multiinstitución](docs/multi-institucion-despliegue.md)
 - [Cambios Junio 2026](docs/cambios-2026-06.md)
 - [Integracion WordPress](docs/integracion-wordpress.md)
 - [Cierre de integracion WordPress](docs/integracion-wordpress-cierre.md)
