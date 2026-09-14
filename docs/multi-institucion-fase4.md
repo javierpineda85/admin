@@ -39,6 +39,9 @@ pero no debe habilitarse en producción: la fase 4 todavía no está completa.
   El origen debe pertenecer al contexto. Un preflight valida docentes y rutas
   canónicas, y rechaza archivos ausentes, fuera de la carpeta autorizada o
   referenciados también desde recursos/entregas ajenos o sin relación válida.
+  Si una falla aparece después del preflight, una compensación elimina en orden
+  opciones, preguntas, actividades, recursos, archivos legacy, lecciones,
+  materias, curso y copias físicas creadas durante ese intento.
 - Las entregas incoherentes se excluyen de lecturas y agregados. Entregas,
   posteos y calificaciones también exigen una membresía actual o histórica de la
   persona en el tenant: una baja conserva antecedentes, mientras una identidad
@@ -148,7 +151,7 @@ referencias restantes y físicamente ubicadas dentro de `uploads/lecciones`.
 Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
 directamente a archivos de ambas carpetas protegidas.
 
-Última verificación: `campus_mt_fase2_20260914_153640_871b0e`, 316 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_153912_c9d6ad`, 318 comprobaciones
 correctas. Incluye apertura del panel, listados institucionales, lectura de un curso
 propio y respuestas 403 ante lectura o escritura cruzada de cursos, materias,
 asistencia, calificaciones, actividades, mensajes y usuarios. Por HTTP también
@@ -168,10 +171,11 @@ comprobaciones de listados, lecturas y escritura, incluidas materias, clases de
 asistencia, actividades, usuarios, relaciones académicas, contadores de mensajes
 y una descarga autorizada. No usa la base original.
 
-La duplicación no promete rollback integral ante fallas de almacenamiento:
-las tablas históricas MyISAM no lo permiten. Un error posterior al preflight puede
-dejar filas nuevas parciales; el origen se conserva. Debe resolverse la estrategia
-de transacciones/recuperación antes de habilitar el flujo en producción.
+Las tablas históricas MyISAM no ofrecen rollback transaccional. La duplicación usa
+una recuperación compensatoria y registra en el log cualquier paso que no pudiera
+limpiar. Si una fila no puede retirarse, conserva las copias físicas para no romper
+referencias parciales. La prueba provoca una falla SQL intermedia real y comprueba
+que los conteos de ocho tablas y los archivos regresen al estado anterior.
 
 ## Trabajo pendiente antes de finalizar y habilitar
 
@@ -181,7 +185,8 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
   Entregas, posteos y calificaciones ya aplican relaciones académicas y membresías
   históricas mediante los predicados centrales, y el borrado se bloquea antes de
   modificar filas o archivos si encuentra inconsistencias.
-- Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
+- Mantener monitoreada la recuperación compensatoria de duplicaciones mientras las
+  tablas históricas continúen en MyISAM; los fallos de limpieza quedan en el log.
 - Revisar las acciones administrativas restantes que no transportan recursos académicos
   y conservar la frontera central al agregar nuevos formularios.
 - Revisar enlaces de archivos que pudieran estar embebidos dentro de contenido

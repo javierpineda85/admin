@@ -410,6 +410,23 @@ try {
     verificar((bool)preg_match('~^uploads/lecciones/copia_[a-zA-Z0-9_]+\.txt$~D',$rutaCopia), 'Duplicación crea un archivo independiente dentro del directorio permitido');
     $copiasFisicas[]=dirname(__DIR__) . '/' . $rutaCopia;
     verificar(hash_file('sha256',$archivoAbsoluto)===hash_file('sha256',$copiasFisicas[0]), 'Duplicación preserva contenido del archivo');
+    $tablasDuplicacion=['cursos','secciones','lecciones','recursoslecciones','archivoslecciones','actividades','actividades_preguntas','actividades_opciones'];
+    $conteosAntesFalla=[];
+    foreach($tablasDuplicacion as $tablaDuplicacion){$conteosAntesFalla[$tablaDuplicacion]=(int)$pdo->query("SELECT COUNT(*) FROM `$tablaDuplicacion`")->fetchColumn();}
+    $archivosAntesFalla=glob(dirname(__DIR__).'/uploads/lecciones/copia_*')?:[]; sort($archivosAntesFalla);
+    $pdo->exec("CREATE TRIGGER prueba_falla_duplicacion BEFORE INSERT ON actividades_preguntas FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Falla sintética de duplicación'");
+    try {
+        $copiaFallida=ModeloCursos::mdlDuplicarCurso($cursoDemo,['idUsuario'=>$ids['B'],'nombreCurso'=>'Copia fallida','fechaInicioCurso'=>'2026-01-01','fechaFinCurso'=>'2026-12-31']);
+    } finally {
+        $pdo->exec('DROP TRIGGER IF EXISTS prueba_falla_duplicacion');
+    }
+    $conteosDespuesFalla=[];
+    foreach($tablasDuplicacion as $tablaDuplicacion){$conteosDespuesFalla[$tablaDuplicacion]=(int)$pdo->query("SELECT COUNT(*) FROM `$tablaDuplicacion`")->fetchColumn();}
+    $archivosDespuesFalla=glob(dirname(__DIR__).'/uploads/lecciones/copia_*')?:[]; sort($archivosDespuesFalla);
+    verificar($copiaFallida===0&&$conteosDespuesFalla===$conteosAntesFalla,
+        'Falla intermedia compensa todas las filas parciales de la duplicación MyISAM');
+    verificar($archivosDespuesFalla===$archivosAntesFalla,
+        'Falla intermedia retira únicamente los archivos creados por la duplicación incompleta');
     // Una atribución huérfana al mismo archivo impide copiarlo.
     $pdo->prepare('INSERT INTO recursoslecciones(id_leccion,tipoRecurso,tituloRecurso,urlRecurso,creadoPor) VALUES (0,?,?,?,?)')
         ->execute(['ARCHIVO',$marca,$rutaArchivo,$ids['A']]);

@@ -17,7 +17,7 @@ class ModeloCursos
         $pdo->exec('UPDATE asignacioncursos SET fechaAlta=COALESCE(fechaAlta,NOW()) WHERE fechaAlta IS NULL');
         self::$estructuraAcademicaPreparada=true;
     }
-    private static function duplicarArchivoLocal($ruta)
+    private static function duplicarArchivoLocal($ruta, array &$archivosCreados)
     {
         $ruta = trim((string) $ruta);
         if ($ruta === '' || preg_match('~^https?://~i', $ruta)) {
@@ -33,9 +33,46 @@ class ModeloCursos
         $extension = pathinfo($origen, PATHINFO_EXTENSION);
         $nombre = 'copia_' . date('YmdHis') . '_' . bin2hex(random_bytes(5)) . ($extension !== '' ? '.' . $extension : '');
         $destino = $directorioPermitido . DIRECTORY_SEPARATOR . $nombre;
-        if (copy($origen, $destino)) { return 'uploads/lecciones/' . $nombre; }
+        if (copy($origen, $destino)) {
+            $archivosCreados[] = $destino;
+            return 'uploads/lecciones/' . $nombre;
+        }
         if (ModeloTenant::activo()) { throw new RuntimeException('No se pudo copiar el archivo institucional.'); }
         return $ruta;
+    }
+
+    /** Compensa inserciones parciales en instalaciones cuyas tablas académicas aún son MyISAM. */
+    private static function limpiarDuplicacionFallida(PDO $pdo, $idCurso, array $archivosCreados)
+    {
+        $idCurso = (int) $idCurso;
+        $filasCompensadas = true;
+        if ($idCurso > 0) {
+            $consultas = [
+                'DELETE o FROM actividades_opciones o INNER JOIN actividades_preguntas p ON p.idPregunta=o.id_pregunta INNER JOIN actividades a ON a.idActividad=p.id_actividad WHERE a.id_curso=?',
+                'DELETE p FROM actividades_preguntas p INNER JOIN actividades a ON a.idActividad=p.id_actividad WHERE a.id_curso=?',
+                'DELETE FROM actividades WHERE id_curso=?',
+                'DELETE r FROM recursoslecciones r INNER JOIN lecciones l ON l.idLeccion=r.id_leccion INNER JOIN secciones s ON s.idSeccion=l.id_modulo WHERE s.id_curso=?',
+                'DELETE a FROM archivoslecciones a INNER JOIN lecciones l ON l.idLeccion=a.id_leccion INNER JOIN secciones s ON s.idSeccion=l.id_modulo WHERE s.id_curso=?',
+                'DELETE l FROM lecciones l INNER JOIN secciones s ON s.idSeccion=l.id_modulo WHERE s.id_curso=?',
+                'DELETE FROM secciones WHERE id_curso=?',
+                'DELETE FROM cursos WHERE idCurso=?',
+            ];
+            foreach ($consultas as $sql) {
+                try {
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([$idCurso]);
+                } catch (Throwable $e) {
+                    $filasCompensadas = false;
+                    error_log('No se pudo compensar una fila de la duplicación fallida: ' . $e->getMessage());
+                }
+            }
+        }
+        if (!$filasCompensadas) { return; }
+        foreach (array_unique($archivosCreados) as $archivo) {
+            if (is_file($archivo) && !@unlink($archivo)) {
+                error_log('No se pudo retirar un archivo de la duplicación fallida: ' . $archivo);
+            }
+        }
     }
 
     static public function mdlDuplicarCurso($idCursoOrigen, array $datos)
@@ -45,6 +82,8 @@ class ModeloCursos
         if ($institucion) { self::validarDuplicacionInstitucional($idCursoOrigen, $datos['idUsuario']); }
         self::prepararEstructuraAcademica();
         $pdo = Conexion::conectar();
+        $idCursoNuevo = 0;
+        $archivosCreados = [];
 
         try {
             $cursoStmt = $pdo->prepare('SELECT * FROM cursos WHERE idCurso = :idCurso AND ' . ModeloTenant::cursos('cursos') . ' LIMIT 1');
@@ -112,7 +151,7 @@ class ModeloCursos
                         $insertRecurso->execute([
                             ':leccion' => $idLeccionNueva, ':tipo' => $recurso['tipoRecurso'],
                             ':titulo' => $recurso['tituloRecurso'],
-                            ':url' => self::duplicarArchivoLocal($recurso['urlRecurso']),
+                            ':url' => self::duplicarArchivoLocal($recurso['urlRecurso'], $archivosCreados),
                             ':creador' => (int) $datos['idUsuario'],
                         ]);
                     }
@@ -121,7 +160,7 @@ class ModeloCursos
                         $archivos->execute([(int)$leccion['idLeccion']]);
                         foreach ($archivos->fetchAll(PDO::FETCH_ASSOC) as $archivo) {
                             $pdo->prepare('INSERT INTO archivoslecciones(id_leccion,tipoArchivo,urlArchivo) SELECT ?,?,? WHERE ' . ModeloTenant::leccionId($idLeccionNueva))
-                                ->execute([$idLeccionNueva,$archivo['tipoArchivo'],self::duplicarArchivoLocal($archivo['urlArchivo'])]);
+                                ->execute([$idLeccionNueva,$archivo['tipoArchivo'],self::duplicarArchivoLocal($archivo['urlArchivo'], $archivosCreados)]);
                         }
                     }
                 }
@@ -178,6 +217,7 @@ class ModeloCursos
 
             return $idCursoNuevo;
         } catch (Throwable $e) {
+            self::limpiarDuplicacionFallida($pdo, $idCursoNuevo, $archivosCreados);
             error_log('Error al duplicar curso: ' . $e->getMessage());
             return 0;
         }

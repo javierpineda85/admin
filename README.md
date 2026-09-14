@@ -88,5 +88,7 @@ formularios MVC revalidan centralmente sus recursos antes de ejecutar controlado
 El borrado de lecciones valida sus dependencias, incluye archivos legacy y adjuntos,
 y elimina archivos físicos sólo después de confirmar el borrado institucional. Las
 rutas compartidas se conservan y ninguna limpieza sale de `uploads/lecciones`.
+La duplicación de cursos compensa filas y archivos parciales si una copia falla sobre
+las tablas históricas MyISAM.
 El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y los
 dominios pendientes antes de habilitar el Campus multiinstitución.
