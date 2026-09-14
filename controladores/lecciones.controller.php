@@ -324,20 +324,13 @@ class ControladorLecciones
             return 'denied';
         }
 
-        $recursos = self::crtBuscarRecursosPorLeccion($idLeccion);
-        $entregas = ModeloLecciones::mdlBuscarEntregasPorLeccion($idLeccion);
-
-        foreach ($recursos as $recurso) {
-            self::eliminarArchivoLocal((string) $recurso['urlRecurso']);
-        }
-
-        foreach ($entregas as $entrega) {
-            self::eliminarArchivoLocal((string) $entrega['urlArchivo']);
-        }
-
+        $rutasArchivos = ModeloLecciones::mdlRutasArchivosLeccionParaEliminar($idLeccion);
         $respuesta = ModeloLecciones::mdlEliminarLeccion($idLeccion);
 
         if ($respuesta === 'ok') {
+            foreach ($rutasArchivos as $rutaArchivo) {
+                self::eliminarArchivoLocal($rutaArchivo);
+            }
             $_SESSION['success_message'] = 'Leccion eliminada correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudo eliminar la leccion.';

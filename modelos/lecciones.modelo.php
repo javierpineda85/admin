@@ -533,6 +533,7 @@ class ModeloLecciones
         $pdo = Conexion::conectar();
         self::prepararTablaAdjuntosEntregas();
         $pdo->prepare('DELETE FROM recursoslecciones WHERE id_leccion = :idLeccion AND ' . ModeloTenant::hijoLeccion('recursoslecciones'))->execute([':idLeccion' => (int) $idLeccion]);
+        $pdo->prepare('DELETE FROM archivoslecciones WHERE id_leccion = :idLeccion AND ' . ModeloTenant::hijoLeccion('archivoslecciones'))->execute([':idLeccion' => (int) $idLeccion]);
         $pdo->prepare('DELETE FROM posteos WHERE id_leccion = :idLeccion AND ' . ModeloTenant::posteos('posteos'))->execute([':idLeccion' => (int) $idLeccion]);
         try {
             $pdo->prepare(
@@ -549,7 +550,62 @@ class ModeloLecciones
 
         $stmt = $pdo->prepare('DELETE FROM lecciones WHERE idLeccion = :idLeccion AND ' . ModeloTenant::lecciones('lecciones'));
         $stmt->bindValue(':idLeccion', (int) $idLeccion, PDO::PARAM_INT);
-        return $stmt->execute() ? 'ok' : 'error';
+        return $stmt->execute() && $stmt->rowCount() === 1 ? 'ok' : 'error';
+    }
+
+    /**
+     * Reúne únicamente archivos locales que dejarán de estar referenciados al borrar la lección.
+     * La decisión se toma antes del DELETE, pero el controlador elimina los archivos recién después
+     * de que la fila principal fue eliminada correctamente.
+     */
+    public static function mdlRutasArchivosLeccionParaEliminar($idLeccion)
+    {
+        ModeloTenant::exigirLeccion($idLeccion);
+        $pdo = Conexion::conectar();
+        self::prepararTablaAdjuntosEntregas();
+        $idLeccion = (int) $idLeccion;
+        $rutas = [];
+        $consultas = [
+            ['SELECT r.urlRecurso FROM recursoslecciones r WHERE r.id_leccion=? AND ' . ModeloTenant::hijoLeccion('r'), false],
+            ['SELECT a.urlArchivo FROM archivoslecciones a WHERE a.id_leccion=? AND ' . ModeloTenant::hijoLeccion('a'), false],
+            ['SELECT e.urlArchivo FROM entregaslecciones e WHERE e.id_leccion=? AND ' . ModeloTenant::entregas('e'), false],
+            ['SELECT a.rutaArchivo FROM entregaslecciones_adjuntos a INNER JOIN entregaslecciones e ON e.idEntregaLeccion=a.id_entrega WHERE e.id_leccion=? AND ' . ModeloTenant::entregas('e'), true],
+        ];
+        foreach ($consultas as [$sql, $opcional]) {
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$idLeccion]);
+                foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $ruta) {
+                    $ruta = trim((string) $ruta);
+                    if ($ruta !== '' && !preg_match('~^https?://~i', $ruta)) {
+                        $rutas[$ruta] = true;
+                    }
+                }
+            } catch (Exception $e) {
+                if (!$opcional) { throw $e; }
+            }
+        }
+
+        $exclusivas = [];
+        foreach (array_keys($rutas) as $ruta) {
+            $referenciada = false;
+            foreach ([
+                ['SELECT 1 FROM recursoslecciones WHERE urlRecurso=? AND id_leccion<>? LIMIT 1', false],
+                ['SELECT 1 FROM archivoslecciones WHERE urlArchivo=? AND id_leccion<>? LIMIT 1', false],
+                ['SELECT 1 FROM entregaslecciones WHERE urlArchivo=? AND id_leccion<>? LIMIT 1', false],
+                ['SELECT 1 FROM entregaslecciones_adjuntos a LEFT JOIN entregaslecciones e ON e.idEntregaLeccion=a.id_entrega WHERE a.rutaArchivo=? AND (e.id_leccion IS NULL OR e.id_leccion<>?) LIMIT 1', true],
+            ] as [$sql, $opcional]) {
+                try {
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([$ruta, $idLeccion]);
+                    if ($stmt->fetchColumn()) { $referenciada = true; break; }
+                } catch (Exception $e) {
+                    if (!$opcional) { throw $e; }
+                }
+            }
+            if (!$referenciada) { $exclusivas[] = $ruta; }
+        }
+        return $exclusivas;
     }
 
     public static function mdlGuardarRecursoLeccion($tabla, $datos)

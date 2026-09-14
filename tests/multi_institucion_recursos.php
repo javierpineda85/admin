@@ -466,6 +466,68 @@ denegado(function() use($materiaDemo) { ControladorAsistencias::crtPuedeGestiona
 denegado(function() use($materiaDemo) { ControladorCalificaciones::crtCalificacionesPorSeccion($materiaDemo); }, 'Controlador no revela calificaciones de otra institución');
 $_POST=['accion_curso'=>'duplicar_curso','idCurso'=>$cursoDemo];
 denegado(function() { ControladorCursos::crtDuplicarCurso(); }, 'POST de duplicación manipulado rechazado por controlador');
+
+sesionPara($ids['B']);
+$carpetaArchivosLeccion=__DIR__.'/../uploads/lecciones';
+if(!is_dir($carpetaArchivosLeccion)){mkdir($carpetaArchivosLeccion,0775,true);}
+$sufijoBorrado=bin2hex(random_bytes(5));
+$rutasBorrado=[];
+foreach(['recurso','archivo','entrega','adjunto','compartido','bloqueado'] as $tipoArchivo){
+    $ruta='uploads/lecciones/prueba-borrado-'.$tipoArchivo.'-'.$sufijoBorrado.'.txt';
+    file_put_contents(__DIR__.'/../'.$ruta,'archivo sintético '.$tipoArchivo);
+    $rutasBorrado[$tipoArchivo]=$ruta;
+}
+register_shutdown_function(static function() use($rutasBorrado){
+    foreach($rutasBorrado as $ruta){$archivo=__DIR__.'/../'.$ruta;if(is_file($archivo)){unlink($archivo);}}
+});
+$leccionEliminar=['nombreLeccion'=>'Eliminar segura','tipoLeccion'=>'TAREA','contenidoLeccion'=>'Prueba de archivos',
+    'estadoLeccion'=>'BORRADOR','fechaPublicacionLeccion'=>null,'id_modulo'=>$materiaDemo];
+ModeloLecciones::mdlGuardarLeccion('lecciones',$leccionEliminar); $leccionEliminarId=(int)$pdo->lastInsertId();
+$leccionCompartida=$leccionEliminar; $leccionCompartida['nombreLeccion']='Conserva compartido';
+ModeloLecciones::mdlGuardarLeccion('lecciones',$leccionCompartida); $leccionCompartidaId=(int)$pdo->lastInsertId();
+$pdo->prepare('INSERT INTO recursoslecciones(id_leccion,tipoRecurso,tituloRecurso,urlRecurso,creadoPor) VALUES(?,?,?,?,?)')
+    ->execute([$leccionEliminarId,'ARCHIVO','Recurso eliminación',$rutasBorrado['recurso'],$ids['B']]);
+$pdo->prepare('INSERT INTO recursoslecciones(id_leccion,tipoRecurso,tituloRecurso,urlRecurso,creadoPor) VALUES(?,?,?,?,?)')
+    ->execute([$leccionEliminarId,'ARCHIVO','Recurso compartido',$rutasBorrado['compartido'],$ids['B']]);
+$pdo->prepare('INSERT INTO recursoslecciones(id_leccion,tipoRecurso,tituloRecurso,urlRecurso,creadoPor) VALUES(?,?,?,?,?)')
+    ->execute([$leccionCompartidaId,'ARCHIVO','Otra referencia',$rutasBorrado['compartido'],$ids['B']]);
+$pdo->prepare('INSERT INTO archivoslecciones(id_leccion,tipoArchivo,urlArchivo) VALUES(?,?,?)')
+    ->execute([$leccionEliminarId,'TXT',$rutasBorrado['archivo']]);
+$pdo->prepare('INSERT INTO entregaslecciones(id_leccion,id_seccion,id_curso,id_estudiante,urlArchivo,comentarioEntrega,estadoEntrega) VALUES(?,?,?,?,?,?,?)')
+    ->execute([$leccionEliminarId,$materiaDemo,$cursoDemo,$ids['A'],$rutasBorrado['entrega'],'Eliminar entrega','ENTREGADA']);
+$entregaEliminarId=(int)$pdo->lastInsertId();
+$pdo->prepare('INSERT INTO entregaslecciones_adjuntos(id_entrega,nombreOriginal,rutaArchivo,mimeType,tamanoArchivo) VALUES(?,?,?,?,?)')
+    ->execute([$entregaEliminarId,'adjunto.txt',$rutasBorrado['adjunto'],'text/plain',20]);
+$_POST=['idLeccion'=>$leccionEliminarId];
+verificar(ControladorLecciones::crtEliminarLeccion()==='ok', 'Controlador confirma el borrado institucional antes de eliminar archivos físicos');
+verificar((int)$pdo->query('SELECT COUNT(*) FROM lecciones WHERE idLeccion='.$leccionEliminarId)->fetchColumn()===0
+    && (int)$pdo->query('SELECT COUNT(*) FROM recursoslecciones WHERE id_leccion='.$leccionEliminarId)->fetchColumn()===0
+    && (int)$pdo->query('SELECT COUNT(*) FROM archivoslecciones WHERE id_leccion='.$leccionEliminarId)->fetchColumn()===0
+    && (int)$pdo->query('SELECT COUNT(*) FROM entregaslecciones WHERE id_leccion='.$leccionEliminarId)->fetchColumn()===0
+    && (int)$pdo->query('SELECT COUNT(*) FROM entregaslecciones_adjuntos WHERE id_entrega='.$entregaEliminarId)->fetchColumn()===0,
+    'Borrado de lección elimina recursos, archivos legacy, entregas y adjuntos relacionados');
+verificar(!is_file(__DIR__.'/../'.$rutasBorrado['recurso'])&&!is_file(__DIR__.'/../'.$rutasBorrado['archivo'])
+    && !is_file(__DIR__.'/../'.$rutasBorrado['entrega'])&&!is_file(__DIR__.'/../'.$rutasBorrado['adjunto']),
+    'Archivos exclusivos se eliminan únicamente después del éxito en base de datos');
+verificar(is_file(__DIR__.'/../'.$rutasBorrado['compartido']), 'Una ruta todavía referenciada por otra lección se conserva');
+
+$leccionBloqueada=$leccionEliminar; $leccionBloqueada['nombreLeccion']='Bloqueo seguro';
+ModeloLecciones::mdlGuardarLeccion('lecciones',$leccionBloqueada); $leccionBloqueadaId=(int)$pdo->lastInsertId();
+$pdo->prepare('INSERT INTO recursoslecciones(id_leccion,tipoRecurso,tituloRecurso,urlRecurso,creadoPor) VALUES(?,?,?,?,?)')
+    ->execute([$leccionBloqueadaId,'ARCHIVO','Archivo protegido',$rutasBorrado['bloqueado'],$ids['B']]);
+ModeloLecciones::mdlGuardarPostLeccion(['id_autor'=>$ids['B'],'contenidoPosteo'=>'Referencia a validar','fechaPosteo'=>date('Y-m-d H:i:s'),
+    'id_curso'=>$cursoDemo,'id_leccion'=>$leccionBloqueadaId]);
+$postBloqueadoId=(int)$pdo->lastInsertId();
+$pdo->prepare('UPDATE posteos SET id_curso=? WHERE idPosteo=?')->execute([$cursoMM,$postBloqueadoId]);
+$_POST=['idLeccion'=>$leccionBloqueadaId];
+denegado(function(){ControladorLecciones::crtEliminarLeccion();}, 'Controlador rechaza borrar una lección con referencias históricas incoherentes');
+verificar(is_file(__DIR__.'/../'.$rutasBorrado['bloqueado'])
+    && (int)$pdo->query('SELECT COUNT(*) FROM lecciones WHERE idLeccion='.$leccionBloqueadaId)->fetchColumn()===1
+    && (int)$pdo->query('SELECT COUNT(*) FROM recursoslecciones WHERE id_leccion='.$leccionBloqueadaId)->fetchColumn()===1,
+    'Un borrado rechazado conserva tanto las filas como el archivo físico');
+$pdo->prepare('UPDATE posteos SET id_curso=? WHERE idPosteo=?')->execute([$cursoDemo,$postBloqueadoId]);
+verificar(ControladorLecciones::crtEliminarLeccion()==='ok'&&!is_file(__DIR__.'/../'.$rutasBorrado['bloqueado']),
+    'La lección regularizada puede eliminarse sin dejar su archivo huérfano');
 $_POST=[];
 ControladorInstitucion::limpiar();
 denegado(function() { ModeloCursos::mdlListarCursos(); }, 'Ausencia de contexto seleccionado rechaza listado');

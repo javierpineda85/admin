@@ -134,11 +134,16 @@ La verificación incluye peticiones HTTP reales al panel y a listados, recursos
 propios y recursos ajenos. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno y descargas de adjuntos
 o recursos propios y ajenos. Los archivos sintéticos se eliminan después de
-comprobar que la copia mantiene exactamente su contenido.
+comprobar que la copia mantiene exactamente su contenido. El borrado de una
+lección reúne primero sus rutas, elimina en base de datos recursos,
+`archivoslecciones`, entregas y adjuntos dentro del tenant, y recién después
+borra los archivos físicos exclusivos. Si una referencia es incoherente se
+conservan filas y archivos; si otra lección comparte la ruta, el archivo tampoco
+se elimina.
 Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
 directamente a archivos de ambas carpetas protegidas.
 
-Última verificación: `campus_mt_fase2_20260914_152333_0a1301`, 303 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_153023_0532ed`, 310 comprobaciones
 correctas. Incluye apertura del panel, listados institucionales, lectura de un curso
 propio y respuestas 403 ante lectura o escritura cruzada de cursos, materias,
 asistencia, calificaciones, actividades, mensajes y usuarios. Por HTTP también
@@ -168,13 +173,14 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 - Mantener la revisión HTTP al incorporar nuevas rutas o nombres de parámetros. El
   inventario actual no contiene endpoints AJAX propios separados de los controladores MVC.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas
-  de entregas, posteos, calificaciones y eliminación de dependencias.
+  de entregas, posteos y calificaciones. La eliminación de lecciones ya se bloquea
+  antes de modificar filas o archivos si encuentra una de esas referencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
 - Revisar las acciones administrativas restantes que no transportan recursos académicos
   y conservar la frontera central al agregar nuevos formularios.
 - Revisar enlaces de archivos que pudieran estar embebidos dentro de contenido
-  enriquecido histórico y referencias de `archivoslecciones`; las rutas conocidas
-  de adjuntos y recursos ya pasan por el controlador protegido.
+  enriquecido histórico. Las rutas estructuradas de `archivoslecciones`, adjuntos,
+  entregas y recursos ya participan del borrado protegido.
 - Trasladar preparaciones DDL a migraciones, finalizar restricciones y validar el
   delta de filas creado por el modo habitual después de la expansión.
 - Revisar las escrituras restantes de los demás dominios y sus dependencias;
