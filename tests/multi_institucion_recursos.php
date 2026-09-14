@@ -13,7 +13,9 @@ require_once __DIR__ . '/../modelos/mensajes.modelo.php';
 require_once __DIR__ . '/../modelos/notificaciones.modelo.php';
 require_once __DIR__ . '/../modelos/panel.modelo.php';
 require_once __DIR__ . '/../controladores/descargas.controller.php';
-foreach (['secciones', 'lecciones', 'asignacioncursos', 'recursoslecciones', 'entregaslecciones', 'posteos',
+require_once __DIR__ . '/../controladores/usuarios.controller.php';
+require_once __DIR__ . '/../controladores/perfiles.controller.php';
+foreach (['secciones', 'lecciones', 'asignacioncursos', 'recursoslecciones', 'entregaslecciones', 'posteos','usuarios_historial',
     'calificaciones','entregaslecciones_adjuntos','archivoslecciones','actividades','actividades_preguntas','actividades_opciones',
     'asistencia_clases','asistencia_registros','ciclos_lectivos','periodos_calificacion','instrumentos_evaluacion',
     'periodos_seccion_estado','cierres_periodo_calificaciones','evaluaciones','evaluaciones_calificaciones',
@@ -58,6 +60,31 @@ $miembrosDemo=ModeloUsuarios::mdlSeleccionarUsuarios('activo',1);
 verificar(!in_array($ids['C'],array_column($miembrosDemo,'idUsuario')), 'Administrador de Demo no lista usuarios exclusivos de MenteMotion');
 verificar(!array_key_exists('pass',$miembrosDemo[0]), 'Listado institucional no expone hashes de identidad global');
 verificar(array_column(ModeloUsuarios::mdlSeleccionarUsuarios('rol','ESTUDIANTE'),'idUsuario')==[$ids['A']], 'Filtro de estudiantes usa membresías y no rol global');
+verificar(ModeloUsuarios::mdlObtenerUsuarioCompleto($ids['C'])===false, 'Detalle de usuario ajeno no se revela por ID');
+$detalleUsuarioB=ModeloUsuarios::mdlObtenerUsuarioCompleto($ids['B']);
+verificar($detalleUsuarioB!==false && !array_key_exists('pass',$detalleUsuarioB)
+    && str_contains((string)$detalleUsuarioB['rol'],'ADMINISTRADOR'), 'Detalle propio usa estado y roles de la membresía sin exponer contraseña');
+$pdo->prepare('UPDATE usuarios SET ultimaConexion=NULL WHERE idUsuario IN (?,?,?)')->execute([$ids['A'],$ids['B'],$ids['C']]);
+$pdo->prepare('UPDATE usuarios SET ultimaConexion=NOW() WHERE idUsuario IN (?,?)')->execute([$ids['B'],$ids['C']]);
+verificar(array_map('intval',array_column(ModeloUsuarios::mdlUsuariosConectadosRecientes(60),'idUsuario'))===[$ids['B']], 'Listado de conectados excluye usuarios de otras instituciones');
+verificar(array_map('intval',array_column(ModeloUsuarios::mdlUsuariosNoConectadosRecientes(60),'idUsuario'))===[$ids['A']], 'Listado de no conectados queda limitado a la membresía institucional');
+verificar(ModeloUsuarios::mdlContarUsuariosConectadosRecientes(60)===1, 'Contador de conectados usa el tenant activo');
+$perfilCAntes=(int)$pdo->query('SELECT COUNT(*) FROM perfiles WHERE id_usuario='.(int)$ids['C'])->fetchColumn();
+$_POST=['id_usuario'=>$ids['C'],'contenidoPerfil'=>'Intento cruzado'];
+verificar(ControladorPerfiles::crtEditarPerfil()===false
+    && (int)$pdo->query('SELECT COUNT(*) FROM perfiles WHERE id_usuario='.(int)$ids['C'])->fetchColumn()===$perfilCAntes,
+    'Edición de perfil ignora un ID de otro usuario enviado por POST');
+$_POST=['id_usuario'=>$ids['B'],'contenidoPerfil'=>'Perfil propio'];
+verificar(ControladorPerfiles::crtEditarPerfil()==='ok'
+    && (string)$pdo->query('SELECT contenidoPerfil FROM perfiles WHERE id_usuario='.(int)$ids['B'])->fetchColumn()==='Perfil propio',
+    'Usuario autenticado conserva la edición de su propio perfil global');
+$_POST=['idUsuario'=>$ids['C'],'nombreUsuario'=>'Alterado','apellidoUsuario'=>'Ajeno','emailUsuario'=>'ajeno@campus.example','rol'=>'ADMINISTRADOR'];
+verificar(ControladorUsuarios::crtModificarUsuario()===false, 'Administrador institucional no modifica por POST un usuario de otra institución');
+$_POST=['accion_usuario'=>'baja_usuario','idUsuario'=>$ids['C'],'motivoBaja'=>'Intento cruzado'];
+verificar(ControladorUsuarios::crtDarBajaUsuario()===false && (int)$pdo->query('SELECT activo FROM usuarios WHERE idUsuario='.(int)$ids['C'])->fetchColumn()===1,
+    'Administrador institucional no da de baja una identidad de otra institución');
+verificar(ControladorUsuarios::crtReactivarUsuario($ids['C'])===false, 'Administrador institucional no reactiva una identidad de otra institución');
+$_POST=[];
 verificar(ModeloCursos::mdlBuscarCursoPorId($cursoMM)===null, 'Lectura directa por ID de curso ajeno no devuelve datos');
 denegado(function() use ($cursoMM) { ModeloCursos::mdlEliminarCurso($cursoMM); }, 'B no puede eliminar curso de MenteMotion');
 denegado(function() use ($cursoDemo,$ids) { ModeloCursos::mdlAsignarCurso('asignacioncursos',['idCurso'=>$cursoDemo,'idUsuario'=>$ids['C']]); }, 'Inscripción rechaza estudiante de otra institución');
@@ -67,6 +94,9 @@ $datosMateria=['tituloSeccion'=>'Materia Demo','contenidoSeccion'=>'Prueba','id_
 verificar(ModeloMaterias::mdlGuardarMateria('secciones',$datosMateria)==='ok', 'Materia se crea con docente de la institución');
 $materiaDemo=(int)$pdo->lastInsertId();
 verificar(ModeloMaterias::mdlActualizarDocentesMateria($materiaDemo,$ids['B'],0)==='ok', 'Escritura de materia propia aplica filtro institucional');
+$relacionesA=ModeloUsuarios::mdlRelacionesAcademicas($ids['A']);
+verificar($relacionesA!==[] && array_values(array_unique(array_map('intval',array_column($relacionesA,'idCurso'))))===[$cursoDemo],
+    'Relaciones académicas del perfil excluyen cursos de otras instituciones');
 $contextoDemo=ModeloCalificaciones::mdlContextoAcademicoSeccion($materiaDemo);
 verificar((int)$contextoDemo['ciclo']['idCicloLectivo']!==(int)$contextoMM['ciclo']['idCicloLectivo'], 'Cada institución usa un ciclo lectivo independiente para el mismo año');
 verificar($contextoDemo['instrumentos'][0]['nombre']===$contextoMM['instrumentos'][0]['nombre']

@@ -153,6 +153,9 @@ class ControladorUsuarios
 
     public static function crtHistorialUsuario($idUsuario)
     {
+        if ((int) $idUsuario !== (int) ($_SESSION['usuario']['id'] ?? 0)) {
+            return [];
+        }
         return ModeloUsuarios::mdlHistorialUsuario((int) $idUsuario);
     }
 
@@ -270,6 +273,11 @@ class ControladorUsuarios
             "rol" => trim((string) $_POST["rol"]),
         ];
 
+        if ($datos['idUsuario'] <= 0 || !self::crtUsuarioCompleto($datos['idUsuario'])) {
+            $_SESSION['error_message'] = 'No podés modificar un usuario ajeno a la institución activa.';
+            return false;
+        }
+
         $imagen = self::procesarImagenUsuario('imgUsuario', 'perfil');
         if ($imagen === false) {
             return false;
@@ -333,6 +341,11 @@ class ControladorUsuarios
             return false;
         }
 
+        if (!self::crtUsuarioCompleto($datos['idUsuario'])) {
+            $_SESSION['error_message'] = 'No podés dar de baja un usuario ajeno a la institución activa.';
+            return false;
+        }
+
         $respuesta = ModeloUsuarios::mdlDarBajaUsuario($datos);
         if ($respuesta === 'ok') {
             ModeloUsuarios::mdlRegistrarHistorial([
@@ -352,6 +365,10 @@ class ControladorUsuarios
 
     public static function crtReactivarUsuario($idUsuario)
     {
+        if ((int) $idUsuario <= 0 || !self::crtUsuarioCompleto((int) $idUsuario)) {
+            $_SESSION['error_message'] = 'No podés reactivar un usuario ajeno a la institución activa.';
+            return false;
+        }
         $respuesta = ModeloUsuarios::mdlReactivarUsuario((int) $idUsuario);
         if ($respuesta === 'ok') {
             ModeloUsuarios::mdlRegistrarHistorial([

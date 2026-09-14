@@ -1,6 +1,7 @@
 <?php
 
 require_once('conexion.php');
+require_once __DIR__ . '/tenant.modelo.php';
 
 class ModeloUsuarios
 {
@@ -355,6 +356,28 @@ class ModeloUsuarios
 
     public static function mdlObtenerUsuarioCompleto($idUsuario)
     {
+        if (ModeloTenant::activo()) {
+            $stmt = Conexion::conectar()->prepare("SELECT u.idUsuario,u.nombreUsuario,u.apellidoUsuario,u.email,u.imgUsuario,
+                    u.ultimaConexion,u.origenAuth,u.activo activoGlobal,
+                    ui.idUsuarioInstitucion,ui.activo,ui.fechaAlta,ui.fechaBaja,ui.motivoBaja,
+                    p.idPerfil,p.dniPerfil,p.telefonoPerfil,p.fnacPerfil,p.domicilioPerfil,p.provinciaPerfil,p.contenidoPerfil,
+                    DATE_FORMAT(p.fnacPerfil, '%d/%m/%Y') fnacFormateada,
+                    DATE_FORMAT(ui.fechaAlta, '%d/%m/%Y %H:%i') fechaAltaFmt,
+                    DATE_FORMAT(u.ultimaConexion, '%d/%m/%Y %H:%i') ultimaConexionFmt,
+                    DATE_FORMAT(ui.fechaBaja, '%d/%m/%Y %H:%i') fechaBajaFmt,
+                    GROUP_CONCAT(DISTINCT r.codigo ORDER BY r.codigo SEPARATOR ' · ') rol
+                FROM usuarios_instituciones ui
+                INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario
+                LEFT JOIN perfiles p ON p.id_usuario=u.idUsuario
+                LEFT JOIN usuarios_instituciones_roles ur ON ur.id_usuario_institucion=ui.idUsuarioInstitucion
+                LEFT JOIN roles r ON r.idRol=ur.id_rol AND r.codigo IN ('ADMINISTRADOR','DOCENTE','ESTUDIANTE')
+                WHERE ui.id_institucion=:idInstitucion AND u.idUsuario=:idUsuario AND u.activo=1
+                    AND " . ModeloTenant::sesionActiva() . "
+                GROUP BY ui.idUsuarioInstitucion,u.idUsuario,p.idPerfil
+                LIMIT 1");
+            $stmt->execute([':idInstitucion'=>ModeloTenant::id(),':idUsuario'=>(int)$idUsuario]);
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: false;
+        }
         $stmt = Conexion::conectar()->prepare("
             SELECT u.*,
                    p.idPerfil,
@@ -383,6 +406,8 @@ class ModeloUsuarios
 
     public static function mdlRelacionesAcademicas($idUsuario)
     {
+        $filtroCurso = ModeloTenant::activo() ? ' AND ' . ModeloTenant::cursos('c') : '';
+        $filtroSeccion = ModeloTenant::activo() ? ' AND ' . ModeloTenant::secciones('s') : '';
         $stmt = Conexion::conectar()->prepare("
             SELECT DISTINCT idCurso, nombreCurso, idSeccion, tituloSeccion, origen
             FROM (
@@ -395,6 +420,7 @@ class ModeloUsuarios
                 INNER JOIN cursos c ON c.idCurso = a.id_seccion
                 LEFT JOIN secciones s ON s.id_curso = c.idCurso
                 WHERE a.id_estudiante = :idEstudiante AND a.estadoInscripcion='ACTIVA'
+                    {$filtroCurso}
 
                 UNION
 
@@ -405,8 +431,9 @@ class ModeloUsuarios
                        'DOCENTE' AS origen
                 FROM secciones s
                 INNER JOIN cursos c ON c.idCurso = s.id_curso
-                WHERE s.docente = :idDocente
-                   OR s.tutor = :idDocente
+                WHERE (s.docente = :idDocente
+                   OR s.tutor = :idDocente)
+                   {$filtroSeccion}
             ) AS relaciones
             ORDER BY nombreCurso ASC, tituloSeccion ASC
         ");
@@ -434,14 +461,15 @@ class ModeloUsuarios
                 } else { return []; }
             }
             $stmt = Conexion::conectar()->prepare("SELECT u.idUsuario,u.nombreUsuario,u.apellidoUsuario,u.email,u.imgUsuario,
-                ui.activo,ui.fechaAlta,ui.fechaBaja,ui.motivoBaja,
+                u.ultimaConexion,u.activo activoGlobal,ui.activo,ui.fechaAlta,ui.fechaBaja,ui.motivoBaja,
                 DATE_FORMAT(ui.fechaAlta,'%d/%m/%Y %H:%i') fechaAltaFmt,
+                DATE_FORMAT(u.ultimaConexion,'%d/%m/%Y %H:%i') ultimaConexionFmt,
                 DATE_FORMAT(ui.fechaBaja,'%d/%m/%Y %H:%i') fechaBajaFmt,
                 GROUP_CONCAT(DISTINCT r.codigo ORDER BY r.codigo SEPARATOR ' · ') rol
                 FROM usuarios_instituciones ui INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario
                 LEFT JOIN usuarios_instituciones_roles ur ON ur.id_usuario_institucion=ui.idUsuarioInstitucion
                 LEFT JOIN roles r ON r.idRol=ur.id_rol AND r.codigo IN ('ADMINISTRADOR','DOCENTE','ESTUDIANTE')
-                WHERE ui.id_institucion=? " . $filtro . ' GROUP BY ui.idUsuarioInstitucion,u.idUsuario ORDER BY u.apellidoUsuario,u.nombreUsuario');
+                WHERE ui.id_institucion=? AND u.activo=1 AND " . ModeloTenant::sesionActiva() . " " . $filtro . ' GROUP BY ui.idUsuarioInstitucion,u.idUsuario ORDER BY u.apellidoUsuario,u.nombreUsuario');
             $stmt->execute($parametros);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
@@ -512,6 +540,13 @@ class ModeloUsuarios
     public static function mdlUsuariosConectadosRecientes($minutos = 60)
     {
         $minutos = max(1, (int) $minutos);
+        if (ModeloTenant::activo()) {
+            $limite = time() - ($minutos * 60);
+            return array_values(array_filter(self::mdlSeleccionarUsuarios('activo', 1), static function ($usuario) use ($limite) {
+                $ultima = strtotime((string) ($usuario['ultimaConexion'] ?? ''));
+                return $ultima !== false && $ultima >= $limite;
+            }));
+        }
         $stmt = Conexion::conectar()->prepare("
             SELECT u.*,
                    DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
@@ -532,6 +567,13 @@ class ModeloUsuarios
     public static function mdlUsuariosNoConectadosRecientes($minutos = 60)
     {
         $minutos = max(1, (int) $minutos);
+        if (ModeloTenant::activo()) {
+            $limite = time() - ($minutos * 60);
+            return array_values(array_filter(self::mdlSeleccionarUsuarios('activo', 1), static function ($usuario) use ($limite) {
+                $ultima = strtotime((string) ($usuario['ultimaConexion'] ?? ''));
+                return $ultima === false || $ultima < $limite;
+            }));
+        }
         $stmt = Conexion::conectar()->prepare("
             SELECT u.*,
                    DATE_FORMAT(u.fechaAlta, '%d/%m/%Y %H:%i') AS fechaAltaFmt,
@@ -552,6 +594,9 @@ class ModeloUsuarios
     public static function mdlContarUsuariosConectadosRecientes($minutos = 60)
     {
         $minutos = max(1, (int) $minutos);
+        if (ModeloTenant::activo()) {
+            return count(self::mdlUsuariosConectadosRecientes($minutos));
+        }
         $stmt = Conexion::conectar()->prepare("
             SELECT COUNT(*) AS total
             FROM usuarios

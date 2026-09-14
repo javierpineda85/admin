@@ -7,6 +7,7 @@ if (!preg_match('/^campus_mt_fase2_[0-9]{8}_[0-9]{6}_[a-f0-9]{6}$/D', $base)) {
 define('DB_NAME', $base);
 define('INSTITUCIONES_CONTEXTO_ACTIVO', false);
 require __DIR__ . '/../config.php';
+require __DIR__ . '/../modelos/usuarios.modelo.php';
 require __DIR__ . '/../modelos/cursos.modelo.php';
 require __DIR__ . '/../modelos/materias.modelo.php';
 require __DIR__ . '/../modelos/lecciones.modelo.php';
@@ -25,6 +26,15 @@ function comprobarLegacy($condicion, $mensaje) {
 comprobarLegacy(count(ModeloCursos::mdlListarCursos()) === (int)$pdo->query('SELECT COUNT(*) FROM cursos')->fetchColumn(), 'Listado conserva todos los cursos con contexto desactivado');
 $idCurso=(int)$pdo->query('SELECT MIN(idCurso) FROM cursos')->fetchColumn();
 comprobarLegacy(ModeloCursos::mdlBuscarCursoPorId($idCurso)!==null, 'Consulta de curso habitual funciona sin contexto');
+$idUsuarioDetalle=(int)$pdo->query('SELECT MIN(idUsuario) FROM usuarios')->fetchColumn();
+comprobarLegacy(ModeloUsuarios::mdlObtenerUsuarioCompleto($idUsuarioDetalle)!==false, 'Detalle global habitual de usuario funciona sin contexto');
+$conectadosEsperados=(int)$pdo->query('SELECT COUNT(*) FROM usuarios WHERE activo=1 AND ultimaConexion >= (NOW() - INTERVAL 60 MINUTE)')->fetchColumn();
+comprobarLegacy(count(ModeloUsuarios::mdlUsuariosConectadosRecientes(60))===$conectadosEsperados, 'Listado global habitual de conectados conserva compatibilidad');
+$noConectadosEsperados=(int)$pdo->query('SELECT COUNT(*) FROM usuarios WHERE activo=1 AND (ultimaConexion IS NULL OR ultimaConexion < (NOW() - INTERVAL 60 MINUTE))')->fetchColumn();
+comprobarLegacy(count(ModeloUsuarios::mdlUsuariosNoConectadosRecientes(60))===$noConectadosEsperados, 'Listado global habitual de no conectados conserva compatibilidad');
+$idUsuarioMulti=(int)$pdo->query("SELECT idUsuario FROM usuarios WHERE email='a@campus.example' LIMIT 1")->fetchColumn();
+$cursosRelaciones=array_values(array_unique(array_map('intval',array_column(ModeloUsuarios::mdlRelacionesAcademicas($idUsuarioMulti),'idCurso'))));
+comprobarLegacy(count($cursosRelaciones)>=2, 'Relaciones académicas habituales conservan cursos de toda la instalación sin contexto');
 $idSeccion=(int)$pdo->query('SELECT MIN(idSeccion) FROM secciones')->fetchColumn();
 comprobarLegacy(ModeloMaterias::mdlBuscarMateriaPorId($idSeccion)!==false, 'Consulta de materia habitual funciona sin contexto');
 $idLeccion=(int)$pdo->query('SELECT MIN(idLeccion) FROM lecciones')->fetchColumn();

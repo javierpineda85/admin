@@ -12,6 +12,10 @@ class ControladorPerfiles
 
         $idUsuario = (int) $_POST["id_usuario"];
         $idUsuarioSesion = (int) ($_SESSION['usuario']['id'] ?? 0);
+        if ($idUsuario <= 0 || $idUsuarioSesion <= 0 || $idUsuario !== $idUsuarioSesion) {
+            $_SESSION['error_message'] = 'No podés modificar el perfil de otro usuario.';
+            return false;
+        }
         $puedeCambiarClave = $idUsuarioSesion > 0 && $idUsuarioSesion === $idUsuario;
 
         $cambiarClave = $puedeCambiarClave

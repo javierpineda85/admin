@@ -90,6 +90,13 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
   conversación y acceso académico antes de resolver el archivo. Sólo acepta
   rutas canónicas dentro de `uploads/mensajes` o `uploads/lecciones`; ambas
   carpetas bloquean el acceso HTTP estático mediante `.htaccess`.
+- El detalle administrativo de usuarios, sus relaciones académicas y los
+  listados o contadores de conexión se limitan a membresías de la institución
+  activa. El detalle no expone la contraseña global y los controladores rechazan
+  IDs de otra institución antes de modificar, dar de baja o reactivar cuentas.
+- La edición del perfil global exige que el ID del formulario coincida con la
+  identidad autenticada. Un usuario conserva la edición de sus propios datos,
+  pero ya no puede modificar otro perfil alterando el POST.
 
 ## Pruebas
 
@@ -102,7 +109,7 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260914_021958_7bdd01`, 225 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_022930_1e5891`, 236 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno y descargas de adjuntos
 o recursos propios y ajenos. Los archivos sintéticos se eliminan después de
@@ -113,10 +120,10 @@ directamente a archivos de ambas carpetas protegidas.
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
 definiendo `CAMPUS_TEST_BASE` con el nombre devuelto por el ensayo de recursos;
-rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus dieciocho
+rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus veintidós
 comprobaciones de listados, lecturas y escritura, incluidas materias, clases de
-asistencia, actividades, contadores de mensajes y una descarga autorizada. No usa
-la base original.
+asistencia, actividades, usuarios, relaciones académicas, contadores de mensajes
+y una descarga autorizada. No usa la base original.
 
 La duplicación no promete rollback integral ante fallas de almacenamiento:
 las tablas históricas MyISAM no lo permiten. Un error posterior al preflight puede
@@ -129,8 +136,9 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
   revisar las vistas de calificaciones antes de habilitarlas.
 - Validar los endpoints HTTP de actividades cuando se retire el bloqueo
   preventivo de las aulas.
-- Separar todas las lecturas y modificaciones globales de usuarios/perfiles de
-  la administración de membresías; aún existen otros métodos legacy sin aislamiento.
+- Transformar altas, cambios de rol, bajas y reactivaciones del administrador
+  institucional en operaciones sobre la membresía, sin cambiar la identidad
+  global compartida con otras instituciones.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas
   de entregas, posteos, calificaciones y eliminación de dependencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
