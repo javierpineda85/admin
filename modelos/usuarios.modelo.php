@@ -1030,11 +1030,19 @@ class ModeloUsuarios
             $stmt = Conexion::conectar()->prepare("INSERT INTO usuarios_historial
                 (id_usuario,accion,detalle,id_usuario_accion,fechaEvento,id_institucion)
                 SELECT :id_usuario,:accion,:detalle,:id_usuario_accion,:fechaEvento,:id_institucion
-                WHERE " . ModeloTenant::sesionActiva());
+                FROM usuarios_instituciones objetivo_ui
+                INNER JOIN usuarios objetivo_u ON objetivo_u.idUsuario=objetivo_ui.id_usuario
+                WHERE objetivo_ui.id_usuario=:id_usuario_objetivo
+                  AND objetivo_ui.id_institucion=:id_institucion_objetivo
+                  AND :id_usuario_accion=:id_actor_sesion
+                  AND " . ModeloTenant::sesionActiva() . '
+                LIMIT 1');
             $stmt->execute([
                 ':id_usuario'=>(int)$datos['id_usuario'],':accion'=>(string)$datos['accion'],
                 ':detalle'=>(string)$datos['detalle'],':id_usuario_accion'=>(int)$datos['id_usuario_accion'],
                 ':fechaEvento'=>(string)$datos['fechaEvento'],':id_institucion'=>ModeloTenant::id(),
+                ':id_usuario_objetivo'=>(int)$datos['id_usuario'],':id_institucion_objetivo'=>ModeloTenant::id(),
+                ':id_actor_sesion'=>(int)($_SESSION['usuario']['id'] ?? 0),
             ]);
             return $stmt->rowCount() === 1 ? 'ok' : 'error';
         }

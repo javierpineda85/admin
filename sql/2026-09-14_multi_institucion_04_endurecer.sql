@@ -149,6 +149,15 @@ BEGIN
             LEFT JOIN usuarios u ON u.idUsuario=r.creadoPor
             WHERE c.id_institucion IS NOT NULL AND COALESCE(r.creadoPor,0)>0
               AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=r.creadoPor AND ui.id_institucion=c.id_institucion)
+        ) OR EXISTS (
+            SELECT 1 FROM usuarios_historial h LEFT JOIN usuarios u ON u.idUsuario=h.id_usuario
+            WHERE h.id_institucion IS NOT NULL AND COALESCE(h.id_usuario,0)>0
+              AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=h.id_usuario AND ui.id_institucion=h.id_institucion)
+        ) OR EXISTS (
+            SELECT 1 FROM usuarios_historial h LEFT JOIN usuarios u ON u.idUsuario=h.id_usuario_accion
+            WHERE h.id_institucion IS NOT NULL AND COALESCE(h.id_usuario_accion,0)>0
+              AND COALESCE(u.esSuperAdmin,0)<>1
+              AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=h.id_usuario_accion AND ui.id_institucion=h.id_institucion)
         ) THEN
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Existen relaciones con usuarios sin membresía en el tenant del recurso';
         END IF;

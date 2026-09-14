@@ -61,7 +61,9 @@ El diagnóstico revisa responsables, docentes, tutores, inscripciones,
 remitentes y destinatarios de mensajes, notificaciones y sus lecturas, autores
 de actividades, evaluaciones y posteos, creadores de recursos, entregas,
 calificaciones de tareas y evaluaciones, cierres de período y registros de
-asistencia contra la membresía de la institución del recurso. El endurecimiento
+asistencia, y usuarios afectados en el historial contra la membresía de la
+institución del recurso. Los actores del historial pueden ser miembros de la
+institución o SuperAdmin globales. El endurecimiento
 vuelve a verificar estas relaciones y aborta si aparece alguna durante el corte.
 También informa membresías huérfanas; esta comprobación es necesaria mientras
 `usuarios` conserve el motor legacy y no pueda recibir una clave foránea segura.

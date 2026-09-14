@@ -318,6 +318,29 @@ $pdo->prepare('DELETE FROM cierres_periodo_calificaciones WHERE id_periodo=?')->
 $pdo->prepare('DELETE FROM periodos_seccion_estado WHERE id_periodo=?')->execute([$idPeriodoEndurecer]);
 $pdo->prepare('DELETE FROM periodos_calificacion WHERE idPeriodo=?')->execute([$idPeriodoEndurecer]);
 $pdo->prepare('DELETE FROM ciclos_lectivos WHERE idCicloLectivo=?')->execute([$idCicloEndurecer]);
+$pdo->prepare('INSERT INTO usuarios_historial (id_usuario,accion,detalle,id_usuario_accion,fechaEvento,id_institucion) VALUES (?,?,?,?,?,?)')
+    ->execute([$idsUsuarios['C'], 'PRUEBA_CRUZADA', 'Preflight sintético', $idsUsuarios['B'], '2026-09-14 10:00:00', $idDemo]);
+$idHistorialEndurecer = (int) $pdo->lastInsertId();
+$rechazoHistorial = false;
+try {
+    ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+} catch (PDOException $e) {
+    $rechazoHistorial = $e->getCode()==='45000';
+}
+comprobar($rechazoHistorial, 'El endurecimiento detiene historiales con usuarios ajenos a la institución');
+$diagnosticoHistorial = $pdo->query(file_get_contents(__DIR__ . '/../sql/2026-09-14_multi_institucion_05_validar_relaciones.sql'))->fetchAll(PDO::FETCH_KEY_PAIR);
+comprobar((int) ($diagnosticoHistorial['historial_objetivo_sin_membresia'] ?? 0) > 0,
+    'El diagnóstico identifica historiales con usuarios ajenos a la institución');
+$pdo->prepare('DELETE FROM usuarios_historial WHERE idHistorial=?')->execute([$idHistorialEndurecer]);
+$pdo->prepare('UPDATE usuarios SET esSuperAdmin=1 WHERE idUsuario=?')->execute([$idsUsuarios['C']]);
+$pdo->prepare('INSERT INTO usuarios_historial (id_usuario,accion,detalle,id_usuario_accion,fechaEvento,id_institucion) VALUES (?,?,?,?,?,?)')
+    ->execute([$idsUsuarios['A'], 'PRUEBA_SUPERADMIN', 'Preflight sintético', $idsUsuarios['C'], '2026-09-14 10:00:00', $idDemo]);
+$idHistorialSuperAdmin = (int) $pdo->lastInsertId();
+$diagnosticoHistorialSuperAdmin = $pdo->query(file_get_contents(__DIR__ . '/../sql/2026-09-14_multi_institucion_05_validar_relaciones.sql'))->fetchAll(PDO::FETCH_KEY_PAIR);
+comprobar((int) ($diagnosticoHistorialSuperAdmin['historial_actor_sin_membresia'] ?? 0) === 0,
+    'El diagnóstico admite al SuperAdmin como actor global del historial');
+$pdo->prepare('DELETE FROM usuarios_historial WHERE idHistorial=?')->execute([$idHistorialSuperAdmin]);
+$pdo->prepare('UPDATE usuarios SET esSuperAdmin=0 WHERE idUsuario=?')->execute([$idsUsuarios['C']]);
 // La copia puede heredar incidencias reales ya informadas por el diagnóstico 00.
 // Se retiran sólo del ensayo para probar el DDL; las migraciones no regularizan
 // ni eliminan estos antecedentes en la base de origen.

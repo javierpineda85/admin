@@ -137,6 +137,17 @@ verificar(ControladorUsuarios::crtReactivarUsuario($idUsuarioNuevo)==='ok'
     'Reactivación institucional conserva la identidad, fecha de alta y roles de la membresía');
 verificar((int)$pdo->query('SELECT COUNT(*) FROM usuarios_historial WHERE id_usuario='.(int)$idUsuarioNuevo.' AND id_institucion='.(int)$demo)->fetchColumn()>=4,
     'Historial de altas, roles y estado registra la institución activa');
+$historialDemoAntes=(int)$pdo->query('SELECT COUNT(*) FROM usuarios_historial WHERE id_institucion='.(int)$demo)->fetchColumn();
+verificar(ModeloUsuarios::mdlRegistrarHistorial([
+    'id_usuario'=>$ids['C'],'accion'=>'PRUEBA_CRUZADA','detalle'=>'No debe insertarse',
+    'id_usuario_accion'=>$ids['B'],'fechaEvento'=>'2026-09-14 10:00:00',
+])==='error' && (int)$pdo->query('SELECT COUNT(*) FROM usuarios_historial WHERE id_institucion='.(int)$demo)->fetchColumn()===$historialDemoAntes,
+    'Historial rechaza un usuario ajeno a la institución activa');
+verificar(ModeloUsuarios::mdlRegistrarHistorial([
+    'id_usuario'=>$idUsuarioNuevo,'accion'=>'PRUEBA_ACTOR','detalle'=>'No debe insertarse',
+    'id_usuario_accion'=>$ids['A'],'fechaEvento'=>'2026-09-14 10:00:00',
+])==='error' && (int)$pdo->query('SELECT COUNT(*) FROM usuarios_historial WHERE id_institucion='.(int)$demo)->fetchColumn()===$historialDemoAntes,
+    'Historial impide atribuir la acción a otro usuario');
 sesionPara($ids['A']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
 denegado(function() use($idUsuarioNuevo) { ModeloUsuarios::mdlActualizarRolesInstitucionales($idUsuarioNuevo,['ESTUDIANTE']); },
     'Modelo de membresías exige rol administrador para cambiar roles');
