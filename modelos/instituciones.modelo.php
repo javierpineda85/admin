@@ -42,7 +42,7 @@ class ModeloInstituciones
         if ($nombre === '' || $slug === '' || strlen($nombre) > 150 || strlen($slug) > 120 || strlen($logo) > 255) {
             throw new InvalidArgumentException('Revisá el nombre, el slug y el logo de la institución.');
         }
-        if ($logo !== '' && !preg_match('~^img/instituciones/[a-zA-Z0-9._/-]+$~', $logo)) {
+        if ($logo !== '' && !preg_match('~^img/instituciones/[a-zA-Z0-9_-]+\.(png|jpe?g|webp|gif)$~i', $logo)) {
             throw new InvalidArgumentException('La ruta del logo debe estar dentro de img/instituciones/.');
         }
 

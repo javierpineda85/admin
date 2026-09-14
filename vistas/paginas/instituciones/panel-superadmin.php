@@ -7,6 +7,9 @@ $mensajeOk = $_SESSION['success_message'] ?? '';
 $mensajeError = $_SESSION['error_message'] ?? '';
 unset($_SESSION['success_message'], $_SESSION['error_message']);
 $csrfSuperAdmin = ControladorSuperAdmin::csrf();
+$logoSeguro = static function ($ruta) {
+  return is_string($ruta) && preg_match('~^img/instituciones/[a-zA-Z0-9_-]+\.(png|jpe?g|webp|gif)$~i', $ruta) ? $ruta : '';
+};
 ?>
 
 <div class="container-fluid py-3">
@@ -39,11 +42,11 @@ $csrfSuperAdmin = ControladorSuperAdmin::csrf();
         <thead><tr><th>Institución</th><th>Estado</th><th>Usuarios</th><th>Administradores</th><th>Alta</th><th class="text-right">Acciones</th></tr></thead>
         <tbody>
           <?php foreach ($instituciones as $institucion): ?>
-            <?php $idInstitucion = (int) $institucion['idInstitucion']; $activa = (int) $institucion['activo'] === 1; ?>
+            <?php $idInstitucion = (int) $institucion['idInstitucion']; $activa = (int) $institucion['activo'] === 1; $logoListado = $logoSeguro($institucion['logo'] ?? ''); ?>
             <tr>
               <td>
                 <div class="d-flex align-items-center">
-                  <?php if (!empty($institucion['logo'])): ?><img src="<?php echo $e($institucion['logo']); ?>" alt="" class="img-circle mr-2" style="width:38px;height:38px;object-fit:cover"><?php else: ?><span class="bg-light border rounded-circle text-center mr-2" style="width:38px;height:38px;line-height:36px"><i class="fas fa-university text-muted"></i></span><?php endif; ?>
+                  <?php if ($logoListado !== ''): ?><img src="<?php echo $e($logoListado); ?>" alt="" class="img-circle mr-2" style="width:38px;height:38px;object-fit:cover"><?php else: ?><span class="bg-light border rounded-circle text-center mr-2" style="width:38px;height:38px;line-height:36px"><i class="fas fa-university text-muted"></i></span><?php endif; ?>
                   <div><strong><?php echo $e($institucion['nombre']); ?></strong><br><small class="text-muted"><?php echo $e($institucion['slug']); ?></small></div>
                 </div>
               </td>

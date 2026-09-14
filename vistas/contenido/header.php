@@ -15,6 +15,15 @@ $notificacionesRecientes = $cabecera['actividadReciente'] ?? [];
 $puedeCambiarVista = ControladorPermisos::puedeActivarVistaEstudiante();
 $vistaEstudianteActiva = ControladorPermisos::vistaEstudianteActiva();
 $urlVistaEstudiante = 'index.php?r=vista-estudiante&estado=' . ($vistaEstudianteActiva ? '0' : '1') . '&redir=' . urlencode($_SERVER['REQUEST_URI'] ?? 'index.php');
+$institucionCabecera = class_exists('ControladorInstitucion', false) && ControladorInstitucion::activo()
+  ? ControladorInstitucion::actual()
+  : null;
+$membresiasCabecera = $institucionCabecera ? ControladorInstitucion::membresias() : [];
+$logoInstitucionSeguro = static function ($ruta) {
+  return is_string($ruta) && preg_match('~^img/instituciones/[a-zA-Z0-9_-]+\.(png|jpe?g|webp|gif)$~i', $ruta)
+    ? $ruta
+    : '';
+};
 $resumirTexto = static function ($texto, $longitud) {
   $texto = trim(strip_tags((string) $texto));
   if (function_exists('mb_strimwidth')) {
@@ -46,6 +55,49 @@ $resumirTexto = static function ($texto, $longitud) {
         <span class="d-none d-sm-inline">Instalar app</span>
       </button>
     </li>
+
+    <?php if ($institucionCabecera): ?>
+      <?php $puedeCambiarInstitucion = count($membresiasCabecera) > 1; $logoInstitucion = $logoInstitucionSeguro($institucionCabecera['logo'] ?? ''); ?>
+      <li class="nav-item <?php echo $puedeCambiarInstitucion ? 'dropdown' : ''; ?>" data-institucion-activa="<?php echo htmlspecialchars($institucionCabecera['slug'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+        <a class="nav-link d-flex align-items-center" <?php echo $puedeCambiarInstitucion ? 'data-toggle="dropdown" href="#" role="button"' : 'href="#"'; ?> title="Institución activa">
+          <?php if ($logoInstitucion !== ''): ?>
+            <img src="<?php echo htmlspecialchars($logoInstitucion, ENT_QUOTES, 'UTF-8'); ?>" alt="" class="img-circle mr-2" style="width:24px;height:24px;object-fit:cover">
+          <?php else: ?>
+            <i class="fas fa-university text-primary mr-2"></i>
+          <?php endif; ?>
+          <span class="d-none d-md-inline text-truncate" style="max-width:180px"><?php echo htmlspecialchars($institucionCabecera['nombre'] ?? 'Institución', ENT_QUOTES, 'UTF-8'); ?></span>
+          <?php if ($puedeCambiarInstitucion): ?><i class="fas fa-angle-down ml-2 text-muted"></i><?php endif; ?>
+        </a>
+        <?php if ($puedeCambiarInstitucion): ?>
+          <div class="dropdown-menu dropdown-menu-right" style="min-width:280px">
+            <span class="dropdown-header text-left">Cambiar de institución</span>
+            <div class="dropdown-divider"></div>
+            <?php foreach ($membresiasCabecera as $membresiaCabecera): ?>
+              <?php $esActual = (int) ($membresiaCabecera['idInstitucion'] ?? 0) === (int) ($institucionCabecera['idInstitucion'] ?? 0); $logoMembresia = $logoInstitucionSeguro($membresiaCabecera['logo'] ?? ''); ?>
+              <?php if ($esActual): ?>
+                <div class="dropdown-item active d-flex align-items-center">
+                  <i class="fas fa-check-circle mr-2"></i><span><strong><?php echo htmlspecialchars($membresiaCabecera['nombre'], ENT_QUOTES, 'UTF-8'); ?></strong><br><small><?php echo htmlspecialchars(implode(', ', $membresiaCabecera['roles'] ?? []), ENT_QUOTES, 'UTF-8'); ?></small></span>
+                </div>
+              <?php else: ?>
+                <form method="post" action="index.php?r=seleccionar-institucion" class="mb-0" data-institucion-destino="<?php echo htmlspecialchars($membresiaCabecera['slug'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                  <input type="hidden" name="institucion_csrf" value="<?php echo htmlspecialchars(ControladorInstitucion::csrf(), ENT_QUOTES, 'UTF-8'); ?>">
+                  <input type="hidden" name="institucion_version" value="<?php echo htmlspecialchars(ControladorInstitucion::version(), ENT_QUOTES, 'UTF-8'); ?>">
+                  <input type="hidden" name="id_institucion" value="<?php echo (int) $membresiaCabecera['idInstitucion']; ?>">
+                  <button type="submit" class="dropdown-item d-flex align-items-center py-2">
+                    <?php if ($logoMembresia !== ''): ?><img src="<?php echo htmlspecialchars($logoMembresia, ENT_QUOTES, 'UTF-8'); ?>" alt="" class="img-circle mr-2" style="width:24px;height:24px;object-fit:cover"><?php else: ?><i class="far fa-circle mr-2 text-muted"></i><?php endif; ?>
+                    <span><?php echo htmlspecialchars($membresiaCabecera['nombre'], ENT_QUOTES, 'UTF-8'); ?><br><small class="text-muted"><?php echo htmlspecialchars(implode(', ', $membresiaCabecera['roles'] ?? []), ENT_QUOTES, 'UTF-8'); ?></small></span>
+                  </button>
+                </form>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </li>
+    <?php endif; ?>
+
+    <?php if (class_exists('ControladorInstitucion', false) && ControladorInstitucion::activo() && ControladorInstitucion::esSuperAdmin()): ?>
+      <li class="nav-item"><a href="index.php?r=superadmin" class="nav-link" title="Panel global MenteMotion"><i class="fas fa-shield-alt text-primary"></i></a></li>
+    <?php endif; ?>
 
     <li class="nav-item d-none d-sm-inline-block">
       <?php if ($puedeCambiarVista): ?>

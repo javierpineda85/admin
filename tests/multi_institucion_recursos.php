@@ -940,6 +940,24 @@ try {
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion',$formularioHttp+['id_institucion'=>$demo]);
     verificar($respuestaHttp['codigo']===303 && $respuestaHttp['destino']==='index.php',
         'HTTP entregas: estudiante selecciona Instituto Demo antes de operar');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=listado-cursos');
+    verificar(str_contains($respuestaHttp['body'],'data-institucion-activa="instituto-demo"')
+        && str_contains($respuestaHttp['body'],'data-institucion-destino="mentemotion"')
+        && str_contains($respuestaHttp['body'],'Cambiar de institución'),
+        'HTTP header: muestra el tenant activo y el selector para múltiples membresías');
+    $formularioHeader=formularioInstitucion($respuestaHttp['body']);
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion',$formularioHeader+['id_institucion'=>$mm]);
+    verificar($respuestaHttp['codigo']===303 && $respuestaHttp['destino']==='index.php',
+        'HTTP header: el selector cambia a MenteMotion sin cerrar sesión');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=listado-cursos');
+    verificar(str_contains($respuestaHttp['body'],'data-institucion-activa="mentemotion"')
+        && str_contains($respuestaHttp['body'],'Curso MenteMotion')
+        && !str_contains($respuestaHttp['body'],'Curso Demo'),
+        'HTTP header: el cambio recalcula contenido y contexto institucional');
+    $formularioHeader=formularioInstitucion($respuestaHttp['body']);
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion',$formularioHeader+['id_institucion'=>$demo]);
+    verificar($respuestaHttp['codigo']===303 && $respuestaHttp['destino']==='index.php',
+        'HTTP header: el usuario puede volver a Instituto Demo');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=bandeja-entrada',[
         'accion'=>'marcar_leido',
         'id_mensaje'=>$mensajeHttp['idMensaje'],
