@@ -1,8 +1,8 @@
 # Fase 4: aislamiento de recursos, en curso
 
 El primer bloque quedó registrado en `6e9a6dd5302ac3a7b1aebab5a6fa1393d079015e`.
-El flujo institucional sigue en ensayo y las aulas permanecen bloqueadas.
-No habilitarlo en producción: la fase 4 todavía no está completa.
+El flujo institucional sigue en ensayo. Una membresía válida ya abre el Campus,
+pero no debe habilitarse en producción: la fase 4 todavía no está completa.
 
 ## Cambios incorporados
 
@@ -11,6 +11,8 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
   membresías, roles e inscripciones. Sin contexto seleccionado rechaza el acceso.
 - Los listados de cursos y materias filtran institución en SQL. Los accesos por
   ID y las operaciones de estos modelos validan pertenencia antes de operar.
+- El controlador de rutas aplica una segunda frontera antes del renderizado y
+  responde 403 ante IDs ajenos de cursos, materias, actividades, mensajes y perfiles.
 - El alta de cursos toma la institución desde el contexto, ignorando la que
   pudiera proporcionar el formulario. Las asignaciones validan roles de membresía.
 - Lecciones y recursos validan su ascendencia. Las entregas comprueban que curso,
@@ -115,15 +117,22 @@ por IDs ajenos, usuarios exclusivamente de otra institución, asignaciones,
 lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
-Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
+El bloqueo HTTP preventivo fue retirado en bases migradas de ensayo; `classroom`
+no se modifica.
 
-Última verificación: `campus_mt_fase2_20260914_024428_063e9c`, 247 comprobaciones
-correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
+La verificación incluye peticiones HTTP reales al panel y a listados, recursos
+propios y recursos ajenos. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno y descargas de adjuntos
 o recursos propios y ajenos. Los archivos sintéticos se eliminan después de
 comprobar que la copia mantiene exactamente su contenido.
 Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
 directamente a archivos de ambas carpetas protegidas.
+
+Última verificación: `campus_mt_fase2_20260914_030204_9fa357`, 258 comprobaciones
+correctas. Incluye apertura del panel, listado institucional, lectura de un curso
+propio y respuestas 403 ante lectura o escritura cruzada de cursos, materias,
+actividades y mensajes. También conserva la actividad pública sin sesión y evita
+revelar actividades privadas por slug.
 
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
@@ -140,12 +149,8 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 ## Trabajo pendiente antes de finalizar y habilitar
 
-- Ampliar asistencia con pruebas HTTP cuando se retire el bloqueo preventivo;
-  revisar las vistas de calificaciones antes de habilitarlas.
-- Validar los endpoints HTTP de actividades cuando se retire el bloqueo
-  preventivo de las aulas.
-- Incorporar estas operaciones de membresía a las pruebas HTTP cuando se retire
-  el bloqueo preventivo de las aulas y del panel administrativo institucional.
+- Ampliar las pruebas HTTP de asistencia, calificaciones, actividades y membresías;
+  el panel, los listados y los accesos cruzados principales ya están cubiertos.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas
   de entregas, posteos, calificaciones y eliminación de dependencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
@@ -157,5 +162,4 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
   delta de filas creado por el modo habitual después de la expansión.
 - Revisar las escrituras restantes de los demás dominios y sus dependencias;
   el refuerzo del bloque de cursos/materias/lecciones no certifica el resto del sistema.
-- Pruebas HTTP de endpoints académicos y revisión residual antes de retirar el
-  bloqueo de las aulas.
+- Revisión HTTP residual antes de autorizar el indicador en producción.

@@ -60,15 +60,15 @@ objetivo y el estado de implementación.
 4. Carga nota y devolucion.
 5. El estudiante ve el resultado en su vista academica o en la tab de calificaciones.
 
-## Login institucional en ensayo (fase 2)
+## Login institucional
 
 Con `INSTITUCIONES_CONTEXTO_ACTIVO=1`, LOCAL/WORDPRESS/HYBRID autentican identidad
 global. Sin membresías aparece la pantalla sin acceso; una se selecciona sola;
 varias muestran tarjetas. El cambio usa POST con CSRF y versión de contexto,
-revalida la membresía y renueva la sesión. La salida es `institucion-preparada`:
-las aulas están bloqueadas hasta completar permisos y aislamiento. El selector
-del header queda para fase 6. Por defecto el indicador vale 0 y conserva los
-flujos habituales descritos arriba.
+revalida la membresía y renueva la sesión. Con un contexto válido se ingresa al
+Campus; las rutas con identificadores institucionales se verifican antes de
+renderizar. El selector del header queda para fase 6. Por defecto el indicador
+vale 0 y conserva los flujos habituales descritos arriba.
 
 La autorización de fase 3 usa todos los roles de la membresía. Una persona puede
 ser, por ejemplo, ADMINISTRADOR y DOCENTE en la misma institución. Responsables,

@@ -67,6 +67,7 @@ Accede solo a lo que corresponde a su inscripcion:
 
 Con el contexto activado se elimina el rol legacy de la sesión y se cargan todos
 los roles de la membresía validada mediante `ControladorInstitucion::roles()`.
-La integración con permisos académicos corresponde a fase 3; las aulas permanecen
-bloqueadas en ensayo. El funcionamiento legacy descrito arriba corresponde al
-indicador desactivado. SuperAdmin no recibe membresías ni bypass académicos.
+`ControladorPermisos` autoriza las rutas con ese conjunto y el Campus queda
+disponible sobre una base migrada de ensayo. El funcionamiento legacy descrito
+arriba corresponde al indicador desactivado. SuperAdmin no recibe membresías ni
+bypass académicos.

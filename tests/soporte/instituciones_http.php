@@ -74,15 +74,13 @@ foreach (['LOCAL','WORDPRESS','HYBRID'] as $modo) {
         verificar(str_contains($r['body'],'MenteMotion') && str_contains($r['body'],'Instituto Demo') && str_contains($r['headers'],'no-store'),"$modo: tarjetas y respuesta sin caché");
         $form=formularioInstitucion($r['body']);
         $r=peticion($curl,$url.'?r=seleccionar-institucion',$form+['id_institucion'=>$demo]);
-        verificar($r['codigo']===303 && $r['destino']==='index.php?r=institucion-preparada',"$modo: selección válida mediante POST");
-        $r=peticion($curl,$url.'?r=institucion-preparada');
-        verificar(str_contains($r['body'],'ESTUDIANTE') && !str_contains($r['body'],'ADMINISTRADOR'),"$modo: muestra el rol institucional correcto");
+        verificar($r['codigo']===303 && $r['destino']==='index.php',"$modo: selección válida abre el Campus");
+        $sesion=unserialize(file_get_contents(archivoSesion($curl,$sesiones)),['allowed_classes'=>false]);
+        verificar((int)$sesion['institucion_id']===$demo && $sesion['institucion_roles']===['ESTUDIANTE'],"$modo: sesión conserva el rol institucional correcto");
         $r=peticion($curl,$url.'?r=seleccionar-institucion',$form+['id_institucion'=>$mm]);
         verificar($r['codigo']===403,"$modo: formulario reutilizado rechazado");
-        $r=peticion($curl,$url.'?r=detalle-curso&idCurso=1');
-        verificar($r['destino']==='index.php?r=institucion-preparada',"$modo: módulos académicos no aislados quedan bloqueados");
-        $r=peticion($curl,$url.'?r=detalle-curso',['accion_curso'=>'eliminar_curso','idCurso'=>1]);
-        verificar($r['codigo']===403,"$modo: POST académico bloqueado antes del controlador legacy");
+        $r=peticion($curl,$url.'?r=institucion-preparada');
+        verificar($r['codigo']===303 && $r['destino']==='index.php',"$modo: la ruta preventiva anterior vuelve al Campus");
         $r=peticion($curl,$url.'?r=seleccionar-institucion&id_institucion='.$mm);
         $sesion=unserialize(file_get_contents(archivoSesion($curl,$sesiones)),['allowed_classes'=>false]);
         verificar((int)$sesion['institucion_id']===$demo,"$modo: GET no cambia institución");
@@ -98,7 +96,7 @@ foreach (['LOCAL','WORDPRESS','HYBRID'] as $modo) {
         }
         if ($modo==='LOCAL') {
             $r=peticion($curl,$url.'?r=login',['login_email'=>'c@campus.example','login_pass'=>$password]);
-            verificar($r['destino']==='index.php?r=institucion-preparada','LOCAL: una membresía se selecciona al autenticar');
+            verificar($r['destino']==='index.php','LOCAL: una membresía abre el Campus automáticamente');
             $r=peticion($curl,$url.'?r=seleccionar-institucion'); $form=formularioInstitucion($r['body']);
             $r=peticion($curl,$url.'?r=seleccionar-institucion',$form+['id_institucion'=>$demo]);
             verificar($r['codigo']===403,'LOCAL: C no puede seleccionar Demo por HTTP');

@@ -107,11 +107,60 @@ class RutasController
         return __DIR__ . '/../vistas/paginas/';
     }
 
+    private static function denegarRecursoInstitucional()
+    {
+        http_response_code(403);
+        include self::rutaBasePaginas() . '404.php';
+        exit;
+    }
+
+    private static function validarRecursoInstitucional($ruta)
+    {
+        if (!class_exists('ControladorInstitucion', false) || !ControladorInstitucion::activo()) {
+            return true;
+        }
+
+        if (in_array($ruta, ['detalle-curso', 'editar-curso'], true)) {
+            $idCurso = (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0);
+            return $idCurso > 0 && ModeloCursos::mdlBuscarCursoPorId($idCurso) !== null;
+        }
+
+        if (in_array($ruta, ['detalle-seccion', 'editar-materia', 'calificaciones-seccion', 'asistencia-seccion'], true)) {
+            $idSeccion = (int) ($_GET['idSeccion'] ?? $_GET['id'] ?? 0);
+            return $idSeccion > 0 && ModeloMaterias::mdlBuscarMateriaPorId($idSeccion) !== false;
+        }
+
+        if (in_array($ruta, ['editar-actividad', 'ver-actividad', 'resultados-actividad'], true)) {
+            $idActividad = (int) ($_GET['idActividad'] ?? 0);
+            return $idActividad > 0 && ModeloActividades::mdlBuscarPorId($idActividad) !== null;
+        }
+
+        if ($ruta === 'detalle-mensaje') {
+            $idMensaje = (int) ($_GET['idMensaje'] ?? 0);
+            $idUsuario = (int) ($_SESSION['usuario']['id'] ?? 0);
+            return $idMensaje > 0 && $idUsuario > 0
+                && ModeloMensajes::mdlMensajeDetalle($idMensaje, $idUsuario) !== null;
+        }
+
+        if ($ruta === 'perfil-publico') {
+            return ControladorUsuarios::crtPuedeVerPerfilEnSeccion(
+                (int) ($_GET['idUsuario'] ?? 0),
+                (int) ($_GET['idSeccion'] ?? 0)
+            );
+        }
+
+        return true;
+    }
+
     public static function procesarAntesDeRenderizar($ruta)
     {
         $ruta = trim((string) $ruta);
         if (!isset($_SESSION['logueado']) || $_SESSION['logueado'] !== true || !ControladorPermisos::puedeAccederRuta($ruta)) {
             return;
+        }
+
+        if (!self::validarRecursoInstitucional($ruta)) {
+            self::denegarRecursoInstitucional();
         }
 
         if ($ruta === 'detalle-curso') {

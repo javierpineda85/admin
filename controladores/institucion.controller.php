@@ -128,12 +128,13 @@ class ControladorInstitucion
     public static function rutaDestino()
     {
         if (!self::$membresias) { return 'sin-acceso-institucional'; }
-        return self::$actual ? 'institucion-preparada' : 'seleccionar-institucion';
+        return self::$actual ? '' : 'seleccionar-institucion';
     }
 
     private static function redirigir($ruta)
     {
-        header('Location: index.php?r=' . $ruta, true, 303);
+        $destino = $ruta === '' ? 'index.php' : 'index.php?r=' . rawurlencode($ruta);
+        header('Location: ' . $destino, true, 303);
         exit;
     }
 
@@ -157,7 +158,7 @@ class ControladorInstitucion
         try {
             ModeloInstituciones::mdlVerificarEsquema();
             if (($_SESSION['logueado'] ?? false) !== true) {
-                if (in_array($ruta, ['login', 'forgot'], true)) { return; }
+                if (in_array($ruta, ['login', 'forgot', 'actividad-publica'], true)) { return; }
                 self::redirigir('login');
             }
             $ultima = (int) ($_SESSION['ultima_actividad'] ?? 0);
@@ -169,19 +170,28 @@ class ControladorInstitucion
                 self::redirigir('login');
             }
             $_SESSION['ultima_actividad'] = time();
-            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-                if ($ruta !== 'seleccionar-institucion'
-                    || !self::seleccionar($_POST['id_institucion'] ?? null, $_POST['institucion_csrf'] ?? null, $_POST['institucion_version'] ?? null)) {
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && $ruta === 'seleccionar-institucion') {
+                if (!self::seleccionar($_POST['id_institucion'] ?? null, $_POST['institucion_csrf'] ?? null, $_POST['institucion_version'] ?? null)) {
                     self::mostrar('solicitud-invalida', 403);
                 }
                 self::redirigir(self::rutaDestino());
             }
+
+            if (self::$actual) {
+                if ($ruta === 'seleccionar-institucion') {
+                    self::mostrar('seleccionar-institucion');
+                }
+                if ($ruta === 'institucion-preparada') {
+                    self::redirigir('');
+                }
+                return;
+            }
+
             if ($ruta === 'seleccionar-institucion' && self::$membresias) {
                 self::mostrar('seleccionar-institucion');
             }
-            if ($ruta === 'descargar-archivo' && self::$actual) { return; }
             $destino = self::rutaDestino();
-            if ($ruta !== $destino) { self::redirigir($destino); }
+            if ($ruta !== $destino || ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') { self::redirigir($destino); }
             self::mostrar($destino);
         } catch (Throwable $e) {
             self::limpiar();

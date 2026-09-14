@@ -55,6 +55,7 @@ function sesionPara($id) {
 verificar(sesionPara($ids['A']), 'Identidad global A válida');
 verificar(ControladorInstitucion::id() === 0 && ControladorInstitucion::rutaDestino()==='seleccionar-institucion', 'A debe elegir entre dos instituciones');
 verificar(ControladorInstitucion::seleccionar($mm, ControladorInstitucion::csrf(), ControladorInstitucion::version()), 'A selecciona MenteMotion');
+verificar(ControladorInstitucion::rutaDestino()==='', 'Una institución válida habilita el destino principal del Campus');
 verificar(ControladorInstitucion::roles()===['DOCENTE'], 'Roles obtenidos de membresía, no de usuarios.rol');
 verificar(ControladorPermisos::rolesReales()===['DOCENTE'] && ControladorPermisos::rolReal()==='DOCENTE', 'Permisos leen el rol de la membresía actual');
 verificar(ControladorPermisos::puedeAccederRuta('crear-actividad') && !ControladorPermisos::puedeAccederRuta('crear-usuario'), 'Rutas de docente no heredan permisos administrativos legacy');
@@ -138,5 +139,5 @@ verificar($privilegiado && (int)$privilegiado['esSuperAdmin']===0 && $privilegia
 // Se continúa en el mismo ensayo con pruebas HTTP de las rutas reales.
 require __DIR__ . '/soporte/instituciones_http.php';
 echo "Base sintética conservada: $base\n";
-echo "Fases 2 y 3: contexto, autenticación y permisos institucionales comprobados; aislamiento académico pendiente.\n";
+echo "Contexto, autenticación, permisos institucionales y apertura controlada del Campus comprobados.\n";
 ob_end_flush();

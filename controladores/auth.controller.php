@@ -74,7 +74,8 @@ class ControladorAuth
                 header('Location: index.php?r=login', true, 303);
                 exit;
             }
-            header('Location: index.php?r=' . ControladorInstitucion::rutaDestino(), true, 303);
+            $rutaInstitucional = ControladorInstitucion::rutaDestino();
+            header('Location: ' . ($rutaInstitucional === '' ? 'index.php' : 'index.php?r=' . rawurlencode($rutaInstitucional)), true, 303);
             exit;
         }
 

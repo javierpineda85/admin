@@ -62,23 +62,24 @@ Sistema web tipo classroom para administradores, docentes y estudiantes.
 ## Evolución multiinstitución
 
 El diseño y seguimiento están en [docs/multi-institucion.md](docs/multi-institucion.md).
-La expansión inicial de esquema está disponible para ensayo; **el aislamiento
-multiinstitución todavía no está implementado**. No habilitar una segunda institución
-en el Campus actual. El ensayo `php tests/multi_institucion_migracion.php` crea una
-base nueva, conserva la original y verifica preservación de datos y reejecución.
+La expansión inicial de esquema y el aislamiento académico están disponibles para
+ensayo sobre una base migrada. No habilitar una segunda institución en producción
+hasta cerrar los pendientes de la fase 4. El ensayo
+`php tests/multi_institucion_migracion.php` crea una base nueva, conserva la original
+y verifica preservación de datos y reejecución.
 
 La fase 2 agrega contexto central y selección institucional. El indicador
 `INSTITUCIONES_CONTEXTO_ACTIVO` vale 0 por defecto. Usar 1 solamente en una base
-migrada de ensayo: las aulas quedan bloqueadas hasta completar permisos y
-aislamiento. `php tests/multi_institucion_contexto.php` prueba contexto y login
+migrada de ensayo: una membresía válida abre el Campus y cada petición revalida el
+contexto. `php tests/multi_institucion_contexto.php` prueba contexto y login
 HTTP LOCAL/WORDPRESS/HYBRID con cuentas sintéticas en una base separada, sin correo
 ni conexión con WordPress de producción.
 
 La fase 3 conecta los roles de membresía con `ControladorPermisos`, admite roles
-simultáneos y valida institucionalmente las personas asignables. Las rutas
-académicas siguen cerradas hasta completar la fase 4.
+simultáneos y valida institucionalmente las personas asignables.
 
 La fase 4 está en curso. `php tests/multi_institucion_recursos.php` ensaya aislamiento
-de cursos, materias, lecciones, inscripciones y duplicación sobre datos sintéticos.
+de recursos y peticiones HTTP reales sobre datos sintéticos. Los accesos directos a
+cursos, materias, actividades, mensajes y perfiles pasan por una validación central.
 El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y los
 dominios pendientes antes de habilitar el Campus multiinstitución.

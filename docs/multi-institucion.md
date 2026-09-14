@@ -1,8 +1,8 @@
 # Multiinstitución: diseño y seguimiento
 
-Estado: fases 1, 2 y 3 implementadas y ensayadas; el flujo nuevo está disponible solo en ensayo. La aplicación todavía no
-ofrece aislamiento multiinstitución. No habilitar una segunda institución en el
-Campus hasta completar las fases de contexto, permisos, consultas y archivos.
+Estado: fases 1, 2 y 3 implementadas y ensayadas; la fase 4 permite recorrer el
+Campus aislado sobre una base migrada de ensayo. No habilitar una segunda
+institución en producción hasta cerrar sus pendientes y la revisión final.
 
 Fase 4 en curso: [alcance, pruebas y pendientes del aislamiento](multi-institucion-fase4.md).
 
@@ -187,10 +187,10 @@ adoptar un tenant enviado por el cliente. Recuperar sus relaciones originales
 exige revisar los antecedentes de esos datos.
 
 Pendiente: finalización del esquema (NOT NULL, unicidad institucional, identidad
-global única y claves foráneas compatibles), fases 3–7, pruebas de aislamiento
-HTTP/modelos académicos, WordPress de producción, panel SuperAdmin y cierre
-de archivos estáticos. El ensayo del esquema **no prueba** esas funcionalidades.
-La elección del email de SuperAdmin quedó solicitada al usuario.
+global única y claves foráneas compatibles), cierre residual de fase 4, fases 5–7,
+WordPress de producción, panel SuperAdmin y revisión de archivos históricos. El
+ensayo del esquema **no prueba** esas funcionalidades. No se asignó SuperAdmin a
+una cuenta real.
 
 La documentación histórica de WordPress describe una sincronización de rol y
 estado más amplia que el código actual: el modelo conserva roles locales válidos
@@ -224,12 +224,11 @@ previsualización de estudiante. Revocaciones, suspensiones y cambios de roles
 invalidan el contexto anterior; se rechazan formularios de selección obsoletos.
 Las respuestas llevan `no-store` y no exponen errores SQL.
 
-**Límite de esta fase:** la selección termina en `institucion-preparada`.
-Las rutas académicas y públicas anteriores no se despachan en este modo: GET se
-redirige y POST devuelve 403. Faltan permisos académicos (fase 3) y aislamiento de
-consultas y archivos (fase 4). Este bloqueo del punto de entrada no protege los
-archivos estáticos ni convierte los modelos antiguos en modelos aislados.
-No activar este ensayo en producción. El selector del header queda para fase 6.
+Una selección válida abre el Campus. Antes del renderizado se revalida la
+membresía y `RutasController` rechaza IDs ajenos de los recursos principales.
+Los modelos y el controlador de descargas mantienen la frontera en lecturas y
+escrituras. No activar este ensayo en producción hasta cerrar la fase 4. El
+selector del header queda para fase 6.
 
 LOCAL, WORDPRESS e HYBRID comparten la salida de autenticación. En el ensayo,
 WordPress sincroniza identidad por ID/email sin modificar roles, membresías ni
@@ -249,15 +248,15 @@ fallback a WordPress, usando tablas WordPress sintéticas. No modifica `classroo
 Ensayo de fase 2: `campus_mt_fase2_20260913_193422_3694f2`, 75 comprobaciones correctas.
 Incluye alternancia DOCENTE/ESTUDIANTE, múltiples roles de B, rechazo de C en Demo,
 revocación, suspensión, sesión manipulada, CSRF, formularios obsoletos, inactividad,
-logout, bloqueo de rutas antiguas, falta de esquema y modo legacy desactivado.
+logout, apertura controlada del Campus, falta de esquema y modo legacy desactivado.
 También se verificó visualmente el cambio de institución y rol en navegador.
 PHP lint y `git diff --check` pasaron.
 
 La recuperación se comprobó por renderizado y delegación a WordPress sin enviar
 correo. No se verificó SMTP ni WordPress de producción. Las bases sintéticas quedan
 locales para inspección. No se asignó SuperAdmin a cuentas reales. El aislamiento
-de cursos, materias, usuarios, entregas y archivos sigue pendiente: estas pruebas
-certifican el contexto y su flujo, no el aislamiento académico completo.
+académico se verifica en la batería de fase 4; estas pruebas certifican el contexto
+y su flujo.
 
 ## Fase 3: roles institucionales y permisos (2026-09-13)
 

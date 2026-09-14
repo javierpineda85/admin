@@ -8,7 +8,6 @@ $e = static fn($valor) => htmlspecialchars((string) $valor, ENT_QUOTES | ENT_SUB
 $titulos = [
     'seleccionar-institucion' => 'Elegí tu institución',
     'sin-acceso-institucional' => 'Tu cuenta no tiene acceso institucional',
-    'institucion-preparada' => 'Institución seleccionada',
     'solicitud-invalida' => 'No se pudo seleccionar la institución',
     'institucion-no-disponible' => 'El acceso institucional no está disponible',
 ];
@@ -66,11 +65,6 @@ $iniciales = static function ($nombre) {
           </div>
         <?php elseif ($estado === 'sin-acceso-institucional'): ?>
           <p>Tu identidad fue verificada, pero no tenés una membresía activa en una institución disponible. Contactá a la administración de tu institución para solicitar acceso.</p>
-        <?php elseif ($estado === 'institucion-preparada'): ?>
-          <h2 class="h4"><?= $e($institucion['nombre'] ?? '') ?></h2>
-          <p><?= $e(ControladorInstitucion::roles() ? implode(' · ', ControladorInstitucion::roles()) : 'Sin roles académicos asignados') ?></p>
-          <p>El acceso a las aulas todavía no está habilitado en este entorno. Tu institución quedó seleccionada.</p>
-          <?php if (count($instituciones) > 1): ?><a class="btn btn-outline-primary" href="index.php?r=seleccionar-institucion">Cambiar de institución</a><?php endif; ?>
         <?php elseif ($estado === 'solicitud-invalida'): ?>
           <p>La solicitud venció o ya no tenés acceso a esa institución. Volvé a la selección para actualizar las opciones.</p>
           <a class="btn btn-outline-primary" href="index.php?r=seleccionar-institucion">Volver a la selección</a>

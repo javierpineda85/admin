@@ -183,17 +183,20 @@ $evaluacionPeriodoCruzado=['id_seccion'=>$materiaDemo,'id_curso'=>$cursoDemo,
     'id_periodo'=>$contextoMM['periodos'][0]['idPeriodo'],'id_instrumento'=>$contextoDemo['instrumentos'][0]['idInstrumento'],
     'id_autor'=>$ids['B'],'temaEvaluacion'=>'Período cruzado','fechaEvaluacion'=>'2026-09-21'];
 denegado(function() use($evaluacionPeriodoCruzado) { ModeloCalificaciones::mdlCrearEvaluacion($evaluacionPeriodoCruzado); }, 'Evaluación rechaza período de otra institución');
-$claseDemo=ModeloAsistencias::mdlCrearClase($materiaDemo,$cursoDemo,'2026-09-13','Clase Demo',$ids['B']);
+$fechaClaseDemo=date('Y-m-d');
+$fechaClaseCruzada=date('Y-m-d',strtotime('+1 day'));
+$fechaClaseIncoherente=date('Y-m-d',strtotime('+2 days'));
+$claseDemo=ModeloAsistencias::mdlCrearClase($materiaDemo,$cursoDemo,$fechaClaseDemo,'Clase Demo',$ids['B']);
 verificar($claseDemo>0, 'Asistencia crea una clase dentro de la institución activa');
 $registrosDemo=ModeloAsistencias::mdlRegistrosClase($claseDemo);
 verificar(array_column($registrosDemo,'id_estudiante')==[$ids['A']], 'Asistencia incorpora solo estudiantes activos de la institución y del curso');
 verificar(ModeloAsistencias::mdlGuardar($claseDemo,[$ids['A']=>'AUSENTE'],[$ids['A']=>'Ensayo'],$ids['B'])==='ok', 'Asistencia propia se actualiza con contexto institucional');
 verificar((string)$pdo->query('SELECT estado FROM asistencia_registros WHERE id_clase='.(int)$claseDemo)->fetchColumn()==='AUSENTE', 'Estado de asistencia queda persistido');
-denegado(function() use($materiaDemo,$cursoMM,$ids) {
-    ModeloAsistencias::mdlCrearClase($materiaDemo,$cursoMM,'2026-09-14','Curso cruzado',$ids['B']);
+denegado(function() use($materiaDemo,$cursoMM,$ids,$fechaClaseCruzada) {
+    ModeloAsistencias::mdlCrearClase($materiaDemo,$cursoMM,$fechaClaseCruzada,'Curso cruzado',$ids['B']);
 }, 'Asistencia rechaza combinación de materia y curso de instituciones diferentes');
 $pdo->prepare('INSERT INTO asistencia_clases(id_seccion,id_curso,fechaClase,tema,creadaPor) VALUES(?,?,?,?,?)')
-    ->execute([$materiaDemo,$cursoMM,'2026-09-15','Dato incoherente',$ids['B']]);
+    ->execute([$materiaDemo,$cursoMM,$fechaClaseIncoherente,'Dato incoherente',$ids['B']]);
 $claseIncoherente=(int)$pdo->lastInsertId();
 denegado(function() use($claseIncoherente) { ModeloAsistencias::mdlClase($claseIncoherente); }, 'Asistencia histórica incoherente no se revela por ID');
 verificar(array_column(ModeloAsistencias::mdlClasesSeccion($materiaDemo),'idClase')==[$claseDemo], 'Listado de asistencia excluye clases con curso cruzado');
@@ -488,5 +491,76 @@ denegado(function() use($actividadModelo,$preguntaModelo) {
         'textoRespuesta'=>'Sí','esCorrecta'=>0,'puntajeObtenido'=>0
     ]]);
 }, 'Visitante no puede forzar un intento sobre una actividad privada');
+
+[$servidorHttp,$urlHttp,$sesionesHttp]=levantarServidor('LOCAL');
+$curlHttp=curl_init();
+try {
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=actividad-publica&slug=actividad-publica-demo');
+    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Actividad pública Demo'),
+        'HTTP público: actividad publicada se resuelve sin iniciar sesión ni elegir tenant');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=actividad-publica&slug=actividad-modelo-demo');
+    verificar($respuestaHttp['codigo']===200 && !str_contains($respuestaHttp['body'],'Actividad actualizada'),
+        'HTTP público: actividad privada no se revela por slug');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=login',[
+        'login_email'=>'b@campus.example',
+        'login_pass'=>$password,
+    ]);
+    verificar($respuestaHttp['codigo']===303 && $respuestaHttp['destino']==='index.php',
+        'HTTP académico: administrador con una membresía ingresa al Campus');
+    $respuestaHttp=peticion($curlHttp,$urlHttp);
+    verificar($respuestaHttp['codigo']===200 && !str_contains($respuestaHttp['body'],'Fatal error')
+        && str_contains($respuestaHttp['headers'],'no-store'),
+        'HTTP académico: panel principal renderiza con el tenant revalidado');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=listado-cursos');
+    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Curso Demo')
+        && !str_contains($respuestaHttp['body'],'Curso MenteMotion'),
+        'HTTP académico: listado de cursos no mezcla instituciones');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-curso&idCurso='.$cursoDemo);
+    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Curso Demo'),
+        'HTTP académico: recurso propio continúa disponible');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-curso&idCurso='.$cursoMM);
+    verificar($respuestaHttp['codigo']===403 && str_contains($respuestaHttp['body'],'Acceso denegado')
+        && !str_contains($respuestaHttp['body'],'Curso MenteMotion'),
+        'HTTP académico: curso de otra institución devuelve acceso denegado');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-curso&idCurso='.$cursoMM,[
+        'accion_curso'=>'eliminar_curso',
+        'idCurso'=>$cursoMM,
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query('SELECT COUNT(*) FROM cursos WHERE idCurso='.(int)$cursoMM)->fetchColumn()===1,
+        'HTTP académico: POST manipulado no elimina un curso ajeno');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=editar-materia&idSeccion='.$materiaMM,[
+        'idSeccion'=>$materiaMM,
+        'tituloSeccion'=>'Intento HTTP cruzado',
+        'id_curso'=>$cursoMM,
+        'docente'=>$ids['A'],
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (string)$pdo->query('SELECT tituloSeccion FROM secciones WHERE idSeccion='.(int)$materiaMM)->fetchColumn()==='Materia MenteMotion',
+        'HTTP académico: docente o administrador no modifica una materia ajena');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=ver-actividad&idActividad='.$actividadIncoherente);
+    verificar($respuestaHttp['codigo']===403 && !str_contains($respuestaHttp['body'],'Actividad incoherente'),
+        'HTTP académico: actividad de otro tenant no se revela por ID');
+    peticion($curlHttp,$urlHttp.'?r=logout');
+
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=login',[
+        'login_email'=>'a@campus.example',
+        'login_pass'=>$password,
+    ]);
+    verificar($respuestaHttp['destino']==='index.php?r=seleccionar-institucion',
+        'HTTP académico: usuario multiinstitución vuelve a elegir contexto');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion');
+    $formularioHttp=formularioInstitucion($respuestaHttp['body']);
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion',$formularioHttp+['id_institucion'=>$mm]);
+    verificar($respuestaHttp['codigo']===303 && $respuestaHttp['destino']==='index.php',
+        'HTTP académico: cambio a MenteMotion habilita el Campus');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-mensaje&idMensaje='.$mensajeDemo);
+    verificar($respuestaHttp['codigo']===403 && !str_contains($respuestaHttp['body'],'Mensaje Demo'),
+        'HTTP académico: mensaje de la institución anterior queda denegado');
+} finally {
+    curl_close($curlHttp);
+    proc_terminate($servidorHttp);
+    proc_close($servidorHttp);
+}
 echo "Ensayo de recursos conservado: $base\n";
 ob_end_flush();

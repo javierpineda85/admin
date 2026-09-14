@@ -62,9 +62,9 @@ El proyecto usa una estructura PHP clasica con separacion por capas:
 ## Contexto central implementado en fase 2
 
 `ControladorInstitucion` y `ModeloInstituciones` validan contexto antes del HTML,
-desde `index.php`. Con `INSTITUCIONES_CONTEXTO_ACTIVO=1` habilitan login y selección
-en ensayo, bloqueando las rutas académicas hasta su aislamiento. Por defecto el
-indicador está desactivado y permanece el flujo habitual. Véase multi-institucion.md.
+desde `index.php`. Con `INSTITUCIONES_CONTEXTO_ACTIVO=1` habilitan login, selección
+y Campus sobre una base migrada de ensayo. Por defecto el indicador está desactivado
+y permanece el flujo habitual. Véase multi-institucion.md.
 
 La fase 3 concentra capacidades en `ControladorPermisos`: toma todos los roles del
 contexto, autoriza por su unión y conserva un rol principal estable para las vistas
@@ -72,5 +72,6 @@ legacy. Las personas asignables se validan contra membresía y rol activos media
 `ModeloInstituciones`.
 
 La fase 4 en curso agrega `ModeloTenant` para construir predicados SQL comunes y
-validar cadenas de pertenencia. Las vistas de cursos y formularios de materias
-utilizan consultas de modelos. Alcance y límites en [multi-institucion-fase4.md](multi-institucion-fase4.md).
+validar cadenas de pertenencia. `RutasController` rechaza antes de renderizar IDs
+ajenos de cursos, materias, actividades, mensajes y perfiles. Las vistas usan los
+modelos con contexto. Alcance y límites en [multi-institucion-fase4.md](multi-institucion-fase4.md).
