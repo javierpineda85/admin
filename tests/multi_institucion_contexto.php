@@ -86,6 +86,7 @@ sesionPara($ids['SinRol']);
 verificar(ControladorInstitucion::id()===$mm && ControladorInstitucion::roles()===[], 'Membresía sin roles no hereda administrador legacy');
 sesionPara($ids['Super']);
 verificar(ControladorInstitucion::esSuperAdmin() && ControladorInstitucion::id()===0, 'SuperAdmin no recibe una membresía artificial');
+verificar(ControladorInstitucion::rutaDestino()==='superadmin', 'SuperAdmin sin membresía tiene un destino global propio');
 sesionPara($ids['A']);
 ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
 $csrfViejo=ControladorInstitucion::csrf(); $versionVieja=ControladorInstitucion::version();

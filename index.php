@@ -1,6 +1,7 @@
 <?php
 require_once("config.php");
 require_once("controladores/institucion.controller.php");
+require_once("controladores/superadmin.controller.php");
 require_once("controladores/auth.controller.php");
 require_once("controladores/permisos.controller.php");
 require_once("controladores/rutas.controller.php");

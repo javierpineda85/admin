@@ -37,9 +37,11 @@ if (($ahora - $ultimaActividad) >= $limiteInactividad) {
 
 $_SESSION['ultima_actividad'] = $ahora;
 
-ModeloCursos::prepararEstructuraAcademica();
-
 $rutaVista = isset($_GET['r']) ? trim($_GET['r']) : '';
+$panelGlobalSuperAdmin = ControladorInstitucion::esRutaGlobalSuperAdmin($rutaVista);
+if (!$panelGlobalSuperAdmin) {
+  ModeloCursos::prepararEstructuraAcademica();
+}
 if ($rutaVista === 'vista-estudiante') {
   RutasController::procesarVistaEstudiante();
 }
@@ -61,12 +63,12 @@ RutasController::procesarAntesDeRenderizar($rutaVista);
 
     <!-- Navbar -->
 
-    <?php include_once('contenido/header.php'); ?>
+    <?php include_once($panelGlobalSuperAdmin ? 'contenido/header-superadmin.php' : 'contenido/header.php'); ?>
 
     <!-- /.navbar -->
 
     <!-- Main Sidebar Container -->
-    <?php include_once('contenido/aside.php'); ?>
+    <?php include_once($panelGlobalSuperAdmin ? 'contenido/aside-superadmin.php' : 'contenido/aside.php'); ?>
 
     <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper">

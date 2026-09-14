@@ -96,6 +96,11 @@ class ControladorPermisos
     {
         $ruta = trim((string) $ruta);
 
+        if ($ruta === 'superadmin') {
+            return class_exists('ControladorInstitucion', false)
+                && ControladorInstitucion::esRutaGlobalSuperAdmin($ruta);
+        }
+
         if ($ruta === '' || in_array($ruta, ['login', 'forgot', 'logout', 'actividad-publica'], true)) {
             return true;
         }
@@ -183,6 +188,9 @@ class ControladorPermisos
 
     public static function etiquetaRol()
     {
+        if (class_exists('ControladorInstitucion', false) && ControladorInstitucion::esRutaGlobalSuperAdmin()) {
+            return 'SUPERADMIN';
+        }
         $rol = self::rolActual();
         if (self::vistaEstudianteActiva()) {
             return 'ESTUDIANTE';

@@ -127,8 +127,15 @@ class ControladorInstitucion
 
     public static function rutaDestino()
     {
+        if (self::esSuperAdmin() && !self::$actual) { return 'superadmin'; }
         if (!self::$membresias) { return 'sin-acceso-institucional'; }
         return self::$actual ? '' : 'seleccionar-institucion';
+    }
+
+    public static function esRutaGlobalSuperAdmin($ruta = null)
+    {
+        $ruta = $ruta === null ? ($_GET['r'] ?? '') : $ruta;
+        return self::activo() && self::esSuperAdmin() && trim((string) $ruta) === 'superadmin';
     }
 
     private static function redirigir($ruta)
@@ -170,6 +177,9 @@ class ControladorInstitucion
                 self::redirigir('login');
             }
             $_SESSION['ultima_actividad'] = time();
+            if (self::esRutaGlobalSuperAdmin($ruta)) {
+                return;
+            }
             if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && $ruta === 'seleccionar-institucion') {
                 if (!self::seleccionar($_POST['id_institucion'] ?? null, $_POST['institucion_csrf'] ?? null, $_POST['institucion_version'] ?? null)) {
                     self::mostrar('solicitud-invalida', 403);

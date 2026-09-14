@@ -54,6 +54,9 @@ class RutasController
             'ver-actividad' => 'actividades/ver-actividad.php',
             'resultados-actividad' => 'actividades/resultados-actividad.php',
 
+            // Administración global MenteMotion
+            'superadmin'      => 'instituciones/panel-superadmin.php',
+
             // Web pública
             'login'           => 'web/login.php',
             'forgot'          => 'web/forgot-password.php',
@@ -296,6 +299,10 @@ class RutasController
     public static function procesarAntesDeRenderizar($ruta)
     {
         $ruta = trim((string) $ruta);
+        if (($_SESSION['logueado'] ?? false) === true && $ruta === 'superadmin'
+            && !ControladorPermisos::puedeAccederRuta($ruta)) {
+            self::denegarRecursoInstitucional();
+        }
         if (!isset($_SESSION['logueado']) || $_SESSION['logueado'] !== true || !ControladorPermisos::puedeAccederRuta($ruta)) {
             return;
         }
@@ -306,6 +313,18 @@ class RutasController
 
         if (!self::validarAccionPostInstitucional($ruta)) {
             self::denegarRecursoInstitucional();
+        }
+
+        if ($ruta === 'superadmin') {
+            $resultado = ControladorSuperAdmin::crtProcesar();
+            if ($resultado === 'forbidden') {
+                self::denegarRecursoInstitucional();
+            }
+            if ($resultado !== null) {
+                header('Location: index.php?r=superadmin', true, 303);
+                exit;
+            }
+            return;
         }
 
         if ($ruta === 'detalle-curso') {
@@ -448,6 +467,7 @@ class RutasController
         }
 
         if ($tieneSesion && !ControladorPermisos::puedeAccederRuta($ruta)) {
+            if ($ruta === 'superadmin') { http_response_code(403); }
             include self::rutaBasePaginas() . '404.php';
             return;
         }
