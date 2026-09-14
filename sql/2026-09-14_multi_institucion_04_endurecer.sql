@@ -63,9 +63,21 @@ BEGIN
             WHERE m.id_institucion IS NOT NULL AND COALESCE(m.id_remitente,0)>0
               AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=m.id_remitente AND ui.id_institucion=m.id_institucion)
         ) OR EXISTS (
+            SELECT 1 FROM mensajes m INNER JOIN usuarios u ON u.idUsuario=m.id_destinatario
+            WHERE m.id_institucion IS NOT NULL AND COALESCE(m.id_destinatario,0)>0
+              AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=m.id_destinatario AND ui.id_institucion=m.id_institucion)
+        ) OR EXISTS (
             SELECT 1 FROM mensajes_participantes mp INNER JOIN mensajes m ON m.idMensaje=mp.id_mensaje INNER JOIN usuarios u ON u.idUsuario=mp.id_usuario
             WHERE m.id_institucion IS NOT NULL AND COALESCE(mp.id_usuario,0)>0
               AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=mp.id_usuario AND ui.id_institucion=m.id_institucion)
+        ) OR EXISTS (
+            SELECT 1 FROM notificaciones n INNER JOIN usuarios u ON u.idUsuario=n.id_usuario
+            WHERE n.id_institucion IS NOT NULL AND COALESCE(n.id_usuario,0)>0
+              AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=n.id_usuario AND ui.id_institucion=n.id_institucion)
+        ) OR EXISTS (
+            SELECT 1 FROM notificaciones_lecturas nl INNER JOIN usuarios u ON u.idUsuario=nl.id_usuario
+            WHERE nl.id_institucion IS NOT NULL AND COALESCE(nl.id_usuario,0)>0
+              AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=nl.id_usuario AND ui.id_institucion=nl.id_institucion)
         ) OR EXISTS (
             SELECT 1 FROM actividades a INNER JOIN usuarios u ON u.idUsuario=a.id_autor
             WHERE a.id_institucion IS NOT NULL AND COALESCE(a.id_autor,0)>0

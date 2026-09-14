@@ -202,6 +202,30 @@ comprobar((int) ($diagnosticoSecundario['posteos_autor_sin_membresia'] ?? 0) > 0
     'El diagnóstico identifica autores y creadores sin membresía');
 $pdo->prepare('DELETE FROM posteos WHERE idPosteo=?')->execute([$idPosteoEndurecer]);
 $pdo->prepare('DELETE FROM recursoslecciones WHERE idRecursoLeccion=?')->execute([$idRecursoEndurecer]);
+$pdo->prepare('INSERT INTO mensajes (id_remitente,id_destinatario,contenidoMensaje,fechaMensaje,id_institucion) VALUES (?,?,?,?,?)')
+    ->execute([$idsUsuarios['A'], $idsUsuarios['B'], 'Preflight sintético', '2026-09-14 10:00:00', $idInicial]);
+$idMensajeEndurecer = (int) $pdo->lastInsertId();
+$pdo->prepare('INSERT INTO notificaciones (id_usuario,tipoNotificacion,referenciaTipo,referenciaId,tituloNotificacion,detalleNotificacion,urlNotificacion,id_institucion) VALUES (?,?,?,?,?,?,?,?)')
+    ->execute([$idsUsuarios['B'], 'PREFLIGHT', 'LECCION', $idLeccionEndurecer, 'Preflight sintético', '', '', $idInicial]);
+$idNotificacionEndurecer = (int) $pdo->lastInsertId();
+$claveLecturaEndurecer = 'preflight-' . bin2hex(random_bytes(4));
+$pdo->prepare('INSERT INTO notificaciones_lecturas (id_usuario,claveNotificacion,id_institucion) VALUES (?,?,?)')
+    ->execute([$idsUsuarios['B'], $claveLecturaEndurecer, $idInicial]);
+$rechazoDestinatarios = false;
+try {
+    ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+} catch (PDOException $e) {
+    $rechazoDestinatarios = $e->getCode()==='45000';
+}
+comprobar($rechazoDestinatarios, 'El endurecimiento detiene destinatarios y notificaciones sin membresía');
+$diagnosticoDestinatarios = $pdo->query(file_get_contents(__DIR__ . '/../sql/2026-09-14_multi_institucion_05_validar_relaciones.sql'))->fetchAll(PDO::FETCH_KEY_PAIR);
+comprobar((int) ($diagnosticoDestinatarios['mensajes_destinatario_sin_membresia'] ?? 0) > 0
+    && (int) ($diagnosticoDestinatarios['notificaciones_usuario_sin_membresia'] ?? 0) > 0
+    && (int) ($diagnosticoDestinatarios['lecturas_notificacion_usuario_sin_membresia'] ?? 0) > 0,
+    'El diagnóstico identifica destinatarios y lecturas sin membresía');
+$pdo->prepare('DELETE FROM mensajes WHERE idMensaje=?')->execute([$idMensajeEndurecer]);
+$pdo->prepare('DELETE FROM notificaciones WHERE idNotificacion=?')->execute([$idNotificacionEndurecer]);
+$pdo->prepare('DELETE FROM notificaciones_lecturas WHERE id_usuario=? AND claveNotificacion=?')->execute([$idsUsuarios['B'], $claveLecturaEndurecer]);
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='cursos' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Cursos pasan a exigir institución después del corte');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='mensajes' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Mensajes pasan a exigir institución después del corte');
