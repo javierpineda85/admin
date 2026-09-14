@@ -473,6 +473,16 @@ class ModeloActividades
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
+    public static function mdlBuscarPublicaPorId($idActividad)
+    {
+        self::prepararTablas();
+
+        $stmt = Conexion::conectar()->prepare("\n            SELECT a.*, s.tituloSeccion, c.nombreCurso, s.docente, s.tutor\n            FROM actividades a\n            LEFT JOIN secciones s ON s.idSeccion = a.id_seccion\n            LEFT JOIN cursos c ON c.idCurso = a.id_curso\n            WHERE a.idActividad = :idActividad\n              AND a.estadoActividad = 'PUBLICADA'\n              AND a.visibilidad IN ('publica', 'oculta')\n              AND " . ModeloTenant::actividadesPublicas('a') . "\n            LIMIT 1\n        ");
+        $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
     public static function mdlBuscarPorSlug($slug)
     {
         self::prepararTablas();

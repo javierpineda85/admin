@@ -631,8 +631,10 @@ class ControladorActividades
     private static function registrarIntento()
     {
         $idActividad = (int) ($_POST['idActividad'] ?? 0);
-        $actividad = self::crtBuscarActividadPorId($idActividad);
         $esPublica = empty($_SESSION['logueado']);
+        $actividad = $esPublica
+            ? ModeloActividades::mdlBuscarPublicaPorId($idActividad)
+            : self::crtBuscarActividadPorId($idActividad);
 
         if (!$actividad || !self::puedeResolverActividad($actividad, $esPublica)) {
             $_SESSION['error_message'] = 'No tenes acceso a esta actividad.';

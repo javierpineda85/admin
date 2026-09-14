@@ -142,6 +142,12 @@ class RutasController
                 && ModeloMensajes::mdlMensajeDetalle($idMensaje, $idUsuario) !== null;
         }
 
+        if ($ruta === 'nuevo-mensaje' && (int) ($_GET['idMsj'] ?? 0) > 0) {
+            $idMensaje = (int) $_GET['idMsj'];
+            $idUsuario = (int) ($_SESSION['usuario']['id'] ?? 0);
+            return $idUsuario > 0 && ModeloMensajes::mdlMensajeDetalle($idMensaje, $idUsuario) !== null;
+        }
+
         if ($ruta === 'perfil-publico') {
             return ControladorUsuarios::crtPuedeVerPerfilEnSeccion(
                 (int) ($_GET['idUsuario'] ?? 0),
@@ -157,6 +163,56 @@ class RutasController
         return true;
     }
 
+    private static function validarAccionPostInstitucional($ruta)
+    {
+        if (!class_exists('ControladorInstitucion', false) || !ControladorInstitucion::activo()
+            || strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
+            return true;
+        }
+
+        try {
+            if ($ruta === 'detalle-seccion') {
+                $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
+                $materia = $idSeccion > 0 ? ModeloMaterias::mdlBuscarMateriaPorId($idSeccion) : false;
+                if (!$materia) {
+                    return false;
+                }
+
+                if (isset($_POST['id_seccion']) && (int) $_POST['id_seccion'] !== $idSeccion) {
+                    return false;
+                }
+
+                if (isset($_POST['id_curso']) && (int) $_POST['id_curso'] !== (int) ($materia['id_curso'] ?? 0)) {
+                    return false;
+                }
+
+                if (isset($_POST['id_leccion'])) {
+                    $leccion = ModeloLecciones::mdlBuscarLeccionPorId((int) $_POST['id_leccion']);
+                    if (!$leccion || (int) ($leccion['id_modulo'] ?? 0) !== $idSeccion) {
+                        return false;
+                    }
+                }
+            }
+
+            if (in_array($ruta, ['listado-actividades', 'banco-actividades', 'editar-actividad', 'ver-actividad'], true)
+                && (int) ($_POST['idActividad'] ?? 0) > 0) {
+                return ModeloActividades::mdlBuscarPorId((int) $_POST['idActividad']) !== null;
+            }
+
+            if (in_array($ruta, ['bandeja-entrada', 'mensajes-enviados', 'papelera', 'detalle-mensaje'], true)
+                && (int) ($_POST['id_mensaje'] ?? 0) > 0) {
+                return ModeloMensajes::mdlMensajeDetalle(
+                    (int) $_POST['id_mensaje'],
+                    (int) ($_SESSION['usuario']['id'] ?? 0)
+                ) !== null;
+            }
+        } catch (RuntimeException $e) {
+            return false;
+        }
+
+        return true;
+    }
+
     public static function procesarAntesDeRenderizar($ruta)
     {
         $ruta = trim((string) $ruta);
@@ -165,6 +221,10 @@ class RutasController
         }
 
         if (!self::validarRecursoInstitucional($ruta)) {
+            self::denegarRecursoInstitucional();
+        }
+
+        if (!self::validarAccionPostInstitucional($ruta)) {
             self::denegarRecursoInstitucional();
         }
 

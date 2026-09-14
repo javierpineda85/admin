@@ -14,6 +14,9 @@ pero no debe habilitarse en producción: la fase 4 todavía no está completa.
 - El controlador de rutas aplica una segunda frontera antes del renderizado y
   responde 403 ante IDs ajenos de cursos, materias, actividades, mensajes,
   perfiles y edición de membresías.
+- La misma frontera valida los IDs relacionados enviados por POST en acciones de
+  lecciones, entregas, actividades y mensajes, aunque la URL principal pertenezca
+  a la institución activa.
 - El alta de cursos toma la institución desde el contexto, ignorando la que
   pudiera proporcionar el formulario. Las asignaciones validan roles de membresía.
 - Lecciones y recursos validan su ascendencia. Las entregas comprueban que curso,
@@ -69,6 +72,8 @@ pero no debe habilitarse en producción: la fase 4 todavía no está completa.
   institución desde la actividad y exige que esté activa y que sus relaciones
   sean coherentes. Los intentos anónimos sólo se aceptan para actividades
   publicadas, visibles por enlace o públicas y habilitadas para visitantes.
+- La resolución pública por ID usa un predicado independiente de la sesión: admite
+  entregas anónimas de actividades publicadas y rechaza IDs privados manipulados.
 - Los mensajes toman `id_institucion` de la sesión y validan que remitente y
   destinatarios sean miembros activos. Bandejas, detalle, lectura, papelera,
   eliminación, adjuntos y contadores aplican el tenant en SQL. El selector de
@@ -129,14 +134,15 @@ comprobar que la copia mantiene exactamente su contenido.
 Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
 directamente a archivos de ambas carpetas protegidas.
 
-Última verificación: `campus_mt_fase2_20260914_145256_d3fad4`, 278 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_151702_584d7f`, 291 comprobaciones
 correctas. Incluye apertura del panel, listados institucionales, lectura de un curso
 propio y respuestas 403 ante lectura o escritura cruzada de cursos, materias,
 asistencia, calificaciones, actividades, mensajes y usuarios. Por HTTP también
 reutiliza una identidad global, cambia roles y da de baja/reactiva exclusivamente
-su membresía. Las pruebas envían mensajes y entregas válidas dentro de Instituto
-Demo, rechazan destinatarios y tareas de MenteMotion, conservan la actividad pública
-sin sesión y evitan revelar o eliminar actividades privadas de otro tenant.
+su membresía. Las pruebas envían, actualizan y cancelan entregas válidas dentro de
+Instituto Demo; ejercitan lectura, papelera, restauración y eliminación personal de
+mensajes; y rechazan IDs relacionados de MenteMotion ocultos en formularios propios.
+También registran una actividad pública sin sesión y evitan forzar una privada.
 
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
@@ -153,9 +159,8 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 ## Trabajo pendiente antes de finalizar y habilitar
 
-- Ampliar las variantes HTTP residuales de actualización y eliminación de entregas,
-  intentos de actividades y acciones sobre mensajes ya existentes. Las altas y los
-  cruces principales de estos dominios ya están cubiertos.
+- Completar la revisión HTTP residual de acciones menos frecuentes y endpoints AJAX;
+  los flujos principales de entregas, actividades y mensajería ya están cubiertos.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas
   de entregas, posteos, calificaciones y eliminación de dependencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.

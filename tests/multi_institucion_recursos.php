@@ -506,6 +506,12 @@ $tareaHttpMM['id_modulo']=$materiaMM;
 verificar(ModeloLecciones::mdlGuardarLeccion('lecciones',$tareaHttpMM)==='ok',
     'Fixture HTTP: tarea de MenteMotion conserva su materia institucional');
 $tareaMM=(int)$pdo->lastInsertId();
+$mensajeMM=ModeloMensajes::mdlGuardarMensaje([
+    'id_remitente'=>$ids['A'],'destinatarios'=>[$ids['C']],
+    'contenidoMensaje'=>'Mensaje HTTP MenteMotion','fechaMensaje'=>date('Y-m-d H:i:s'),'adjuntos'=>[]
+]);
+verificar(is_int($mensajeMM)&&$mensajeMM>0,
+    'Fixture HTTP: mensaje de MenteMotion conserva participantes de su institución');
 ControladorInstitucion::limpiar();
 $_SESSION=[];
 
@@ -524,6 +530,27 @@ try {
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=actividad-publica&slug=actividad-modelo-demo');
     verificar($respuestaHttp['codigo']===200 && !str_contains($respuestaHttp['body'],'Actividad actualizada'),
         'HTTP público: actividad privada no se revela por slug');
+    $intentosPublicosAntes=(int)$pdo->query('SELECT COUNT(*) FROM actividades_intentos WHERE id_actividad='.(int)$actividadPublica)->fetchColumn();
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=actividad-publica&slug=actividad-publica-demo',[
+        'accion_actividad'=>'responder_actividad',
+        'idActividad'=>$actividadPublica,
+        'nombreVisitante'=>'Visitante HTTP',
+        'emailVisitante'=>'visitante.http@campus.example',
+        'respuesta'=>[$preguntaPublica['idPregunta']=>$preguntaPublica['opciones'][0]['idOpcion']],
+    ]);
+    verificar($respuestaHttp['codigo']===302
+        && (int)$pdo->query('SELECT COUNT(*) FROM actividades_intentos WHERE id_actividad='.(int)$actividadPublica)->fetchColumn()===$intentosPublicosAntes+1,
+        'HTTP público: visitante registra un intento en una actividad publicada');
+    $intentosPrivadosAntes=(int)$pdo->query('SELECT COUNT(*) FROM actividades_intentos WHERE id_actividad='.(int)$actividadModelo)->fetchColumn();
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=actividad-publica&slug=actividad-publica-demo',[
+        'accion_actividad'=>'responder_actividad',
+        'idActividad'=>$actividadModelo,
+        'nombreVisitante'=>'Intento privado',
+        'respuesta'=>[$preguntaModelo['idPregunta']=>$preguntaModelo['opciones'][0]['idOpcion']],
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT COUNT(*) FROM actividades_intentos WHERE id_actividad='.(int)$actividadModelo)->fetchColumn()===$intentosPrivadosAntes,
+        'HTTP público: un ID manipulado no registra intentos en una actividad privada');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=login',[
         'login_email'=>'b@campus.example',
         'login_pass'=>$password,
@@ -661,6 +688,13 @@ try {
     verificar($respuestaHttp['codigo']===403
         && (int)$pdo->query('SELECT COUNT(*) FROM actividades WHERE idActividad='.(int)$actividadIncoherente)->fetchColumn()===1,
         'HTTP actividades: POST manipulado no elimina una actividad ajena');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=listado-actividades',[
+        'accion_actividad'=>'eliminar_actividad',
+        'idActividad'=>$actividadIncoherente,
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query('SELECT COUNT(*) FROM actividades WHERE idActividad='.(int)$actividadIncoherente)->fetchColumn()===1,
+        'HTTP actividades: un ID ajeno oculto dentro de un listado propio también devuelve 403');
     $contenidoMensajeHttp='Mensaje HTTP Demo '.bin2hex(random_bytes(3));
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=nuevo-mensaje',[
         'accion'=>'enviar_mensaje',
@@ -679,6 +713,17 @@ try {
     verificar($respuestaHttp['codigo']===200
         && (int)$pdo->query('SELECT COUNT(*) FROM mensajes')->fetchColumn()===$mensajesAntesCruce,
         'HTTP mensajería: destinatario de otra institución se rechaza sin crear mensaje');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=bandeja-entrada',[
+        'accion'=>'mover_papelera',
+        'id_mensaje'=>$mensajeMM,
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query('SELECT enPapelera FROM mensajes_participantes WHERE id_mensaje='.(int)$mensajeMM
+            .' AND id_usuario='.(int)$ids['C'])->fetchColumn()===0,
+        'HTTP mensajería: una acción oculta con ID de otro tenant devuelve 403 sin modificarlo');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=nuevo-mensaje&t=reply&idMsj='.$mensajeMM);
+    verificar($respuestaHttp['codigo']===403 && !str_contains($respuestaHttp['body'],'Mensaje HTTP MenteMotion'),
+        'HTTP mensajería: responder o reenviar no revela un mensaje de otra institución');
     peticion($curlHttp,$urlHttp.'?r=logout');
 
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=login',[
@@ -692,6 +737,43 @@ try {
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion',$formularioHttp+['id_institucion'=>$demo]);
     verificar($respuestaHttp['codigo']===303 && $respuestaHttp['destino']==='index.php',
         'HTTP entregas: estudiante selecciona Instituto Demo antes de operar');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=bandeja-entrada',[
+        'accion'=>'marcar_leido',
+        'id_mensaje'=>$mensajeHttp['idMensaje'],
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT leido FROM mensajes_participantes WHERE id_mensaje='.(int)$mensajeHttp['idMensaje']
+            .' AND id_usuario='.(int)$ids['A'])->fetchColumn()===1,
+        'HTTP mensajería: destinatario marca como leído un mensaje del tenant activo');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=bandeja-entrada',[
+        'accion'=>'mover_papelera',
+        'id_mensaje'=>$mensajeHttp['idMensaje'],
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT enPapelera FROM mensajes_participantes WHERE id_mensaje='.(int)$mensajeHttp['idMensaje']
+            .' AND id_usuario='.(int)$ids['A'])->fetchColumn()===1,
+        'HTTP mensajería: participante mueve su mensaje a la papelera');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=papelera',[
+        'accion'=>'restaurar_mensaje',
+        'id_mensaje'=>$mensajeHttp['idMensaje'],
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT enPapelera FROM mensajes_participantes WHERE id_mensaje='.(int)$mensajeHttp['idMensaje']
+            .' AND id_usuario='.(int)$ids['A'])->fetchColumn()===0,
+        'HTTP mensajería: participante restaura su mensaje dentro de la institución');
+    peticion($curlHttp,$urlHttp.'?r=bandeja-entrada',[
+        'accion'=>'mover_papelera',
+        'id_mensaje'=>$mensajeHttp['idMensaje'],
+    ]);
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=papelera',[
+        'accion'=>'eliminar_permanente',
+        'id_mensaje'=>$mensajeHttp['idMensaje'],
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT eliminado FROM mensajes_participantes WHERE id_mensaje='.(int)$mensajeHttp['idMensaje']
+            .' AND id_usuario='.(int)$ids['A'])->fetchColumn()===1
+        && (int)$pdo->query('SELECT COUNT(*) FROM mensajes WHERE idMensaje='.(int)$mensajeHttp['idMensaje'])->fetchColumn()===1,
+        'HTTP mensajería: eliminación permanente afecta sólo al participante y conserva el mensaje del remitente');
     $comentarioEntregaHttp='Entrega HTTP Demo '.bin2hex(random_bytes(3));
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-seccion&idSeccion='.$materiaDemo,[
         'accion'=>'entregar_tarea',
@@ -704,6 +786,30 @@ try {
         && (int)$pdo->query('SELECT COUNT(*) FROM entregaslecciones WHERE id_leccion='.(int)$tareaDemo
             .' AND id_estudiante='.(int)$ids['A'].' AND comentarioEntrega='.$pdo->quote($comentarioEntregaHttp))->fetchColumn()===1,
         'HTTP entregas: estudiante inscripto entrega una tarea de su institución');
+    $comentarioEntregaActualizado='Entrega HTTP actualizada '.bin2hex(random_bytes(3));
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-seccion&idSeccion='.$materiaDemo,[
+        'accion'=>'entregar_tarea',
+        'id_leccion'=>$tareaDemo,
+        'id_seccion'=>$materiaDemo,
+        'id_curso'=>$cursoDemo,
+        'comentarioEntrega'=>$comentarioEntregaActualizado,
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT COUNT(*) FROM entregaslecciones WHERE id_leccion='.(int)$tareaDemo
+            .' AND id_estudiante='.(int)$ids['A'])->fetchColumn()===1
+        && (string)$pdo->query('SELECT comentarioEntrega FROM entregaslecciones WHERE id_leccion='.(int)$tareaDemo
+            .' AND id_estudiante='.(int)$ids['A'])->fetchColumn()===$comentarioEntregaActualizado,
+        'HTTP entregas: reenvío actualiza la entrega institucional sin duplicarla');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-seccion&idSeccion='.$materiaDemo,[
+        'accion'=>'entregar_tarea',
+        'id_leccion'=>$tareaMM,
+        'id_seccion'=>$materiaDemo,
+        'id_curso'=>$cursoDemo,
+        'comentarioEntrega'=>'Intento oculto cruzado',
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query("SELECT COUNT(*) FROM entregaslecciones WHERE comentarioEntrega='Intento oculto cruzado'")->fetchColumn()===0,
+        'HTTP entregas: un ID de lección ajena dentro de una ruta propia devuelve 403');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-seccion&idSeccion='.$materiaMM,[
         'accion'=>'entregar_tarea',
         'id_leccion'=>$tareaMM,
@@ -714,6 +820,16 @@ try {
     verificar($respuestaHttp['codigo']===403
         && (int)$pdo->query("SELECT COUNT(*) FROM entregaslecciones WHERE comentarioEntrega='Intento entrega cruzada'")->fetchColumn()===0,
         'HTTP entregas: POST de una tarea de otra institución queda denegado');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-seccion&idSeccion='.$materiaDemo,[
+        'accion'=>'cancelar_entrega',
+        'id_leccion'=>$tareaDemo,
+        'id_seccion'=>$materiaDemo,
+        'id_curso'=>$cursoDemo,
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT COUNT(*) FROM entregaslecciones WHERE id_leccion='.(int)$tareaDemo
+            .' AND id_estudiante='.(int)$ids['A'])->fetchColumn()===0,
+        'HTTP entregas: estudiante cancela únicamente su entrega del tenant activo');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion');
     $formularioHttp=formularioInstitucion($respuestaHttp['body']);
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion',$formularioHttp+['id_institucion'=>$mm]);

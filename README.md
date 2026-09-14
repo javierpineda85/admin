@@ -82,6 +82,7 @@ La fase 4 está en curso. `php tests/multi_institucion_recursos.php` ensaya aisl
 de recursos y peticiones HTTP reales sobre datos sintéticos. Los accesos directos a
 cursos, materias, actividades, mensajes, perfiles y membresías pasan por una
 validación central. La batería incluye asistencia, calificaciones, mensajes y
-entregas por HTTP, con casos permitidos y cruces institucionales denegados.
+entregas por HTTP, con casos permitidos, IDs relacionados manipulados y cruces
+institucionales denegados. También comprueba intentos públicos sin sesión.
 El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y los
 dominios pendientes antes de habilitar el Campus multiinstitución.
