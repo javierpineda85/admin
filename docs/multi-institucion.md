@@ -105,7 +105,7 @@ entregas y contenido enriquecido. Verificar caché y archivos históricos.
 3. Permisos por conjunto de roles y gestión de membresías; retirar lecturas legacy.
 4. Aislamiento en todos los modelos, controladores, SQL de vistas, archivos y rutas
    públicas; finalizar NOT NULL y restricciones al activar el código compatible.
-5. Panel global SuperAdmin y altas/membresías con CSRF y auditoría.
+5. Panel global SuperAdmin y altas/membresías con CSRF y recuentos institucionales.
 6. Header y cambio de institución, incluyendo formularios abiertos en varias pestañas.
 7. Pruebas de integración y HTTP de dos instituciones, revisión residual y documentación.
 

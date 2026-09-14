@@ -77,8 +77,12 @@ class ControladorSuperAdmin
                 return true;
             }
             throw new InvalidArgumentException('Acción global inválida.');
-        } catch (Throwable $e) {
+        } catch (InvalidArgumentException | RuntimeException $e) {
             $_SESSION['error_message'] = $e->getMessage();
+            return false;
+        } catch (Throwable $e) {
+            error_log('No se pudo procesar una acción SuperAdmin: ' . get_class($e));
+            $_SESSION['error_message'] = 'No se pudo completar la operación global. Revisá el estado e intentá nuevamente.';
             return false;
         } finally {
             $_SESSION['superadmin_csrf'] = bin2hex(random_bytes(32));
