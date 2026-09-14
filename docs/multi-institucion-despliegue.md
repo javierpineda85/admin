@@ -5,6 +5,46 @@ multiinstitución. Las migraciones no deben ejecutarse sobre producción sin bac
 verificado y una ventana de mantenimiento: el DDL de MySQL produce commits
 implícitos y las tablas académicas históricas incluyen motores MyISAM.
 
+## Qué significa trabajar sobre una copia
+
+La copia es otra base de datos MySQL en la misma computadora, por ejemplo
+`classroom_mt_preview`. Parte de una duplicación de `classroom`, pero tiene otro
+nombre. El código del proyecto no se duplica. Esto permite importar la migración,
+activar el contexto y recorrer la interfaz sin alterar la base que hoy usa el
+Campus. Para volver al sistema habitual basta apuntar nuevamente `DB_NAME` a
+`classroom` y mantener el indicador desactivado.
+
+Para recorrer la copia desde el navegador, crear el archivo local ignorado por
+Git `config.local.php` con:
+
+```php
+<?php
+define('DB_NAME', 'classroom_mt_preview');
+define('INSTITUCIONES_CONTEXTO_ACTIVO', true);
+```
+
+Luego ingresar normalmente a `http://localhost/admin`. La migración convierte el
+rol legacy de `admin@local.com` en una membresía administrativa de MenteMotion.
+El selector aparecerá cuando esa misma cuenta reciba una segunda membresía desde
+el panel global o mediante un procedimiento administrativo controlado.
+
+## Instalador SQL único
+
+`sql/2026-09-14_multi_institucion_instalacion_completa.sql` reúne el diagnóstico
+previo, la expansión, asistencia, catálogos, endurecimiento opcional y diagnóstico
+final. Puede importarse completo desde phpMyAdmin o con el cliente MySQL.
+
+En la primera ejecución debe conservarse:
+
+```sql
+SET @CAMPUS_MT_APLICAR_ENDURECIMIENTO = 0;
+```
+
+Esta modalidad crea o amplía tablas, migra usuarios y cursos a MenteMotion y no
+elimina datos. Al finalizar muestra las relaciones que requieren regularización.
+Sólo cuando todos esos conteos sean cero se cambia el valor a `1` y se reimporta
+el mismo archivo para aplicar `NOT NULL` y la unicidad global del email.
+
 ## Preparación
 
 1. Confirmar que la rama desplegada contiene el esquema y el código compatibles.
@@ -32,6 +72,10 @@ Ejecutar las migraciones históricas que la instalación todavía necesite y lue
 1. `2026-09-14_multi_institucion_01_expandir.sql`
 2. `2026-09-14_multi_institucion_02_asistencias.sql`
 3. `2026-09-14_multi_institucion_03_catalogos_calificacion.sql`
+
+Esta lista corresponde al procedimiento por archivos separados. Si se importa
+`2026-09-14_multi_institucion_instalacion_completa.sql`, no es necesario ejecutar
+esos tres archivos individualmente.
 
 La expansión crea MenteMotion, asocia usuarios y cursos existentes, conserva
 `usuarios.rol` como legacy y no asigna SuperAdmin a ninguna cuenta. Es reanudable;

@@ -105,3 +105,8 @@ relaciones sin membresía, valida el historial institucional y completa la
 regresión multiinstitución, SuperAdmin y legacy. La activación productiva sigue la
 [guía de despliegue](docs/multi-institucion-despliegue.md) y requiere regularizar
 primero todas las incidencias informadas, sin reasignarlas automáticamente.
+
+Para una importación manual existe un instalador autocontenido:
+`sql/2026-09-14_multi_institucion_instalacion_completa.sql`. Su primera ejecución
+mantiene desactivado el endurecimiento y puede usarse sobre una copia de la base
+para recorrer la interfaz antes del corte definitivo.
