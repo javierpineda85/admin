@@ -92,12 +92,36 @@ WHERE c.id_institucion IS NOT NULL AND COALESCE(n.id_estudiante, 0) > 0
       SELECT 1 FROM usuarios_instituciones ui
       WHERE ui.id_usuario=n.id_estudiante AND ui.id_institucion=c.id_institucion
   )
+UNION ALL SELECT 'evaluaciones_calificaciones_estudiante_sin_membresia', COUNT(*)
+FROM evaluaciones_calificaciones ec INNER JOIN evaluaciones e ON e.idEvaluacion=ec.id_evaluacion
+INNER JOIN cursos c ON c.idCurso=e.id_curso INNER JOIN usuarios u ON u.idUsuario=ec.id_estudiante
+WHERE c.id_institucion IS NOT NULL AND COALESCE(ec.id_estudiante, 0) > 0
+  AND NOT EXISTS (
+      SELECT 1 FROM usuarios_instituciones ui
+      WHERE ui.id_usuario=ec.id_estudiante AND ui.id_institucion=c.id_institucion
+  )
 UNION ALL SELECT 'asistencia_creador_sin_membresia', COUNT(*)
 FROM asistencia_clases ac INNER JOIN cursos c ON c.idCurso=ac.id_curso INNER JOIN usuarios u ON u.idUsuario=ac.creadaPor
 WHERE c.id_institucion IS NOT NULL AND COALESCE(ac.creadaPor, 0) > 0
   AND NOT EXISTS (
       SELECT 1 FROM usuarios_instituciones ui
       WHERE ui.id_usuario=ac.creadaPor AND ui.id_institucion=c.id_institucion
+  )
+UNION ALL SELECT 'asistencia_estudiante_sin_membresia', COUNT(*)
+FROM asistencia_registros ar INNER JOIN asistencia_clases ac ON ac.idClase=ar.id_clase
+INNER JOIN cursos c ON c.idCurso=ac.id_curso INNER JOIN usuarios u ON u.idUsuario=ar.id_estudiante
+WHERE c.id_institucion IS NOT NULL AND COALESCE(ar.id_estudiante, 0) > 0
+  AND NOT EXISTS (
+      SELECT 1 FROM usuarios_instituciones ui
+      WHERE ui.id_usuario=ar.id_estudiante AND ui.id_institucion=c.id_institucion
+  )
+UNION ALL SELECT 'asistencia_actualizador_sin_membresia', COUNT(*)
+FROM asistencia_registros ar INNER JOIN asistencia_clases ac ON ac.idClase=ar.id_clase
+INNER JOIN cursos c ON c.idCurso=ac.id_curso INNER JOIN usuarios u ON u.idUsuario=ar.actualizadoPor
+WHERE c.id_institucion IS NOT NULL AND COALESCE(ar.actualizadoPor, 0) > 0
+  AND NOT EXISTS (
+      SELECT 1 FROM usuarios_instituciones ui
+      WHERE ui.id_usuario=ar.actualizadoPor AND ui.id_institucion=c.id_institucion
   )
 UNION ALL SELECT 'posteos_autor_sin_membresia', COUNT(*)
 FROM posteos p INNER JOIN cursos c ON c.idCurso=p.id_curso INNER JOIN usuarios u ON u.idUsuario=p.id_autor

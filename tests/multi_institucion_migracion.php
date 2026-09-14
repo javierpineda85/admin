@@ -226,6 +226,35 @@ comprobar((int) ($diagnosticoDestinatarios['mensajes_destinatario_sin_membresia'
 $pdo->prepare('DELETE FROM mensajes WHERE idMensaje=?')->execute([$idMensajeEndurecer]);
 $pdo->prepare('DELETE FROM notificaciones WHERE idNotificacion=?')->execute([$idNotificacionEndurecer]);
 $pdo->prepare('DELETE FROM notificaciones_lecturas WHERE id_usuario=? AND claveNotificacion=?')->execute([$idsUsuarios['B'], $claveLecturaEndurecer]);
+$contextoAcademicoEndurecer = $pdo->prepare('SELECT s.idSeccion,s.id_curso FROM lecciones l INNER JOIN secciones s ON s.idSeccion=l.id_modulo WHERE l.idLeccion=?');
+$contextoAcademicoEndurecer->execute([$idLeccionEndurecer]);
+[$idSeccionEndurecer, $idCursoAcademicoEndurecer] = array_map('intval', $contextoAcademicoEndurecer->fetch(PDO::FETCH_NUM));
+$pdo->prepare('INSERT INTO evaluaciones (id_seccion,id_curso,id_autor,temaEvaluacion,fechaEvaluacion) VALUES (?,?,?,?,?)')
+    ->execute([$idSeccionEndurecer, $idCursoAcademicoEndurecer, $idsUsuarios['A'], 'Preflight sintético', '2026-09-14']);
+$idEvaluacionEndurecer = (int) $pdo->lastInsertId();
+$pdo->prepare('INSERT INTO evaluaciones_calificaciones (id_evaluacion,id_estudiante,calificacion,devolucion) VALUES (?,?,?,?)')
+    ->execute([$idEvaluacionEndurecer, $idsUsuarios['B'], 8, '']);
+$pdo->prepare('INSERT INTO asistencia_clases (id_seccion,id_curso,fechaClase,tema,creadaPor) VALUES (?,?,?,?,?)')
+    ->execute([$idSeccionEndurecer, $idCursoAcademicoEndurecer, '2026-09-14', 'Preflight sintético', $idsUsuarios['A']]);
+$idClaseEndurecer = (int) $pdo->lastInsertId();
+$pdo->prepare('INSERT INTO asistencia_registros (id_clase,id_estudiante,estado,observacion,actualizadoPor) VALUES (?,?,?,?,?)')
+    ->execute([$idClaseEndurecer, $idsUsuarios['B'], 'PRESENTE', '', $idsUsuarios['B']]);
+$rechazoRegistrosAcademicos = false;
+try {
+    ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+} catch (PDOException $e) {
+    $rechazoRegistrosAcademicos = $e->getCode()==='45000';
+}
+comprobar($rechazoRegistrosAcademicos, 'El endurecimiento detiene asistencia y evaluaciones sin membresía');
+$diagnosticoRegistrosAcademicos = $pdo->query(file_get_contents(__DIR__ . '/../sql/2026-09-14_multi_institucion_05_validar_relaciones.sql'))->fetchAll(PDO::FETCH_KEY_PAIR);
+comprobar((int) ($diagnosticoRegistrosAcademicos['evaluaciones_calificaciones_estudiante_sin_membresia'] ?? 0) > 0
+    && (int) ($diagnosticoRegistrosAcademicos['asistencia_estudiante_sin_membresia'] ?? 0) > 0
+    && (int) ($diagnosticoRegistrosAcademicos['asistencia_actualizador_sin_membresia'] ?? 0) > 0,
+    'El diagnóstico identifica registros académicos sin membresía');
+$pdo->prepare('DELETE FROM evaluaciones_calificaciones WHERE id_evaluacion=?')->execute([$idEvaluacionEndurecer]);
+$pdo->prepare('DELETE FROM evaluaciones WHERE idEvaluacion=?')->execute([$idEvaluacionEndurecer]);
+$pdo->prepare('DELETE FROM asistencia_registros WHERE id_clase=?')->execute([$idClaseEndurecer]);
+$pdo->prepare('DELETE FROM asistencia_clases WHERE idClase=?')->execute([$idClaseEndurecer]);
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='cursos' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Cursos pasan a exigir institución después del corte');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='mensajes' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Mensajes pasan a exigir institución después del corte');
