@@ -144,7 +144,7 @@ $enPapelera = (int) ($mensaje['enPapelera'] ?? 0) === 1;
                 <?php if (!empty($mensaje['adjuntos'])): ?>
                   <div class="list-group">
                     <?php foreach ($mensaje['adjuntos'] as $adjunto): ?>
-                      <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="<?php echo htmlspecialchars((string) $adjunto['rutaArchivo'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
+                      <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="index.php?r=descargar-archivo&amp;tipo=mensaje&amp;id=<?php echo (int) $adjunto['idAdjunto']; ?>">
                         <span>
                           <i class="fas fa-paperclip mr-2"></i>
                           <?php echo htmlspecialchars((string) $adjunto['nombreOriginal'], ENT_QUOTES, 'UTF-8'); ?>

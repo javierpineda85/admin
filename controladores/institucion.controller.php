@@ -179,6 +179,7 @@ class ControladorInstitucion
             if ($ruta === 'seleccionar-institucion' && self::$membresias) {
                 self::mostrar('seleccionar-institucion');
             }
+            if ($ruta === 'descargar-archivo' && self::$actual) { return; }
             $destino = self::rutaDestino();
             if ($ruta !== $destino) { self::redirigir($destino); }
             self::mostrar($destino);

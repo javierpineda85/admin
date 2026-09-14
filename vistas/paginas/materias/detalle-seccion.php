@@ -338,7 +338,13 @@ if (ControladorPermisos::esEstudiante()) {
                     <?php if (!empty($recursos)): ?>
                       <div class="resource-grid mb-3">
                         <?php foreach ($recursos as $recurso): ?>
-                          <a class="resource-pill" href="<?php echo $e($recurso['urlRecurso'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">
+                          <?php
+                          $urlRecurso=(string)($recurso['urlRecurso']??'#');
+                          if(strpos(str_replace('\\','/',$urlRecurso),'uploads/lecciones/')===0){
+                            $urlRecurso='index.php?r=descargar-archivo&tipo=recurso&id='.(int)($recurso['idRecursoLeccion']??0);
+                          }
+                          ?>
+                          <a class="resource-pill" href="<?php echo $e($urlRecurso); ?>" target="_blank" rel="noopener noreferrer">
                             <i class="fas fa-paperclip"></i>
                             <span>
                               <strong><?php echo $e($recurso['tituloRecurso'] ?? 'Recurso'); ?></strong>
@@ -358,7 +364,7 @@ if (ControladorPermisos::esEstudiante()) {
                               <ul class="list-unstyled small mt-1 mb-1">
                                 <?php foreach ((array) ($entrega['adjuntos'] ?? []) as $indiceAdjunto => $adjunto): ?>
                                   <li>
-                                    <a href="<?php echo $e($adjunto['rutaArchivo'] ?? '#'); ?>" target="_blank" rel="noopener noreferrer">
+                                    <a href="index.php?r=descargar-archivo&amp;tipo=<?php echo (int) ($adjunto['idAdjuntoEntrega'] ?? 0) > 0 ? 'entrega&amp;id=' . (int) $adjunto['idAdjuntoEntrega'] : 'entrega-legacy&amp;id=' . (int) ($entrega['idEntregaLeccion'] ?? 0); ?>">
                                       <i class="fas fa-paperclip mr-1"></i><?php echo $e($adjunto['nombreOriginal'] ?? ('Archivo ' . ($indiceAdjunto + 1))); ?>
                                     </a>
                                   </li>
@@ -774,13 +780,19 @@ if (ControladorPermisos::esEstudiante()) {
                       <?php else: ?>
                         <div class="list-group">
                           <?php foreach ($recursos as $recurso): ?>
+                            <?php
+                            $urlRecursoGestion = (string) ($recurso['urlRecurso'] ?? '#');
+                            if (strpos(str_replace('\\', '/', $urlRecursoGestion), 'uploads/lecciones/') === 0) {
+                              $urlRecursoGestion = 'index.php?r=descargar-archivo&tipo=recurso&id=' . (int) ($recurso['idRecursoLeccion'] ?? 0);
+                            }
+                            ?>
                             <div class="list-group-item">
                               <div class="d-flex justify-content-between align-items-center flex-wrap">
                                 <div class="mb-2">
                                   <span class="badge badge-secondary mr-2"><?php echo htmlspecialchars($recurso['tipoRecurso'], ENT_QUOTES, 'UTF-8'); ?></span>
                                   <strong><?php echo htmlspecialchars($recurso['tituloRecurso'], ENT_QUOTES, 'UTF-8'); ?></strong>
                                 </div>
-                                <a class="btn btn-sm btn-outline-primary mb-2" href="<?php echo htmlspecialchars($recurso['urlRecurso'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
+                                <a class="btn btn-sm btn-outline-primary mb-2" href="<?php echo htmlspecialchars($urlRecursoGestion, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
                                   Abrir
                                 </a>
                               </div>
@@ -930,7 +942,7 @@ if (ControladorPermisos::esEstudiante()) {
                               <ul class="list-unstyled small mt-2 mb-0">
                                 <?php foreach ((array) ($entrega['adjuntos'] ?? []) as $indiceAdjunto => $adjunto): ?>
                                   <li>
-                                    <a href="<?php echo htmlspecialchars((string) ($adjunto['rutaArchivo'] ?? '#'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
+                                    <a href="index.php?r=descargar-archivo&amp;tipo=<?php echo (int) ($adjunto['idAdjuntoEntrega'] ?? 0) > 0 ? 'entrega&amp;id=' . (int) $adjunto['idAdjuntoEntrega'] : 'entrega-legacy&amp;id=' . (int) ($entrega['idEntregaLeccion'] ?? 0); ?>">
                                       <i class="fas fa-paperclip mr-1"></i><?php echo htmlspecialchars((string) ($adjunto['nombreOriginal'] ?? ('Archivo ' . ($indiceAdjunto + 1))), ENT_QUOTES, 'UTF-8'); ?>
                                     </a>
                                   </li>
@@ -987,7 +999,7 @@ if (ControladorPermisos::esEstudiante()) {
                                         <ul class="list-unstyled mb-0">
                                           <?php foreach ((array) ($entregaDoc['adjuntos'] ?? []) as $indiceAdjunto => $adjunto): ?>
                                             <li>
-                                              <a href="<?php echo htmlspecialchars((string) ($adjunto['rutaArchivo'] ?? '#'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
+                                              <a href="index.php?r=descargar-archivo&amp;tipo=<?php echo (int) ($adjunto['idAdjuntoEntrega'] ?? 0) > 0 ? 'entrega&amp;id=' . (int) $adjunto['idAdjuntoEntrega'] : 'entrega-legacy&amp;id=' . (int) ($entregaDoc['idEntregaLeccion'] ?? 0); ?>">
                                                 <i class="fas fa-paperclip mr-1"></i><?php echo htmlspecialchars((string) ($adjunto['nombreOriginal'] ?? ('Archivo ' . ($indiceAdjunto + 1))), ENT_QUOTES, 'UTF-8'); ?>
                                               </a>
                                             </li>

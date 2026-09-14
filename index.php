@@ -16,10 +16,12 @@ require_once("controladores/notificaciones.controller.php");
 require_once("controladores/panel.controller.php");
 require_once("controladores/perfiles.controller.php");
 require_once("controladores/mensajes.controller.php");
+require_once("controladores/descargas.controller.php");
 
 
 
 ControladorInstitucion::procesarAntesDeRenderizar();
+ControladorDescargas::crtProcesar();
 
 $plantilla= new PlantillaController();
  // ejecutar metodo

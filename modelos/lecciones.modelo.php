@@ -393,6 +393,27 @@ class ModeloLecciones
         }
     }
 
+    public static function mdlBuscarEntregaPorId($idEntrega)
+    {
+        ModeloTenant::exigirEntrega($idEntrega);
+        $stmt=Conexion::conectar()->prepare('SELECT idEntregaLeccion,id_leccion,id_seccion,id_curso,id_estudiante,urlArchivo,comentarioEntrega,fechaEntrega,estadoEntrega
+            FROM entregaslecciones e WHERE e.idEntregaLeccion=:idEntrega AND '.ModeloTenant::entregas('e').' LIMIT 1');
+        $stmt->bindValue(':idEntrega',(int)$idEntrega,PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC)?:null;
+    }
+
+    public static function mdlBuscarAdjuntoEntregaPorId($idAdjunto)
+    {
+        $stmt=Conexion::conectar()->prepare('SELECT a.idAdjuntoEntrega,a.id_entrega,a.nombreOriginal,a.rutaArchivo,a.mimeType,a.tamanoArchivo
+            FROM entregaslecciones_adjuntos a WHERE a.idAdjuntoEntrega=:idAdjunto AND '.ModeloTenant::adjuntosEntrega('a').' LIMIT 1');
+        $stmt->bindValue(':idAdjunto',(int)$idAdjunto,PDO::PARAM_INT);
+        $stmt->execute();
+        $adjunto=$stmt->fetch(PDO::FETCH_ASSOC)?:null;
+        if($adjunto){ModeloTenant::exigirEntrega((int)$adjunto['id_entrega']);}
+        return $adjunto;
+    }
+
     public static function mdlBuscarEstudiantesCurso($idCurso)
     {
         ModeloTenant::exigirCurso($idCurso);

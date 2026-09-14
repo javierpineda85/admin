@@ -427,6 +427,16 @@ class ModeloMensajes
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public static function mdlAdjuntoPorId($idAdjunto,$idUsuario)
+    {
+        $stmt=self::pdo()->prepare('SELECT ma.idAdjunto,ma.id_mensaje,ma.nombreOriginal,ma.nombreGuardado,ma.rutaArchivo,ma.mimeType,ma.tamanoArchivo
+            FROM mensajes_adjuntos ma INNER JOIN mensajes m ON m.idMensaje=ma.id_mensaje
+            INNER JOIN mensajes_participantes mp ON mp.id_mensaje=m.idMensaje AND mp.id_usuario=:idUsuario AND mp.eliminado=0
+            WHERE ma.idAdjunto=:idAdjunto AND '.ModeloTenant::mensajes('m').' LIMIT 1');
+        $stmt->execute([':idUsuario'=>(int)$idUsuario,':idAdjunto'=>(int)$idAdjunto]);
+        return $stmt->fetch(PDO::FETCH_ASSOC)?:null;
+    }
+
     public static function mdlDestinatariosPorMensaje($idMensaje)
     {
         if(ModeloTenant::activo()){

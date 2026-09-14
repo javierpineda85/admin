@@ -12,6 +12,7 @@ require_once __DIR__ . '/../modelos/actividades.modelo.php';
 require_once __DIR__ . '/../modelos/mensajes.modelo.php';
 require_once __DIR__ . '/../modelos/notificaciones.modelo.php';
 require_once __DIR__ . '/../modelos/panel.modelo.php';
+require_once __DIR__ . '/../controladores/descargas.controller.php';
 foreach (['secciones', 'lecciones', 'asignacioncursos', 'recursoslecciones', 'entregaslecciones', 'posteos',
     'calificaciones','entregaslecciones_adjuntos','archivoslecciones','actividades','actividades_preguntas','actividades_opciones',
     'asistencia_clases','asistencia_registros','ciclos_lectivos','periodos_calificacion','instrumentos_evaluacion',
@@ -216,6 +217,34 @@ denegado(function() use($ids) { ModeloMensajes::mdlGuardarMensaje([
 ]); }, 'Mensaje rechaza destinatario sin membresía en la institución');
 $detalleMensajeB=ModeloMensajes::mdlMensajeDetalle($mensajeDemo,$ids['B']);
 verificar($detalleMensajeB!==null&&count($detalleMensajeB['destinatarios'])===1, 'Remitente consulta detalle y destinatarios dentro del tenant');
+$marcaDescarga='descarga_mt_'.bin2hex(random_bytes(6));
+$rutaMensajeDescarga='uploads/mensajes/'.$marcaDescarga.'.txt';
+$rutaEntregaDescarga='uploads/lecciones/'.$marcaDescarga.'.txt';
+$absolutosDescarga=[dirname(__DIR__).'/'.$rutaMensajeDescarga,dirname(__DIR__).'/'.$rutaEntregaDescarga];
+foreach($absolutosDescarga as $archivoDescarga){file_put_contents($archivoDescarga,'contenido protegido');}
+$absolutosDescarga=array_map('realpath',$absolutosDescarga);
+register_shutdown_function(static function() use($absolutosDescarga){foreach($absolutosDescarga as $archivo){if(is_file($archivo)){unlink($archivo);}}});
+$pdo->prepare('INSERT INTO mensajes_adjuntos(id_mensaje,nombreOriginal,nombreGuardado,rutaArchivo,mimeType,tamanoArchivo) VALUES(?,?,?,?,?,?)')
+    ->execute([$mensajeDemo,'mensaje.txt',basename($rutaMensajeDescarga),$rutaMensajeDescarga,'text/plain',19]);
+$adjuntoMensaje=(int)$pdo->lastInsertId();
+$pdo->prepare('INSERT INTO entregaslecciones_adjuntos(id_entrega,nombreOriginal,rutaArchivo,mimeType,tamanoArchivo) VALUES(?,?,?,?,?)')
+    ->execute([$entregaId,'entrega.txt',$rutaEntregaDescarga,'text/plain',19]);
+$adjuntoEntrega=(int)$pdo->lastInsertId();
+$sesionDescarga=$_SESSION;
+$_SESSION=[];
+denegado(function() use($adjuntoMensaje) { ControladorDescargas::crtResolverArchivo('mensaje',$adjuntoMensaje); }, 'Descarga protegida exige una sesión autenticada');
+$_SESSION=$sesionDescarga;
+verificar(ControladorDescargas::crtResolverArchivo('mensaje',$adjuntoMensaje)['ruta']===$absolutosDescarga[0]
+    && ControladorDescargas::crtResolverArchivo('entrega',$adjuntoEntrega)['ruta']===$absolutosDescarga[1], 'Descarga protegida resuelve adjuntos propios después de autorizar tenant y participación');
+$pdo->prepare('INSERT INTO mensajes_adjuntos(id_mensaje,nombreOriginal,nombreGuardado,rutaArchivo,mimeType,tamanoArchivo) VALUES(?,?,?,?,?,?)')
+    ->execute([$mensajeDemo,'fuera.txt','fuera.txt','config.php','text/plain',1]);
+$adjuntoFuera=(int)$pdo->lastInsertId();
+try {
+    ControladorDescargas::crtResolverArchivo('mensaje',$adjuntoFuera);
+    throw new RuntimeException('No se rechazó la ruta fuera del directorio autorizado.');
+} catch (RuntimeException $e) {
+    verificar(strpos($e->getMessage(),'disponible')!==false, 'Descarga protegida rechaza rutas fuera de los directorios autorizados');
+}
 $notificacionDemo=ModeloNotificaciones::mdlRegistrarNotificacion([
     'id_usuario'=>$ids['A'],'tipoNotificacion'=>'ACTIVIDAD_PUBLICADA','referenciaTipo'=>'ACTIVIDAD',
     'referenciaId'=>$actividadPublica,'tituloNotificacion'=>'Actividad Demo','detalleNotificacion'=>'Nueva actividad',
@@ -232,6 +261,8 @@ verificar(in_array($ids['B'],array_map('intval',array_column($destinatariosEstud
     && !in_array($ids['C'],array_map('intval',array_column($destinatariosEstudiante,'idUsuario')),true), 'Estudiante sólo encuentra compañeros y responsables de cursos del tenant');
 verificar(ModeloMensajes::mdlContarMensajesNoLeidos($ids['A'])===1&&ModeloMensajes::mdlMensajeDetalle($mensajeDemo,$ids['A'])!==null, 'Destinatario ve el mensaje únicamente dentro de su contexto institucional');
 verificar(ModeloMensajes::mdlMarcarLeido($mensajeDemo,$ids['A'])==='ok'&&ModeloMensajes::mdlContarMensajesNoLeidos($ids['A'])===0, 'Lectura del mensaje se modifica dentro del tenant');
+verificar(ControladorDescargas::crtResolverArchivo('mensaje',$adjuntoMensaje)['nombre']==='mensaje.txt'
+    && ControladorDescargas::crtResolverArchivo('entrega',$adjuntoEntrega)['nombre']==='entrega.txt', 'Destinatario descarga el mensaje y el estudiante sólo su propia entrega');
 $notificacionesDemo=ModeloNotificaciones::mdlListarNotificacionesUsuario($ids['A']);
 verificar(count($notificacionesDemo)===1, 'Destinatario lista únicamente notificaciones de la institución activa');
 $claveNotificacion='notificacion:'.(int)$notificacionesDemo[0]['idNotificacion'];
@@ -284,6 +315,13 @@ try {
         if (is_file($archivoPrueba)) { unlink($archivoPrueba); }
     }
 }
+$pdo->prepare('INSERT INTO recursoslecciones(id_leccion,tipoRecurso,tituloRecurso,urlRecurso,creadoPor) VALUES(?,?,?,?,?)')
+    ->execute([$leccionDemo,'ARCHIVO','Material protegido',$rutaEntregaDescarga,$ids['B']]);
+$recursoLocal=(int)$pdo->lastInsertId();
+verificar(ControladorDescargas::crtResolverArchivo('recurso',$recursoLocal)['ruta']===$absolutosDescarga[1], 'Administrador descarga un recurso local del tenant activo');
+sesionPara($ids['A']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+verificar(ControladorDescargas::crtResolverArchivo('recurso',$recursoLocal)['nombre']==='Material protegido', 'Estudiante inscripto descarga un recurso local de su curso');
+sesionPara($ids['B']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
 $panelDemo=ModeloPanel::mdlResumenDashboard($ids['B'],'ADMINISTRADOR');
 $tarjetasDemo=array_column($panelDemo['tarjetas'],'value','label');
 verificar((int)$tarjetasDemo['Usuarios activos']===2
@@ -316,6 +354,9 @@ denegado(function() use($actividadDemo) { ModeloActividades::mdlEliminarActivida
 denegado(function() use($actividadModelo,$ids) { ModeloActividades::mdlContarIntentosUsuario($actividadModelo,$ids['A']); }, 'Intentos de otra institución no se cuentan por ID');
 verificar(ModeloMensajes::mdlMensajeDetalle($mensajeDemo,$ids['A'])===null&&ModeloMensajes::mdlContarMensajesNoLeidos($ids['A'])===0, 'Cambio de institución oculta mensajes y contadores del tenant anterior');
 denegado(function() use($mensajeDemo,$ids) { ModeloMensajes::mdlMarcarLeido($mensajeDemo,$ids['A']); }, 'Acción sobre mensaje de otra institución se rechaza por ID');
+denegado(function() use($adjuntoMensaje) { ControladorDescargas::crtResolverArchivo('mensaje',$adjuntoMensaje); }, 'Adjunto de mensaje del tenant anterior no se descarga por ID');
+denegado(function() use($adjuntoEntrega) { ControladorDescargas::crtResolverArchivo('entrega',$adjuntoEntrega); }, 'Adjunto de entrega del tenant anterior no se descarga por ID');
+denegado(function() use($recursoLocal) { ControladorDescargas::crtResolverArchivo('recurso',$recursoLocal); }, 'Recurso local del tenant anterior no se descarga por ID');
 verificar(ModeloNotificaciones::mdlListarNotificacionesUsuario($ids['A'])===[], 'Cambio de institución oculta notificaciones del tenant anterior');
 verificar(ModeloCalificaciones::mdlResumenCierresGenerales()===[], 'Resumen general no filtra cierres desde otra institución');
 verificar(ModeloCalificaciones::mdlCalificacionesGenerales()===[], 'Historial general no mezcla notas ni cierres de otra institución');

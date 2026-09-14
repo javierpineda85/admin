@@ -260,7 +260,7 @@ $rutasTarjetasDashboard = [
                 </div>
                 <div class="pending-delivery-actions">
                   <?php if (!empty($entregaPendiente['urlArchivo'])): ?>
-                    <a href="<?php echo htmlspecialchars((string) $entregaPendiente['urlArchivo'], ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-light border btn-sm" target="_blank" rel="noopener noreferrer">
+                    <a href="index.php?r=descargar-archivo&amp;tipo=entrega-legacy&amp;id=<?php echo (int) ($entregaPendiente['idEntregaLeccion'] ?? 0); ?>" class="btn btn-light border btn-sm">
                       <i class="fas fa-paperclip mr-1"></i>Archivo
                     </a>
                   <?php endif; ?>

@@ -16,6 +16,7 @@ require __DIR__ . '/../modelos/actividades.modelo.php';
 require __DIR__ . '/../modelos/mensajes.modelo.php';
 require __DIR__ . '/../modelos/notificaciones.modelo.php';
 require __DIR__ . '/../modelos/panel.modelo.php';
+require __DIR__ . '/../controladores/descargas.controller.php';
 $pdo = Conexion::conectar();
 function comprobarLegacy($condicion, $mensaje) {
     if (!$condicion) { throw new RuntimeException($mensaje); }
@@ -49,6 +50,19 @@ $cantidadPublicas=(int)$pdo->query("SELECT COUNT(*) FROM actividades WHERE estad
 comprobarLegacy(count(ModeloActividades::mdlListarPublicas())===$cantidadPublicas, 'Catálogo público conserva compatibilidad con contexto desactivado');
 $idUsuarioMensaje=(int)$pdo->query("SELECT id_usuario FROM mensajes_participantes WHERE rolParticipante='DESTINATARIO' ORDER BY idMensajeParticipante LIMIT 1")->fetchColumn();
 comprobarLegacy(ModeloMensajes::mdlContarMensajesRecibidos($idUsuarioMensaje)===(int)$pdo->query("SELECT COUNT(*) FROM mensajes_participantes WHERE id_usuario=".$idUsuarioMensaje." AND rolParticipante='DESTINATARIO' AND enPapelera=0 AND eliminado=0")->fetchColumn(), 'Contador habitual de mensajes conserva compatibilidad sin contexto');
+$participanteDescarga=$pdo->query('SELECT id_mensaje,id_usuario FROM mensajes_participantes WHERE eliminado=0 ORDER BY idMensajeParticipante LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+$archivoDescarga=dirname(__DIR__).'/uploads/mensajes/legacy_descarga_'.bin2hex(random_bytes(4)).'.txt';
+file_put_contents($archivoDescarga,'compatibilidad legacy');
+try {
+    $rutaDescarga='uploads/mensajes/'.basename($archivoDescarga);
+    $pdo->prepare('INSERT INTO mensajes_adjuntos(id_mensaje,nombreOriginal,nombreGuardado,rutaArchivo,mimeType,tamanoArchivo) VALUES(?,?,?,?,?,?)')
+        ->execute([(int)$participanteDescarga['id_mensaje'],'legacy.txt',basename($archivoDescarga),$rutaDescarga,'text/plain',filesize($archivoDescarga)]);
+    $idAdjuntoDescarga=(int)$pdo->lastInsertId();
+    $_SESSION=['logueado'=>true,'usuario'=>['id'=>(int)$participanteDescarga['id_usuario']]];
+    comprobarLegacy(ControladorDescargas::crtResolverArchivo('mensaje',$idAdjuntoDescarga)['ruta']===realpath($archivoDescarga), 'Descarga protegida conserva acceso del participante con contexto desactivado');
+} finally {
+    if (is_file($archivoDescarga)) { unlink($archivoDescarga); }
+}
 $idUsuarioNotificacion=(int)$pdo->query('SELECT id_usuario FROM notificaciones ORDER BY idNotificacion LIMIT 1')->fetchColumn();
 comprobarLegacy(count(ModeloNotificaciones::mdlListarNotificacionesUsuario($idUsuarioNotificacion))===(int)$pdo->query('SELECT COUNT(*) FROM notificaciones WHERE id_usuario='.$idUsuarioNotificacion)->fetchColumn(), 'Listado habitual de notificaciones conserva compatibilidad sin contexto');
 $panelLegacy=ModeloPanel::mdlResumenDashboard($idUsuarioMensaje,'ADMINISTRADOR');

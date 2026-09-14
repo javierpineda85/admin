@@ -85,6 +85,11 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
   directamente desde las vistas: reutilizan los controladores y modelos
   institucionales. Los posteos validan conjuntamente autor, curso y lección en
   altas y lecturas, incluso ante IDs manipulados.
+- Los adjuntos de mensajes, entregas y recursos locales se descargan mediante
+  `ControladorDescargas`. La ruta revalida sesión, tenant, participación en la
+  conversación y acceso académico antes de resolver el archivo. Sólo acepta
+  rutas canónicas dentro de `uploads/mensajes` o `uploads/lecciones`; ambas
+  carpetas bloquean el acceso HTTP estático mediante `.htaccess`.
 
 ## Pruebas
 
@@ -97,17 +102,21 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260913_225834_c47009`, 216 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_021958_7bdd01`, 225 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
-controladores con un POST de duplicación de curso ajeno. Los archivos sintéticos
-se eliminan después de comprobar que la copia mantiene exactamente su contenido.
+controladores con un POST de duplicación de curso ajeno y descargas de adjuntos
+o recursos propios y ajenos. Los archivos sintéticos se eliminan después de
+comprobar que la copia mantiene exactamente su contenido.
+Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
+directamente a archivos de ambas carpetas protegidas.
 
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
 definiendo `CAMPUS_TEST_BASE` con el nombre devuelto por el ensayo de recursos;
-rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus diecisiete
+rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus dieciocho
 comprobaciones de listados, lecturas y escritura, incluidas materias, clases de
-asistencia, actividades y contadores de mensajes. No usa la base original.
+asistencia, actividades, contadores de mensajes y una descarga autorizada. No usa
+la base original.
 
 La duplicación no promete rollback integral ante fallas de almacenamiento:
 las tablas históricas MyISAM no lo permiten. Un error posterior al preflight puede
@@ -126,8 +135,9 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
   de entregas, posteos, calificaciones y eliminación de dependencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
 - Completar la validación residual de todos los POST/AJAX y parámetros de recursos.
-- Entregar archivos privados por controlador, bloquear acceso estático y revisar
-  rutas canónicas, adjuntos de mensajes y contenido enriquecido histórico.
+- Revisar enlaces de archivos que pudieran estar embebidos dentro de contenido
+  enriquecido histórico y referencias de `archivoslecciones`; las rutas conocidas
+  de adjuntos y recursos ya pasan por el controlador protegido.
 - Trasladar preparaciones DDL a migraciones, finalizar restricciones y validar el
   delta de filas creado por el modo habitual después de la expansión.
 - Revisar las escrituras restantes de los demás dominios y sus dependencias;
