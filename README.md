@@ -86,6 +86,7 @@ entregas por HTTP, con casos permitidos, IDs relacionados manipulados y cruces
 institucionales denegados. También comprueba intentos públicos sin sesión. Los
 formularios MVC revalidan centralmente sus recursos antes de ejecutar controladores.
 El borrado de lecciones valida sus dependencias, incluye archivos legacy y adjuntos,
-y elimina archivos físicos sólo después de confirmar el borrado institucional.
+y elimina archivos físicos sólo después de confirmar el borrado institucional. Las
+rutas compartidas se conservan y ninguna limpieza sale de `uploads/lecciones`.
 El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y los
 dominios pendientes antes de habilitar el Campus multiinstitución.

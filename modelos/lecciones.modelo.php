@@ -608,6 +608,29 @@ class ModeloLecciones
         return $exclusivas;
     }
 
+    /** Comprueba referencias globales para no borrar un archivo compartido entre tenants o recursos. */
+    public static function mdlRutaArchivoReferenciada($ruta)
+    {
+        $ruta = trim(str_replace('\\', '/', (string) $ruta));
+        if ($ruta === '') { return false; }
+        $pdo = Conexion::conectar();
+        foreach ([
+            ['SELECT 1 FROM recursoslecciones WHERE REPLACE(urlRecurso,CHAR(92),\'/\')=? LIMIT 1', false],
+            ['SELECT 1 FROM archivoslecciones WHERE REPLACE(urlArchivo,CHAR(92),\'/\')=? LIMIT 1', false],
+            ['SELECT 1 FROM entregaslecciones WHERE REPLACE(urlArchivo,CHAR(92),\'/\')=? LIMIT 1', false],
+            ['SELECT 1 FROM entregaslecciones_adjuntos WHERE REPLACE(rutaArchivo,CHAR(92),\'/\')=? LIMIT 1', true],
+        ] as [$sql, $opcional]) {
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$ruta]);
+                if ($stmt->fetchColumn()) { return true; }
+            } catch (Exception $e) {
+                if (!$opcional) { throw $e; }
+            }
+        }
+        return false;
+    }
+
     public static function mdlGuardarRecursoLeccion($tabla, $datos)
     {
         if ($tabla !== 'recursoslecciones') { throw new InvalidArgumentException('Tabla inválida.'); }
@@ -648,7 +671,7 @@ class ModeloLecciones
             'DELETE FROM recursoslecciones WHERE idRecursoLeccion = :idRecursoLeccion AND ' . ModeloTenant::hijoLeccion('recursoslecciones')
         );
         $stmt->bindValue(':idRecursoLeccion', (int) $idRecursoLeccion, PDO::PARAM_INT);
-        return $stmt->execute() ? 'ok' : 'error';
+        return $stmt->execute() && $stmt->rowCount() === 1 ? 'ok' : 'error';
     }
 
     public static function mdlGuardarPostLeccion($datos)
@@ -828,6 +851,10 @@ class ModeloLecciones
             );
             $stmt->bindValue(':idEntregaLeccion', (int) $idEntregaLeccion, PDO::PARAM_INT);
             $stmt->execute();
+
+            if ($stmt->rowCount() !== 1) {
+                throw new RuntimeException('No se pudo eliminar la entrega institucional.');
+            }
 
             $pdo->commit();
             return 'ok';

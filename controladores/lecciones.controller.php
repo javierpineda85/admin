@@ -423,30 +423,40 @@ class ControladorLecciones
             return 'error';
         }
 
-        $urlRecurso = trim((string) ($_POST['urlRecurso'] ?? $recurso['urlRecurso']));
+        $urlAnterior = (string) $recurso['urlRecurso'];
+        $urlRecurso = trim((string) ($_POST['urlRecurso'] ?? $urlAnterior));
+        $urlSubida = '';
 
         if ($tipoRecurso === 'ARCHIVO' && !empty($_FILES['archivoRecurso']['name']) && ($_FILES['archivoRecurso']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-            self::eliminarArchivoLocal((string) $recurso['urlRecurso']);
             $urlRecurso = self::subirArchivo($_FILES['archivoRecurso']);
+            $urlSubida = $urlRecurso;
         } elseif ($tipoRecurso === 'ENLACE' && $urlRecurso !== '' && !filter_var($urlRecurso, FILTER_VALIDATE_URL)) {
             $urlRecurso = 'https://' . ltrim($urlRecurso, '/');
         }
 
         if ($urlRecurso === '' || ($tipoRecurso === 'ENLACE' && !filter_var($urlRecurso, FILTER_VALIDATE_URL))) {
+            self::eliminarArchivoLocal($urlSubida);
             $_SESSION['error_message'] = 'El recurso no tiene una URL valida.';
             return 'error';
         }
 
-        $respuesta = ModeloLecciones::mdlActualizarRecursoLeccion([
-            'idRecursoLeccion' => $idRecurso,
-            'tipoRecurso' => $tipoRecurso,
-            'tituloRecurso' => $tituloRecurso,
-            'urlRecurso' => $urlRecurso,
-        ]);
+        try {
+            $respuesta = ModeloLecciones::mdlActualizarRecursoLeccion([
+                'idRecursoLeccion' => $idRecurso,
+                'tipoRecurso' => $tipoRecurso,
+                'tituloRecurso' => $tituloRecurso,
+                'urlRecurso' => $urlRecurso,
+            ]);
+        } catch (Throwable $e) {
+            self::eliminarArchivoLocal($urlSubida);
+            throw $e;
+        }
 
         if ($respuesta === 'ok') {
+            if ($urlAnterior !== $urlRecurso) { self::eliminarArchivoLocal($urlAnterior); }
             $_SESSION['success_message'] = 'Recurso actualizado correctamente.';
         } else {
+            self::eliminarArchivoLocal($urlSubida);
             $_SESSION['error_message'] = 'No se pudo actualizar el recurso.';
         }
 
@@ -478,11 +488,10 @@ class ControladorLecciones
             return 'denied';
         }
 
-        self::eliminarArchivoLocal((string) $recurso['urlRecurso']);
-
         $respuesta = ModeloLecciones::mdlEliminarRecursoLeccion($idRecurso);
 
         if ($respuesta === 'ok') {
+            self::eliminarArchivoLocal((string) $recurso['urlRecurso']);
             $_SESSION['success_message'] = 'Recurso eliminado correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudo eliminar el recurso.';
@@ -932,9 +941,14 @@ class ControladorLecciones
             return;
         }
 
-        $rutaFisica = __DIR__ . '/../' . ltrim($ruta, '/');
-        if (is_file($rutaFisica)) {
-            @unlink($rutaFisica);
-        }
+        $basePermitida = realpath(__DIR__ . '/../uploads/lecciones');
+        $rutaFisica = realpath(__DIR__ . '/../' . ltrim(str_replace('\\', '/', $ruta), '/'));
+        if ($basePermitida === false || $rutaFisica === false || !is_file($rutaFisica)) { return; }
+
+        $baseNormalizada = strtolower(rtrim(str_replace('\\', '/', $basePermitida), '/') . '/');
+        $rutaNormalizada = strtolower(str_replace('\\', '/', $rutaFisica));
+        if (!str_starts_with($rutaNormalizada, $baseNormalizada)) { return; }
+        if (ModeloLecciones::mdlRutaArchivoReferenciada($ruta)) { return; }
+        @unlink($rutaFisica);
     }
 }

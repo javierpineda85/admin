@@ -528,6 +528,25 @@ verificar(is_file(__DIR__.'/../'.$rutasBorrado['bloqueado'])
 $pdo->prepare('UPDATE posteos SET id_curso=? WHERE idPosteo=?')->execute([$cursoDemo,$postBloqueadoId]);
 verificar(ControladorLecciones::crtEliminarLeccion()==='ok'&&!is_file(__DIR__.'/../'.$rutasBorrado['bloqueado']),
     'La lección regularizada puede eliminarse sin dejar su archivo huérfano');
+$recursoCompartidoUno=(int)$pdo->query('SELECT idRecursoLeccion FROM recursoslecciones WHERE id_leccion='.$leccionCompartidaId.' LIMIT 1')->fetchColumn();
+$pdo->prepare('INSERT INTO recursoslecciones(id_leccion,tipoRecurso,tituloRecurso,urlRecurso,creadoPor) VALUES(?,?,?,?,?)')
+    ->execute([$leccionCompartidaId,'ARCHIVO','Segunda referencia',$rutasBorrado['compartido'],$ids['B']]);
+$recursoCompartidoDos=(int)$pdo->lastInsertId();
+$_POST=['idRecursoLeccion'=>$recursoCompartidoUno];
+verificar(ControladorLecciones::crtEliminarRecursoLeccion()==='ok'&&is_file(__DIR__.'/../'.$rutasBorrado['compartido']),
+    'Borrado individual conserva un archivo mientras otro recurso use la misma ruta');
+$_POST=['idRecursoLeccion'=>$recursoCompartidoDos];
+verificar(ControladorLecciones::crtEliminarRecursoLeccion()==='ok'&&!is_file(__DIR__.'/../'.$rutasBorrado['compartido']),
+    'Borrado individual elimina el archivo cuando deja de estar referenciado');
+$rutaFueraPermitida='tests/prueba-no-eliminar-'.$sufijoBorrado.'.txt';
+file_put_contents(__DIR__.'/../'.$rutaFueraPermitida,'fuera de uploads/lecciones');
+register_shutdown_function(static function() use($rutaFueraPermitida){$archivo=__DIR__.'/../'.$rutaFueraPermitida;if(is_file($archivo)){unlink($archivo);}});
+$pdo->prepare('INSERT INTO recursoslecciones(id_leccion,tipoRecurso,tituloRecurso,urlRecurso,creadoPor) VALUES(?,?,?,?,?)')
+    ->execute([$leccionCompartidaId,'ARCHIVO','Ruta fuera de carpeta',$rutaFueraPermitida,$ids['B']]);
+$recursoFueraPermitido=(int)$pdo->lastInsertId();
+$_POST=['idRecursoLeccion'=>$recursoFueraPermitido];
+verificar(ControladorLecciones::crtEliminarRecursoLeccion()==='ok'&&is_file(__DIR__.'/../'.$rutaFueraPermitida),
+    'Borrado de recurso nunca elimina rutas físicas fuera de uploads/lecciones');
 $_POST=[];
 ControladorInstitucion::limpiar();
 denegado(function() { ModeloCursos::mdlListarCursos(); }, 'Ausencia de contexto seleccionado rechaza listado');

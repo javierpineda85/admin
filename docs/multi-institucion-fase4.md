@@ -139,11 +139,13 @@ lección reúne primero sus rutas, elimina en base de datos recursos,
 `archivoslecciones`, entregas y adjuntos dentro del tenant, y recién después
 borra los archivos físicos exclusivos. Si una referencia es incoherente se
 conservan filas y archivos; si otra lección comparte la ruta, el archivo tampoco
-se elimina.
+se elimina. La misma verificación global se aplica al reemplazo y borrado de
+recursos individuales y a los archivos de entregas: sólo se retiran rutas sin
+referencias restantes y físicamente ubicadas dentro de `uploads/lecciones`.
 Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
 directamente a archivos de ambas carpetas protegidas.
 
-Última verificación: `campus_mt_fase2_20260914_153023_0532ed`, 310 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_153345_767fdd`, 313 comprobaciones
 correctas. Incluye apertura del panel, listados institucionales, lectura de un curso
 propio y respuestas 403 ante lectura o escritura cruzada de cursos, materias,
 asistencia, calificaciones, actividades, mensajes y usuarios. Por HTTP también
