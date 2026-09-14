@@ -50,9 +50,10 @@ mysql campus -e "source sql/2026-09-14_multi_institucion_05_validar_relaciones.s
 ```
 
 El diagnóstico revisa responsables, docentes, tutores, inscripciones,
-mensajería, autores, entregas, calificaciones y asistencia contra la membresía
-de la institución del recurso. El endurecimiento vuelve a verificar estas
-relaciones y aborta si aparece alguna durante el corte.
+mensajería, autores de actividades, evaluaciones y posteos, creadores de
+recursos, entregas, calificaciones y asistencia contra la membresía de la
+institución del recurso. El endurecimiento vuelve a verificar estas relaciones
+y aborta si aparece alguna durante el corte.
 
 Ejecutar la batería sintética antes de cambiar configuración:
 

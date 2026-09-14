@@ -182,6 +182,26 @@ try {
 }
 comprobar($rechazoRelacion, 'El endurecimiento se detiene ante una relación sin membresía institucional');
 $pdo->prepare('UPDATE cursos SET responsable=? WHERE idCurso=?')->execute([$responsableOriginal, $idCursoEndurecer]);
+$idLeccionEndurecer = (int) $pdo->query('SELECT idLeccion FROM lecciones ORDER BY idLeccion LIMIT 1')->fetchColumn();
+$pdo->prepare('INSERT INTO posteos (id_autor,contenidoPosteo,fechaPosteo,id_curso,id_leccion) VALUES (?,?,?,?,NULL)')
+    ->execute([$idsUsuarios['B'], 'Preflight sintético', '2026-09-14 10:00:00', $idCursoEndurecer]);
+$idPosteoEndurecer = (int) $pdo->lastInsertId();
+$pdo->prepare('INSERT INTO recursoslecciones (id_leccion,tipoRecurso,tituloRecurso,urlRecurso,creadoPor) VALUES (?,?,?,?,?)')
+    ->execute([$idLeccionEndurecer, 'ENLACE', 'Preflight sintético', 'https://example.invalid/preflight', $idsUsuarios['B']]);
+$idRecursoEndurecer = (int) $pdo->lastInsertId();
+$rechazoRelacionesSecundarias = false;
+try {
+    ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+} catch (PDOException $e) {
+    $rechazoRelacionesSecundarias = $e->getCode()==='45000';
+}
+comprobar($rechazoRelacionesSecundarias, 'El endurecimiento detiene autores de posteos y recursos sin membresía');
+$diagnosticoSecundario = $pdo->query(file_get_contents(__DIR__ . '/../sql/2026-09-14_multi_institucion_05_validar_relaciones.sql'))->fetchAll(PDO::FETCH_KEY_PAIR);
+comprobar((int) ($diagnosticoSecundario['posteos_autor_sin_membresia'] ?? 0) > 0
+    && (int) ($diagnosticoSecundario['recursos_creador_sin_membresia'] ?? 0) > 0,
+    'El diagnóstico identifica autores y creadores sin membresía');
+$pdo->prepare('DELETE FROM posteos WHERE idPosteo=?')->execute([$idPosteoEndurecer]);
+$pdo->prepare('DELETE FROM recursoslecciones WHERE idRecursoLeccion=?')->execute([$idRecursoEndurecer]);
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='cursos' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Cursos pasan a exigir institución después del corte');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='mensajes' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Mensajes pasan a exigir institución después del corte');

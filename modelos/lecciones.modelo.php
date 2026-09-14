@@ -635,6 +635,7 @@ class ModeloLecciones
     {
         if ($tabla !== 'recursoslecciones') { throw new InvalidArgumentException('Tabla inválida.'); }
         ModeloTenant::exigirLeccion($datos['id_leccion']);
+        ModeloTenant::exigirUsuario($datos['creadoPor'], ['ADMINISTRADOR', 'DOCENTE']);
         $stmt = Conexion::conectar()->prepare(
             "INSERT INTO $tabla (id_leccion, tipoRecurso, tituloRecurso, urlRecurso, creadoPor)
              SELECT :id_leccion, :tipoRecurso, :tituloRecurso, :urlRecurso, :creadoPor WHERE " . ModeloTenant::leccionId($datos['id_leccion'])

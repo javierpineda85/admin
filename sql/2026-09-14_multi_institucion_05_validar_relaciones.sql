@@ -77,4 +77,20 @@ WHERE c.id_institucion IS NOT NULL AND COALESCE(ac.creadaPor, 0) > 0
   AND NOT EXISTS (
       SELECT 1 FROM usuarios_instituciones ui
       WHERE ui.id_usuario=ac.creadaPor AND ui.id_institucion=c.id_institucion
+  )
+UNION ALL SELECT 'posteos_autor_sin_membresia', COUNT(*)
+FROM posteos p INNER JOIN cursos c ON c.idCurso=p.id_curso INNER JOIN usuarios u ON u.idUsuario=p.id_autor
+WHERE c.id_institucion IS NOT NULL AND COALESCE(p.id_autor, 0) > 0
+  AND NOT EXISTS (
+      SELECT 1 FROM usuarios_instituciones ui
+      WHERE ui.id_usuario=p.id_autor AND ui.id_institucion=c.id_institucion
+  )
+UNION ALL SELECT 'recursos_creador_sin_membresia', COUNT(*)
+FROM recursoslecciones r INNER JOIN lecciones l ON l.idLeccion=r.id_leccion
+INNER JOIN secciones s ON s.idSeccion=l.id_modulo INNER JOIN cursos c ON c.idCurso=s.id_curso
+INNER JOIN usuarios u ON u.idUsuario=r.creadoPor
+WHERE c.id_institucion IS NOT NULL AND COALESCE(r.creadoPor, 0) > 0
+  AND NOT EXISTS (
+      SELECT 1 FROM usuarios_instituciones ui
+      WHERE ui.id_usuario=r.creadoPor AND ui.id_institucion=c.id_institucion
   );

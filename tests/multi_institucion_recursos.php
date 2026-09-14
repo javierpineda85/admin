@@ -215,6 +215,10 @@ denegado(function() use($ids,$cursoMM,$leccionDemo) { ModeloLecciones::mdlGuarda
     'id_autor'=>$ids['B'],'contenidoPosteo'=>'Cruce','fechaPosteo'=>'2026-09-13 11:01:00',
     'id_curso'=>$cursoMM,'id_leccion'=>$leccionDemo
 ]); }, 'Posteo rechaza combinación de lección y curso de otra institución');
+denegado(function() use($ids,$leccionDemo) { ModeloLecciones::mdlGuardarRecursoLeccion('recursoslecciones',[
+    'id_leccion'=>$leccionDemo,'tipoRecurso'=>'ENLACE','tituloRecurso'=>'Creador ajeno',
+    'urlRecurso'=>'https://example.invalid/ajeno','creadoPor'=>$ids['C']
+]); }, 'Recurso rechaza creador sin membresía institucional');
 ModeloLecciones::mdlGuardarRecursoLeccion('recursoslecciones',['id_leccion'=>$leccionDemo,'tipoRecurso'=>'ENLACE',
     'tituloRecurso'=>'Recurso Demo','urlRecurso'=>'https://example.invalid','creadoPor'=>$ids['B']]);
 $recursoDemo=(int)$pdo->lastInsertId();
