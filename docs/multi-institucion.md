@@ -3,7 +3,11 @@
 Estado: fases 1 a 6 implementadas y ensayadas; la fase 7 mantiene la revisión
 residual, las pruebas y la documentación. El modo multiinstitución puede recorrerse
 sobre una base migrada de ensayo. La activación productiva requiere validar el
-delta legacy y los puntos de despliegue indicados al final.
+delta legacy y los puntos de despliegue indicados al final. La validación de
+relaciones sin membresía está disponible en
+`sql/2026-09-14_multi_institucion_05_validar_relaciones.sql` y el endurecimiento
+estructural de `04_endurecer.sql` la vuelve a comprobar antes de aplicar los
+`NOT NULL` y las restricciones únicas.
 
 Seguimiento del aislamiento: [alcance, pruebas y pendientes operativos](multi-institucion-fase4.md).
 El paso a una instalación existente está detallado en
