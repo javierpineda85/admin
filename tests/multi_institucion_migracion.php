@@ -157,4 +157,25 @@ try {
     $rechazo = $e->getCode()==='45000';
 }
 comprobar($rechazo, 'Emails duplicados detienen la migración');
+
+// El endurecimiento sólo se aplica cuando todas las filas ya tienen tenant.
+// La base sintética contiene el corte completo y permite comprobar NOT NULL e identidad única.
+// Se borran las dos filas de ensayo duplicadas después de comprobar el bloqueo de la fase 1.
+$pdo->exec("DELETE u1 FROM usuarios u1 INNER JOIN usuarios u2 ON u2.email=u1.email AND u2.idUsuario>u1.idUsuario WHERE u1.email='mt-duplicado@example.invalid'");
+$idCursoEndurecer = (int) $pdo->query('SELECT idCurso FROM cursos ORDER BY idCurso LIMIT 1')->fetchColumn();
+$pdo->prepare('UPDATE cursos SET id_institucion=NULL WHERE idCurso=?')->execute([$idCursoEndurecer]);
+$rechazoEndurecer = false;
+try {
+    ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+} catch (PDOException $e) {
+    $rechazoEndurecer = $e->getCode()==='45000';
+}
+comprobar($rechazoEndurecer, 'El endurecimiento se detiene ante un curso sin institución');
+$pdo->prepare('UPDATE cursos SET id_institucion=? WHERE idCurso=?')->execute([$idInicial, $idCursoEndurecer]);
+ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='cursos' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Cursos pasan a exigir institución después del corte');
+comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='mensajes' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Mensajes pasan a exigir institución después del corte');
+comprobar((int)$pdo->query("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='usuarios' AND index_name='uq_usuarios_email_global'")->fetchColumn()===1, 'El email global queda protegido por unicidad estructural');
+ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+comprobar((int)$pdo->query("SELECT COUNT(*) FROM campus_migraciones WHERE codigo='multi_institucion_04_endurecer'")->fetchColumn()===1, 'El endurecimiento es reanudable e idempotente');
 echo "Ensayo de expansión finalizado; no verifica aún aislamiento web ni roles de sesión.\n";

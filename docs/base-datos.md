@@ -7,6 +7,10 @@ sin modificar datos. Requiere las tablas académicas actuales.
 `sql/2026-09-14_multi_institucion_01_expandir.sql` crea instituciones, membresías,
 roles por membresía y el marcador de privilegio global; traslada los datos
 existentes a MenteMotion sin cambiar IDs ni eliminar columnas.
+`sql/2026-09-14_multi_institucion_04_endurecer.sql` se ejecuta después del corte
+legacy: aborta si encuentra filas sin tenant o emails duplicados y, sólo cuando
+la comprobación es limpia, vuelve obligatorios los contextos explícitos y agrega
+la unicidad estructural del email global.
 
 Esta expansión no activa por sí sola el modo multiinstitución. El código aislado
 se habilita con `INSTITUCIONES_CONTEXTO_ACTIVO=1` sobre una base migrada. Algunas

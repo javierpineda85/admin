@@ -186,10 +186,12 @@ rechazarse por defecto y aparecer en un informe de regularización; no deben
 adoptar un tenant enviado por el cliente. Recuperar sus relaciones originales
 exige revisar los antecedentes de esos datos.
 
-Pendiente para producción: finalización del esquema (NOT NULL, identidad global
-única y claves foráneas compatibles), validación del delta creado por el modo
-legacy, WordPress real, correo real y revisión de enlaces embebidos en contenido
-histórico. No se asignó SuperAdmin a una cuenta real.
+La migración `04_endurecer` prepara el cierre del esquema: detiene el despliegue
+ante NULL institucionales o emails duplicados, y sólo después aplica `NOT NULL` a
+los contextos explícitos y la unicidad del email global. Continúan pendientes para
+producción la validación del delta creado por el modo legacy, WordPress real,
+correo real, claves foráneas compatibles con tablas MyISAM y la revisión de
+enlaces embebidos en contenido histórico. No se asignó SuperAdmin a una cuenta real.
 
 La documentación histórica de WordPress describe una sincronización de rol y
 estado más amplia que el código actual: el modelo conserva roles locales válidos
@@ -306,6 +308,8 @@ cambiar se rotan sesión, roles, permisos, indicadores y datos del tenant.
 - `php tests/multi_institucion_contexto.php`: LOCAL, WORDPRESS, HYBRID, sesiones y selección.
 - `php tests/multi_institucion_recursos.php`: aislamiento de recursos y endpoints HTTP.
 - `php tests/multi_institucion_superadmin.php`: frontera global, CRUD, asignación y CSRF.
+- `php tests/multi_institucion_migracion.php`: corte seguro de esquema, rechazo de NULL
+  institucionales y unicidad global del email.
 - `CAMPUS_TEST_BASE=<base_sintetica> php tests/multi_institucion_legacy.php`: 26 casos de compatibilidad.
 
 La revisión residual encontró lecturas de `usuarios.rol` únicamente en ramas de

@@ -93,5 +93,8 @@ La duplicación de cursos compensa filas y archivos parciales si una copia falla
 las tablas históricas MyISAM.
 `php tests/multi_institucion_superadmin.php` verifica el panel global, su CSRF,
 la separación del administrador institucional y la gestión de instituciones.
+`sql/2026-09-14_multi_institucion_04_endurecer.sql` queda reservado para el corte
+posterior a la validación del delta: se detiene ante datos incompletos y recién
+entonces aplica las restricciones definitivas compatibles.
 El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y
 los controles que deben mantenerse al agregar nuevas rutas.
