@@ -74,6 +74,16 @@ foreach ($tablas as $tabla) {
     $columnas[$tabla] = $pdo->query("SHOW COLUMNS FROM `$tabla`")->fetchAll(PDO::FETCH_COLUMN);
     $huellas[$tabla] = huella($pdo, $tabla, $columnas[$tabla]);
 }
+$diagnosticoPrevio = $pdo->query(file_get_contents(__DIR__ . '/../sql/2026-09-14_multi_institucion_00_diagnostico.sql'))->fetchAll(PDO::FETCH_KEY_PAIR);
+comprobar(
+    array_key_exists('mensajes_sin_destinatario', $diagnosticoPrevio)
+        && array_key_exists('evaluaciones_calificaciones_sin_usuario', $diagnosticoPrevio)
+        && array_key_exists('asistencia_estudiante_sin_usuario', $diagnosticoPrevio)
+        && array_key_exists('recursos_creador_sin_usuario', $diagnosticoPrevio)
+        && array_key_exists('notificaciones_sin_usuario', $diagnosticoPrevio)
+        && array_key_exists('historial_actor_sin_usuario', $diagnosticoPrevio),
+    'El diagnóstico previo cubre referencias directas a usuarios'
+);
 $migracion = __DIR__ . '/../sql/2026-09-14_multi_institucion_01_expandir.sql';
 ejecutarMigracion($pdo, $migracion);
 foreach ($huellas as $tabla => $esperada) {

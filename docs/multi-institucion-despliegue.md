@@ -19,6 +19,12 @@ implícitos y las tablas académicas históricas incluyen motores MyISAM.
 5. Resolver emails vacíos o duplicados. La expansión se detiene si encuentra
    identidades globales ambiguas.
 
+El diagnóstico previo también informa referencias directas a usuarios
+inexistentes en perfiles, asignaciones académicas, actividades, entregas,
+calificaciones, asistencia, mensajería, notificaciones, publicaciones, recursos,
+historial y cierres de período. Cada incidencia debe regularizarse revisando su
+contexto; el script no elimina filas ni reasigna identidades automáticamente.
+
 ## Orden de aplicación
 
 Ejecutar las migraciones históricas que la instalación todavía necesite y luego:
