@@ -239,7 +239,24 @@ $notaAjena=$notaDemo; $notaAjena['id_estudiante']=$ids['C'];
 denegado(function() use($notaAjena) { ModeloCalificaciones::mdlGuardarCalificacion($notaAjena); }, 'Calificación rechaza estudiante sin membresía en la institución');
 $pdo->prepare('INSERT INTO calificaciones(id_estudiante,id_seccion,id_modulo,id_curso,calificacion,devolucion) VALUES(?,?,?,?,?,?)')
     ->execute([$ids['C'],$materiaDemo,$leccionDemo,$cursoMM,10,'Dato incoherente']);
+$calificacionUsuarioAjeno=(int)$pdo->lastInsertId();
 verificar(count(ModeloCalificaciones::mdlCalificacionesPorSeccion($materiaDemo))===1, 'Listado excluye calificación histórica con curso cruzado');
+$pdo->prepare('UPDATE calificaciones SET id_curso=? WHERE idCalificacion=?')->execute([$cursoDemo,$calificacionUsuarioAjeno]);
+verificar(count(ModeloCalificaciones::mdlCalificacionesPorSeccion($materiaDemo))===1,
+    'Listado excluye calificación de una identidad sin relación histórica con la institución');
+$pdo->prepare('UPDATE calificaciones SET id_curso=? WHERE idCalificacion=?')->execute([$cursoMM,$calificacionUsuarioAjeno]);
+$pdo->prepare('INSERT INTO entregaslecciones(id_leccion,id_seccion,id_curso,id_estudiante,urlArchivo,comentarioEntrega,estadoEntrega) VALUES(?,?,?,?,?,?,?)')
+    ->execute([$leccionDemo,$materiaDemo,$cursoDemo,$ids['C'],'','Entrega histórica ajena','ENTREGADA']);
+$entregaUsuarioAjeno=(int)$pdo->lastInsertId();
+verificar(count(ModeloLecciones::mdlBuscarEntregasPorLeccion($leccionDemo))===1,
+    'Listado excluye entrega de una identidad sin relación histórica con la institución');
+$pdo->prepare('DELETE FROM entregaslecciones WHERE idEntregaLeccion=?')->execute([$entregaUsuarioAjeno]);
+$pdo->prepare('INSERT INTO posteos(id_autor,contenidoPosteo,fechaPosteo,id_curso,id_leccion) VALUES(?,?,?,?,?)')
+    ->execute([$ids['C'],'Post histórico ajeno',date('Y-m-d H:i:s'),$cursoDemo,$leccionDemo]);
+$postUsuarioAjeno=(int)$pdo->lastInsertId();
+verificar(count(ModeloLecciones::mdlBuscarPostsPorLeccion($leccionDemo))===1,
+    'Listado excluye posteo de una identidad sin relación histórica con la institución');
+$pdo->prepare('DELETE FROM posteos WHERE idPosteo=?')->execute([$postUsuarioAjeno]);
 $pdo->prepare('UPDATE entregaslecciones SET id_curso=? WHERE idEntregaLeccion=?')->execute([$cursoMM,$entregaId]);
 verificar(ModeloLecciones::mdlBuscarEntregasPorLeccion($leccionDemo)===[], 'Lectura no revela entrega con curso cruzado heredada de datos históricos');
 verificar(ModeloLecciones::mdlBuscarEntregaPorLeccionEstudiante($leccionDemo,$ids['A'])===null, 'Consulta individual excluye entrega incoherente');

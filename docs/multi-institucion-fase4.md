@@ -39,9 +39,12 @@ pero no debe habilitarse en producción: la fase 4 todavía no está completa.
   El origen debe pertenecer al contexto. Un preflight valida docentes y rutas
   canónicas, y rechaza archivos ausentes, fuera de la carpeta autorizada o
   referenciados también desde recursos/entregas ajenos o sin relación válida.
-- Las entregas incoherentes se excluyen de lecturas y agregados. La eliminación
-  de una lección se bloquea ante dependencias inconsistentes y una materia no
-  puede cambiar de curso en modo institucional, para preservar las referencias.
+- Las entregas incoherentes se excluyen de lecturas y agregados. Entregas,
+  posteos y calificaciones también exigen una membresía actual o histórica de la
+  persona en el tenant: una baja conserva antecedentes, mientras una identidad
+  exclusiva de otra institución queda oculta. La eliminación de una lección se
+  bloquea ante dependencias inconsistentes y una materia no puede cambiar de
+  curso en modo institucional, para preservar las referencias.
 - Asistencia deriva el tenant por la relación clase/sección/curso. Altas,
   listados y actualizaciones rechazan combinaciones cruzadas, filtran alumnos por
   inscripción y rol institucional activos, y no exponen clases incoherentes por ID.
@@ -145,7 +148,7 @@ referencias restantes y físicamente ubicadas dentro de `uploads/lecciones`.
 Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
 directamente a archivos de ambas carpetas protegidas.
 
-Última verificación: `campus_mt_fase2_20260914_153345_767fdd`, 313 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_153640_871b0e`, 316 comprobaciones
 correctas. Incluye apertura del panel, listados institucionales, lectura de un curso
 propio y respuestas 403 ante lectura o escritura cruzada de cursos, materias,
 asistencia, calificaciones, actividades, mensajes y usuarios. Por HTTP también
@@ -174,9 +177,10 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 - Mantener la revisión HTTP al incorporar nuevas rutas o nombres de parámetros. El
   inventario actual no contiene endpoints AJAX propios separados de los controladores MVC.
-- Terminar el tratamiento de referencias históricas inconsistentes en consultas
-  de entregas, posteos y calificaciones. La eliminación de lecciones ya se bloquea
-  antes de modificar filas o archivos si encuentra una de esas referencias.
+- Mantener la revisión de referencias históricas al incorporar nuevas consultas.
+  Entregas, posteos y calificaciones ya aplican relaciones académicas y membresías
+  históricas mediante los predicados centrales, y el borrado se bloquea antes de
+  modificar filas o archivos si encuentra inconsistencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
 - Revisar las acciones administrativas restantes que no transportan recursos académicos
   y conservar la frontera central al agregar nuevos formularios.

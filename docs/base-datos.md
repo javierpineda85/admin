@@ -88,5 +88,8 @@ que filtran `usuarios.rol` se sustituirán al incorporar el tenant en fase 4.
 En el primer bloque de fase 4, los listados de usuarios y matrículas del curso usan
 roles de membresía. Las referencias redundantes de entregas se comprueban contra
 la cadena lección → sección → curso; las filas incoherentes no se reasignan ni
-eliminan automáticamente. La preparación DDL de cursos/lecciones queda desactivada
+eliminan automáticamente. Entregas, posteos y calificaciones exigen además que la
+persona tenga una membresía actual o histórica en la institución; una baja conserva
+la trazabilidad, pero una identidad exclusiva de otro tenant queda oculta. La
+preparación DDL de cursos/lecciones queda desactivada
 durante el ensayo institucional. Consultar [los pendientes de despliegue](multi-institucion-fase4.md).

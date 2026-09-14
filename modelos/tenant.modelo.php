@@ -84,7 +84,8 @@ class ModeloTenant
         return 'EXISTS (SELECT 1 FROM lecciones coherencia_l INNER JOIN secciones coherencia_s ON coherencia_s.idSeccion=coherencia_l.id_modulo
             INNER JOIN cursos coherencia_c ON coherencia_c.idCurso=coherencia_s.id_curso WHERE coherencia_l.idLeccion=' . $alias . '.id_leccion
             AND coherencia_s.idSeccion=' . $alias . '.id_seccion AND coherencia_c.idCurso=' . $alias . '.id_curso
-            AND ' . self::cursos('coherencia_c') . ')';
+            AND ' . self::cursos('coherencia_c') . ')
+            AND ' . self::usuarioRelacionadoInstitucion($alias . '.id_estudiante');
     }
 
     public static function relacionLeccion($idLeccion, $idSeccion, $idCurso)
@@ -102,7 +103,8 @@ class ModeloTenant
         self::identificador($alias);
         return 'EXISTS (SELECT 1 FROM lecciones post_l INNER JOIN secciones post_s ON post_s.idSeccion=post_l.id_modulo
             INNER JOIN cursos post_c ON post_c.idCurso=post_s.id_curso WHERE post_l.idLeccion=' . $alias . '.id_leccion
-            AND post_c.idCurso=' . $alias . '.id_curso AND ' . self::cursos('post_c') . ')';
+            AND post_c.idCurso=' . $alias . '.id_curso AND ' . self::cursos('post_c') . ')
+            AND ' . self::usuarioRelacionadoInstitucion($alias . '.id_autor');
     }
 
     public static function calificaciones($alias = 'calificaciones')
@@ -112,7 +114,17 @@ class ModeloTenant
         return 'EXISTS (SELECT 1 FROM secciones nota_s INNER JOIN cursos nota_c ON nota_c.idCurso=nota_s.id_curso
             WHERE nota_s.idSeccion=' . $alias . '.id_seccion AND nota_c.idCurso=' . $alias . '.id_curso
             AND ' . self::cursos('nota_c') . ' AND (COALESCE(' . $alias . '.id_modulo,0)=0 OR EXISTS
-                (SELECT 1 FROM lecciones nota_l WHERE nota_l.idLeccion=' . $alias . '.id_modulo AND nota_l.id_modulo=nota_s.idSeccion)))';
+                (SELECT 1 FROM lecciones nota_l WHERE nota_l.idLeccion=' . $alias . '.id_modulo AND nota_l.id_modulo=nota_s.idSeccion)))
+            AND ' . self::usuarioRelacionadoInstitucion($alias . '.id_estudiante');
+    }
+
+    /** Acepta membresías históricas inactivas para conservar la trazabilidad académica del tenant. */
+    private static function usuarioRelacionadoInstitucion($expresionUsuario)
+    {
+        self::identificador($expresionUsuario);
+        return 'EXISTS (SELECT 1 FROM usuarios_instituciones relacion_ui
+            WHERE relacion_ui.id_usuario=' . $expresionUsuario . '
+            AND relacion_ui.id_institucion=' . self::id() . ')';
     }
 
     public static function escrituraCalificacion(array $datos)
