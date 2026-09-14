@@ -255,6 +255,34 @@ $pdo->prepare('DELETE FROM evaluaciones_calificaciones WHERE id_evaluacion=?')->
 $pdo->prepare('DELETE FROM evaluaciones WHERE idEvaluacion=?')->execute([$idEvaluacionEndurecer]);
 $pdo->prepare('DELETE FROM asistencia_registros WHERE id_clase=?')->execute([$idClaseEndurecer]);
 $pdo->prepare('DELETE FROM asistencia_clases WHERE idClase=?')->execute([$idClaseEndurecer]);
+$anioCierreEndurecer = (int) $pdo->query('SELECT COALESCE(MAX(anio),2026)+1 FROM ciclos_lectivos')->fetchColumn();
+$pdo->prepare('INSERT INTO ciclos_lectivos (nombre,anio,activo,id_institucion) VALUES (?,?,1,?)')
+    ->execute(['Preflight sintético', $anioCierreEndurecer, $idInicial]);
+$idCicloEndurecer = (int) $pdo->lastInsertId();
+$pdo->prepare('INSERT INTO periodos_calificacion (id_ciclo,nombre,tipo,orden,estado) VALUES (?,?,?,?,?)')
+    ->execute([$idCicloEndurecer, 'Preflight sintético', 'REGULAR', 1, 'ABIERTO']);
+$idPeriodoEndurecer = (int) $pdo->lastInsertId();
+$pdo->prepare('INSERT INTO cierres_periodo_calificaciones (id_periodo,id_seccion,id_estudiante,promedioCalculado,calificacionCierre,confirmada,actualizadoPor) VALUES (?,?,?,?,?,?,?)')
+    ->execute([$idPeriodoEndurecer, $idSeccionEndurecer, $idsUsuarios['B'], 8, 8, 1, $idsUsuarios['B']]);
+$pdo->prepare('INSERT INTO periodos_seccion_estado (id_periodo,id_seccion,estado,fechaCierre,cerradoPor,fechaReapertura,reabiertoPor,motivoReapertura) VALUES (?,?,?,NOW(),?,NOW(),?,?)')
+    ->execute([$idPeriodoEndurecer, $idSeccionEndurecer, 'ABIERTO', $idsUsuarios['B'], $idsUsuarios['B'], 'Preflight sintético']);
+$rechazoCierresPeriodo = false;
+try {
+    ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
+} catch (PDOException $e) {
+    $rechazoCierresPeriodo = $e->getCode()==='45000';
+}
+comprobar($rechazoCierresPeriodo, 'El endurecimiento detiene cierres de período sin membresía');
+$diagnosticoCierresPeriodo = $pdo->query(file_get_contents(__DIR__ . '/../sql/2026-09-14_multi_institucion_05_validar_relaciones.sql'))->fetchAll(PDO::FETCH_KEY_PAIR);
+comprobar((int) ($diagnosticoCierresPeriodo['cierres_periodo_estudiante_sin_membresia'] ?? 0) > 0
+    && (int) ($diagnosticoCierresPeriodo['cierres_periodo_actualizador_sin_membresia'] ?? 0) > 0
+    && (int) ($diagnosticoCierresPeriodo['periodos_seccion_cerrador_sin_membresia'] ?? 0) > 0
+    && (int) ($diagnosticoCierresPeriodo['periodos_seccion_reabridor_sin_membresia'] ?? 0) > 0,
+    'El diagnóstico identifica actores de cierres sin membresía');
+$pdo->prepare('DELETE FROM cierres_periodo_calificaciones WHERE id_periodo=?')->execute([$idPeriodoEndurecer]);
+$pdo->prepare('DELETE FROM periodos_seccion_estado WHERE id_periodo=?')->execute([$idPeriodoEndurecer]);
+$pdo->prepare('DELETE FROM periodos_calificacion WHERE idPeriodo=?')->execute([$idPeriodoEndurecer]);
+$pdo->prepare('DELETE FROM ciclos_lectivos WHERE idCicloLectivo=?')->execute([$idCicloEndurecer]);
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_04_endurecer.sql');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='cursos' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Cursos pasan a exigir institución después del corte');
 comprobar((string)$pdo->query("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='mensajes' AND column_name='id_institucion'")->fetchColumn()==='NO', 'Mensajes pasan a exigir institución después del corte');

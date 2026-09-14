@@ -100,6 +100,26 @@ BEGIN
             WHERE c.id_institucion IS NOT NULL AND COALESCE(ec.id_estudiante,0)>0
               AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=ec.id_estudiante AND ui.id_institucion=c.id_institucion)
         ) OR EXISTS (
+            SELECT 1 FROM cierres_periodo_calificaciones cp INNER JOIN secciones s ON s.idSeccion=cp.id_seccion
+            INNER JOIN cursos c ON c.idCurso=s.id_curso INNER JOIN usuarios u ON u.idUsuario=cp.id_estudiante
+            WHERE c.id_institucion IS NOT NULL AND COALESCE(cp.id_estudiante,0)>0
+              AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=cp.id_estudiante AND ui.id_institucion=c.id_institucion)
+        ) OR EXISTS (
+            SELECT 1 FROM cierres_periodo_calificaciones cp INNER JOIN secciones s ON s.idSeccion=cp.id_seccion
+            INNER JOIN cursos c ON c.idCurso=s.id_curso INNER JOIN usuarios u ON u.idUsuario=cp.actualizadoPor
+            WHERE c.id_institucion IS NOT NULL AND COALESCE(cp.actualizadoPor,0)>0
+              AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=cp.actualizadoPor AND ui.id_institucion=c.id_institucion)
+        ) OR EXISTS (
+            SELECT 1 FROM periodos_seccion_estado pe INNER JOIN secciones s ON s.idSeccion=pe.id_seccion
+            INNER JOIN cursos c ON c.idCurso=s.id_curso INNER JOIN usuarios u ON u.idUsuario=pe.cerradoPor
+            WHERE c.id_institucion IS NOT NULL AND COALESCE(pe.cerradoPor,0)>0
+              AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=pe.cerradoPor AND ui.id_institucion=c.id_institucion)
+        ) OR EXISTS (
+            SELECT 1 FROM periodos_seccion_estado pe INNER JOIN secciones s ON s.idSeccion=pe.id_seccion
+            INNER JOIN cursos c ON c.idCurso=s.id_curso INNER JOIN usuarios u ON u.idUsuario=pe.reabiertoPor
+            WHERE c.id_institucion IS NOT NULL AND COALESCE(pe.reabiertoPor,0)>0
+              AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=pe.reabiertoPor AND ui.id_institucion=c.id_institucion)
+        ) OR EXISTS (
             SELECT 1 FROM asistencia_clases ac INNER JOIN cursos c ON c.idCurso=ac.id_curso INNER JOIN usuarios u ON u.idUsuario=ac.creadaPor
             WHERE c.id_institucion IS NOT NULL AND COALESCE(ac.creadaPor,0)>0
               AND NOT EXISTS (SELECT 1 FROM usuarios_instituciones ui WHERE ui.id_usuario=ac.creadaPor AND ui.id_institucion=c.id_institucion)
