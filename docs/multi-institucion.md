@@ -1,9 +1,9 @@
 # Multiinstitución: diseño y seguimiento
 
-Estado: fases 1 a 6 implementadas y ensayadas; la fase 7 mantiene la revisión
-residual, las pruebas y la documentación. El modo multiinstitución puede recorrerse
-sobre una base migrada de ensayo. La activación productiva requiere validar el
-delta legacy y los puntos de despliegue indicados al final. La validación de
+Estado: fases 1 a 7 implementadas y ensayadas sobre bases sintéticas. El modo
+multiinstitución puede recorrerse sobre una base migrada de ensayo. La activación
+productiva requiere regularizar el delta legacy y completar los puntos operativos
+indicados al final. La validación de
 relaciones sin membresía está disponible en
 `sql/2026-09-14_multi_institucion_05_validar_relaciones.sql` y el endurecimiento
 estructural de `04_endurecer.sql` la vuelve a comprobar antes de aplicar los
@@ -42,7 +42,7 @@ Una institución es una frontera de autorización y datos, no un filtro visual.
 | actividades_preguntas / opciones / intentos / respuestas | Heredan por actividad; validar todas las referencias cruzadas |
 | mensajes / participantes / adjuntos | Institución en mensaje; participantes y adjuntos heredan |
 | notificaciones / notificaciones_lecturas | Institución explícita por referencias polimórficas y claves de lectura |
-| usuarios_historial | Institución explícita para acciones institucionales; NULL reservado a identidad global |
+| usuarios_historial | Institución explícita para acciones institucionales; NULL sólo durante la transición legacy previa al corte |
 
 `instituciones.configuracion` reserva un documento JSON para ajustes y branding.
 Planes, límites y vencimientos se incorporarán mediante migraciones posteriores;
@@ -92,6 +92,9 @@ tenant y relaciones completas. Las asignaciones exigen membresía activa y roles
 compatibles. Las bajas institucionales modifican la membresía, nunca desactivan la
 cuenta global. Un administrador institucional no debe poder cambiar credenciales
 globales de un miembro y así tomar control de sus accesos a otra institución.
+El historial institucional exige que el usuario afectado pertenezca al tenant y
+que el actor coincida con la sesión; el preflight admite también a SuperAdmin como
+actor global explícito.
 
 Las actividades públicas requieren una vía separada: resolver únicamente una
 actividad publicada de una institución activa por su slug, sin establecer una
@@ -184,6 +187,7 @@ El diagnóstico de solo lectura sobre la base local encontró:
 | Inscripciones sin curso | 23 |
 | Inscripciones sin usuario | 31 |
 | Mensajes sin remitente | 8 |
+| Mensajes sin destinatario | 8 |
 | Usuarios con rol sin equivalencia (GESTOR) | 2 |
 
 Los conteos pueden solaparse. No se eliminaron ni reasignaron esos registros.
@@ -290,7 +294,7 @@ prioridad estable, unión de permisos, ausencia de herencia legacy y asignacione
 aceptadas o rechazadas según institución. La batería actual extiende esos casos
 a recursos y peticiones HTTP.
 
-## Fases 4 a 6: aislamiento, SuperAdmin y header (2026-09-14)
+## Fases 4 a 7: aislamiento, SuperAdmin, header y seguridad (2026-09-14)
 
 `ModeloTenant` aplica el contexto a cursos, secciones, lecciones, entregas,
 calificaciones, asistencia, actividades, mensajes, notificaciones, usuarios,
@@ -314,8 +318,10 @@ cambiar se rotan sesión, roles, permisos, indicadores y datos del tenant.
 - `php tests/multi_institucion_contexto.php`: LOCAL, WORDPRESS, HYBRID, sesiones y selección.
 - `php tests/multi_institucion_recursos.php`: aislamiento de recursos y endpoints HTTP.
 - `php tests/multi_institucion_superadmin.php`: frontera global, CRUD, asignación y CSRF.
-- `php tests/multi_institucion_migracion.php`: corte seguro de esquema, rechazo de NULL
-  institucionales y unicidad global del email.
+- `sql/2026-09-14_multi_institucion_00_diagnostico.sql`: referencias estructurales
+  e identidades huérfanas antes de expandir.
+- `sql/2026-09-14_multi_institucion_05_validar_relaciones.sql`: relaciones sin
+  membresía antes del corte definitivo.
 - `CAMPUS_TEST_BASE=<base_sintetica> php tests/multi_institucion_legacy.php`: 26 casos de compatibilidad.
 
 La revisión residual encontró lecturas de `usuarios.rol` únicamente en ramas de
@@ -323,3 +329,10 @@ compatibilidad con el contexto desactivado, sincronización de identidad WordPre
 y campos de presentación cuyo valor institucional ya proviene de una consulta de
 membresía. Las conexiones PDO que permanecen en controladores coordinan
 transacciones o recuperan `lastInsertId`; no ejecutan listados académicos directos.
+
+La implementación de fase 7 queda cerrada con esta batería. La habilitación en
+producción continúa condicionada a regularizar las incidencias del diagnóstico,
+repetir las pruebas HTTP con la configuración y el dominio reales, validar
+WordPress y SMTP reales, revisar enlaces embebidos históricos y definir la cuenta
+que recibirá `esSuperAdmin=1`. Ninguna de esas acciones se ejecutó sobre datos
+productivos desde los ensayos.

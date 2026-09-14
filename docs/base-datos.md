@@ -99,6 +99,12 @@ historial incorporan institución explícita cuando la relación no puede deduci
 sin ambigüedad. Secciones, lecciones, entregas y calificaciones heredan el tenant
 desde el curso y sus relaciones se validan como cadena completa.
 
+`usuarios_historial.id_institucion` identifica el ámbito de cada acción. La
+escritura comprueba una membresía actual o histórica del usuario afectado y exige
+que `id_usuario_accion` coincida con la identidad autenticada. El diagnóstico de
+relaciones permite además un actor con `esSuperAdmin=1`, porque ese privilegio es
+global y explícito.
+
 En el primer bloque de fase 4, los listados de usuarios y matrículas del curso usan
 roles de membresía. Las referencias redundantes de entregas se comprueban contra
 la cadena lección → sección → curso; las filas incoherentes no se reasignan ni

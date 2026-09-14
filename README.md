@@ -99,3 +99,9 @@ posterior a la validación del delta: se detiene ante datos incompletos y recié
 entonces aplica las restricciones definitivas compatibles.
 El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y
 los controles que deben mantenerse al agregar nuevas rutas.
+
+La fase 7 agrega diagnósticos de solo lectura para identidades huérfanas y
+relaciones sin membresía, valida el historial institucional y completa la
+regresión multiinstitución, SuperAdmin y legacy. La activación productiva sigue la
+[guía de despliegue](docs/multi-institucion-despliegue.md) y requiere regularizar
+primero todas las incidencias informadas, sin reasignarlas automáticamente.
