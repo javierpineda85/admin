@@ -85,6 +85,61 @@ verificar(ControladorUsuarios::crtDarBajaUsuario()===false && (int)$pdo->query('
     'Administrador institucional no da de baja una identidad de otra institución');
 verificar(ControladorUsuarios::crtReactivarUsuario($ids['C'])===false, 'Administrador institucional no reactiva una identidad de otra institución');
 $_POST=[];
+$usuariosAntesAlta=(int)$pdo->query('SELECT COUNT(*) FROM usuarios')->fetchColumn();
+$_POST=['nombreUsuario'=>'Nombre ignorado','apellidoUsuario'=>'Existente','emailUsuario'=>'d@campus.example','passUsuario'=>'',
+    'roles'=>['ESTUDIANTE']];
+verificar(ControladorUsuarios::crtGuardarUsuario()==='ok'
+    && (int)$pdo->query('SELECT COUNT(*) FROM usuarios')->fetchColumn()===$usuariosAntesAlta
+    && ModeloInstituciones::mdlRolesUsuarioInstitucion($ids['D'],$demo)===['ESTUDIANTE'],
+    'Alta institucional reutiliza la identidad global existente sin duplicarla');
+verificar(ControladorUsuarios::crtGuardarUsuario()===false
+    && ModeloInstituciones::mdlRolesUsuarioInstitucion($ids['D'],$demo)===['ESTUDIANTE'],
+    'Alta repetida no duplica ni reemplaza una membresía institucional activa');
+$emailNuevo='nuevo.'.bin2hex(random_bytes(4)).'@campus.example';
+$_POST=['nombreUsuario'=>'Elena','apellidoUsuario'=>'Nueva','emailUsuario'=>$emailNuevo,'passUsuario'=>'corta',
+    'roles'=>['DOCENTE']];
+verificar(ControladorUsuarios::crtGuardarUsuario()===false
+    && (int)$pdo->query('SELECT COUNT(*) FROM usuarios')->fetchColumn()===$usuariosAntesAlta,
+    'Identidad global nueva exige una contraseña inicial suficiente');
+$_POST=['nombreUsuario'=>'Elena','apellidoUsuario'=>'Nueva','emailUsuario'=>$emailNuevo,'passUsuario'=>'Clave-segura-123',
+    'roles'=>['DOCENTE','ESTUDIANTE'],'dniPerfil'=>'30111222','contenidoPerfil'=>'Perfil inicial'];
+verificar(ControladorUsuarios::crtGuardarUsuario()==='ok', 'Alta institucional crea una identidad global cuando el email no existe');
+$idUsuarioNuevo=(int)$pdo->query("SELECT idUsuario FROM usuarios WHERE email=".$pdo->quote($emailNuevo))->fetchColumn();
+$identidadNueva=$pdo->query('SELECT nombreUsuario,email,pass,rol,activo FROM usuarios WHERE idUsuario='.(int)$idUsuarioNuevo)->fetch(PDO::FETCH_ASSOC);
+verificar($idUsuarioNuevo>0 && (string)$identidadNueva['rol']==='' && (int)$identidadNueva['activo']===1
+    && ModeloInstituciones::mdlRolesUsuarioInstitucion($idUsuarioNuevo,$demo)===['DOCENTE','ESTUDIANTE'],
+    'Identidad nueva conserva roles académicos exclusivamente en su membresía');
+$hashNuevo=(string)$identidadNueva['pass'];
+$_POST=['idUsuario'=>$idUsuarioNuevo,'nombreUsuario'=>'Nombre manipulado','apellidoUsuario'=>'Cambio global',
+    'emailUsuario'=>'cambio@campus.example','passUsuario'=>'Otra-clave-123','roles'=>['ADMINISTRADOR','DOCENTE']];
+verificar(ControladorUsuarios::crtModificarUsuario()==='ok', 'Administrador actualiza múltiples roles de una membresía propia');
+$identidadTrasRoles=$pdo->query('SELECT nombreUsuario,email,pass FROM usuarios WHERE idUsuario='.(int)$idUsuarioNuevo)->fetch(PDO::FETCH_ASSOC);
+verificar($identidadTrasRoles['nombreUsuario']==='Elena' && $identidadTrasRoles['email']===$emailNuevo
+    && $identidadTrasRoles['pass']===$hashNuevo
+    && ModeloInstituciones::mdlRolesUsuarioInstitucion($idUsuarioNuevo,$demo)===['ADMINISTRADOR','DOCENTE'],
+    'Cambio institucional no modifica nombre, email ni contraseña de la identidad global');
+$pdo->prepare('INSERT INTO usuarios_instituciones(id_usuario,id_institucion) VALUES(?,?)')->execute([$idUsuarioNuevo,$mm]);
+$membresiaNuevaMM=(int)$pdo->lastInsertId();
+$pdo->prepare("INSERT INTO usuarios_instituciones_roles(id_usuario_institucion,id_rol) SELECT ?,idRol FROM roles WHERE codigo='ESTUDIANTE'")
+    ->execute([$membresiaNuevaMM]);
+$fechaAltaMembresiaDemo=(string)$pdo->query('SELECT fechaAlta FROM usuarios_instituciones WHERE id_usuario='.(int)$idUsuarioNuevo.' AND id_institucion='.(int)$demo)->fetchColumn();
+$_POST=['accion_usuario'=>'baja_usuario','idUsuario'=>$idUsuarioNuevo,'motivoBaja'=>'Baja sólo Demo'];
+verificar(ControladorUsuarios::crtDarBajaUsuario()==='ok'
+    && (int)$pdo->query('SELECT activo FROM usuarios_instituciones WHERE id_usuario='.(int)$idUsuarioNuevo.' AND id_institucion='.(int)$demo)->fetchColumn()===0
+    && (int)$pdo->query('SELECT activo FROM usuarios_instituciones WHERE id_usuario='.(int)$idUsuarioNuevo.' AND id_institucion='.(int)$mm)->fetchColumn()===1
+    && (int)$pdo->query('SELECT activo FROM usuarios WHERE idUsuario='.(int)$idUsuarioNuevo)->fetchColumn()===1,
+    'Baja institucional desactiva sólo la membresía seleccionada');
+verificar(ControladorUsuarios::crtReactivarUsuario($idUsuarioNuevo)==='ok'
+    && ModeloInstituciones::mdlRolesUsuarioInstitucion($idUsuarioNuevo,$demo)===['ADMINISTRADOR','DOCENTE']
+    && (string)$pdo->query('SELECT fechaAlta FROM usuarios_instituciones WHERE id_usuario='.(int)$idUsuarioNuevo.' AND id_institucion='.(int)$demo)->fetchColumn()===$fechaAltaMembresiaDemo,
+    'Reactivación institucional conserva la identidad, fecha de alta y roles de la membresía');
+verificar((int)$pdo->query('SELECT COUNT(*) FROM usuarios_historial WHERE id_usuario='.(int)$idUsuarioNuevo.' AND id_institucion='.(int)$demo)->fetchColumn()>=4,
+    'Historial de altas, roles y estado registra la institución activa');
+sesionPara($ids['A']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+denegado(function() use($idUsuarioNuevo) { ModeloUsuarios::mdlActualizarRolesInstitucionales($idUsuarioNuevo,['ESTUDIANTE']); },
+    'Modelo de membresías exige rol administrador para cambiar roles');
+sesionPara($ids['B']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+$_POST=[];
 verificar(ModeloCursos::mdlBuscarCursoPorId($cursoMM)===null, 'Lectura directa por ID de curso ajeno no devuelve datos');
 denegado(function() use ($cursoMM) { ModeloCursos::mdlEliminarCurso($cursoMM); }, 'B no puede eliminar curso de MenteMotion');
 denegado(function() use ($cursoDemo,$ids) { ModeloCursos::mdlAsignarCurso('asignacioncursos',['idCurso'=>$cursoDemo,'idUsuario'=>$ids['C']]); }, 'Inscripción rechaza estudiante de otra institución');
@@ -354,7 +409,7 @@ verificar(ControladorDescargas::crtResolverArchivo('recurso',$recursoLocal)['nom
 sesionPara($ids['B']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
 $panelDemo=ModeloPanel::mdlResumenDashboard($ids['B'],'ADMINISTRADOR');
 $tarjetasDemo=array_column($panelDemo['tarjetas'],'value','label');
-verificar((int)$tarjetasDemo['Usuarios activos']===2
+verificar((int)$tarjetasDemo['Usuarios activos']===(int)$pdo->query('SELECT COUNT(*) FROM usuarios_instituciones ui INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario WHERE ui.id_institucion='.(int)$demo.' AND ui.activo=1 AND u.activo=1')->fetchColumn()
     && (int)$tarjetasDemo['Cursos']===(int)$pdo->query('SELECT COUNT(*) FROM cursos WHERE id_institucion='.$demo)->fetchColumn()
     && (int)$tarjetasDemo['Secciones']===(int)$pdo->query('SELECT COUNT(*) FROM secciones s INNER JOIN cursos c ON c.idCurso=s.id_curso WHERE c.id_institucion='.$demo)->fetchColumn(),
     'Panel administrador calcula usuarios, cursos y materias sólo para su institución');

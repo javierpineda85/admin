@@ -5,6 +5,17 @@ require_once __DIR__ . '/tenant.modelo.php';
 
 class ModeloUsuarios
 {
+    private static function normalizarRolesInstitucionales(array $roles)
+    {
+        $permitidos = ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'];
+        $normalizados = [];
+        foreach ($roles as $rol) {
+            $rol = strtoupper(trim((string) $rol));
+            if (in_array($rol, $permitidos, true)) { $normalizados[$rol] = true; }
+        }
+        return array_keys($normalizados);
+    }
+
     public function authenticate($email, $password)
     {
         $storedPassword = $this->getStoredPasswordByUsername($email);
@@ -770,8 +781,151 @@ class ModeloUsuarios
         return $registro->execute() ? "ok" : "error";
     }
 
+    public static function mdlCrearOMatricularUsuarioInstitucional(array $datos, array $perfil, array $roles)
+    {
+        ModeloTenant::exigirUsuario((int)($_SESSION['usuario']['id']??0), ['ADMINISTRADOR']);
+        $roles = self::normalizarRolesInstitucionales($roles);
+        $idInstitucion = ModeloTenant::id();
+        $email = strtolower(trim((string) ($datos['email'] ?? '')));
+        $nombre = trim((string) ($datos['nombreUsuario'] ?? ''));
+        $apellido = trim((string) ($datos['apellidoUsuario'] ?? ''));
+        $largoNombre = function_exists('mb_strlen') ? mb_strlen($nombre) : strlen($nombre);
+        $largoApellido = function_exists('mb_strlen') ? mb_strlen($apellido) : strlen($apellido);
+        if ($idInstitucion <= 0 || !$roles || !filter_var($email, FILTER_VALIDATE_EMAIL)
+            || strlen($email) > 50 || $nombre === '' || $apellido === ''
+            || $largoNombre > 20 || $largoApellido > 20) {
+            throw new RuntimeException('Los datos de la membresía institucional no son válidos.');
+        }
+
+        $pdo = Conexion::conectar();
+        $candado = 'campus_alta_' . substr(hash('sha256', DB_NAME . '|' . $email), 0, 48);
+        $lock = $pdo->prepare('SELECT GET_LOCK(?, 5)');
+        $lock->execute([$candado]);
+        if ((int) $lock->fetchColumn() !== 1) {
+            throw new RuntimeException('No se pudo reservar la identidad para el alta.');
+        }
+
+        $idUsuarioNuevo = 0;
+        $transaccionPropia = false;
+        try {
+            if (!$pdo->inTransaction()) { $pdo->beginTransaction(); $transaccionPropia = true; }
+            $buscar = $pdo->prepare('SELECT idUsuario,activo FROM usuarios WHERE LOWER(TRIM(email))=? LIMIT 2');
+            $buscar->execute([$email]);
+            $coincidencias = $buscar->fetchAll(PDO::FETCH_ASSOC);
+            if (count($coincidencias) > 1) {
+                throw new RuntimeException('El email coincide con más de una identidad global.');
+            }
+
+            $identidadNueva = !$coincidencias;
+            if ($identidadNueva) {
+                if (strlen((string) ($datos['pass'] ?? '')) < 8) {
+                    throw new RuntimeException('La contraseña debe tener al menos 8 caracteres para una identidad nueva.');
+                }
+                $insertar = $pdo->prepare("INSERT INTO usuarios
+                    (nombreUsuario,apellidoUsuario,email,pass,resetPass,imgUsuario,activo,rol,fechaAlta)
+                    VALUES (?,?,?,?,1,?,1,'',NOW())");
+                $insertar->execute([
+                    $nombre,
+                    $apellido,
+                    $email,
+                    password_hash((string) $datos['pass'], PASSWORD_DEFAULT),
+                    (string) ($datos['imgUsuario'] ?? ''),
+                ]);
+                $idUsuario = $idUsuarioNuevo = (int) $pdo->lastInsertId();
+                $insertarPerfil = $pdo->prepare('INSERT INTO perfiles
+                    (id_usuario,dniPerfil,telefonoPerfil,fnacPerfil,domicilioPerfil,provinciaPerfil,contenidoPerfil)
+                    VALUES (?,?,?,?,?,?,?)');
+                $insertarPerfil->execute([
+                    $idUsuario,
+                    ($perfil['dniPerfil'] ?? '') !== '' ? (int) $perfil['dniPerfil'] : null,
+                    trim((string) ($perfil['telefonoPerfil'] ?? '')),
+                    trim((string) ($perfil['fnacPerfil'] ?? '')) ?: null,
+                    trim((string) ($perfil['domicilioPerfil'] ?? '')),
+                    trim((string) ($perfil['provinciaPerfil'] ?? '')),
+                    (string) ($perfil['contenidoPerfil'] ?? ''),
+                ]);
+            } else {
+                if ((int) $coincidencias[0]['activo'] !== 1) {
+                    throw new RuntimeException('La identidad global asociada al email está desactivada.');
+                }
+                $idUsuario = (int) $coincidencias[0]['idUsuario'];
+                self::asegurarPerfilBasico($idUsuario);
+            }
+
+            $buscarMembresia = $pdo->prepare('SELECT idUsuarioInstitucion,activo FROM usuarios_instituciones
+                WHERE id_usuario=? AND id_institucion=? FOR UPDATE');
+            $buscarMembresia->execute([$idUsuario, $idInstitucion]);
+            $membresia = $buscarMembresia->fetch(PDO::FETCH_ASSOC);
+            if ($membresia && (int) $membresia['activo'] === 1) {
+                throw new RuntimeException('El usuario ya pertenece a la institución activa.');
+            }
+            if ($membresia) {
+                $idMembresia = (int) $membresia['idUsuarioInstitucion'];
+                $pdo->prepare('UPDATE usuarios_instituciones SET activo=1,fechaBaja=NULL,motivoBaja=NULL
+                    WHERE idUsuarioInstitucion=? AND id_institucion=?')->execute([$idMembresia, $idInstitucion]);
+            } else {
+                $pdo->prepare('INSERT INTO usuarios_instituciones(id_usuario,id_institucion,activo,fechaAlta) VALUES(?,?,1,NOW())')
+                    ->execute([$idUsuario, $idInstitucion]);
+                $idMembresia = (int) $pdo->lastInsertId();
+            }
+            self::reemplazarRolesMembresia($pdo, $idMembresia, $roles);
+            if ($transaccionPropia && $pdo->inTransaction()) { $pdo->commit(); }
+            return ['estado'=>'ok','idUsuario'=>$idUsuario,'identidadNueva'=>$identidadNueva];
+        } catch (Throwable $e) {
+            if ($transaccionPropia && $pdo->inTransaction()) { $pdo->rollBack(); }
+            if ($idUsuarioNuevo > 0) {
+                $pdo->prepare('DELETE FROM perfiles WHERE id_usuario=?')->execute([$idUsuarioNuevo]);
+                $pdo->prepare('DELETE FROM usuarios WHERE idUsuario=? AND NOT EXISTS
+                    (SELECT 1 FROM usuarios_instituciones WHERE id_usuario=?)')->execute([$idUsuarioNuevo,$idUsuarioNuevo]);
+            }
+            throw $e;
+        } finally {
+            $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$candado]);
+        }
+    }
+
+    private static function reemplazarRolesMembresia(PDO $pdo, $idMembresia, array $roles)
+    {
+        $roles = self::normalizarRolesInstitucionales($roles);
+        if (!$roles) { throw new RuntimeException('La membresía debe conservar al menos un rol.'); }
+        $marcadores = implode(',', array_fill(0, count($roles), '?'));
+        $consulta = $pdo->prepare("SELECT idRol,codigo FROM roles WHERE codigo IN ($marcadores)");
+        $consulta->execute($roles);
+        $ids = $consulta->fetchAll(PDO::FETCH_KEY_PAIR);
+        if (count($ids) !== count($roles)) { throw new RuntimeException('El catálogo de roles está incompleto.'); }
+        $pdo->prepare('DELETE FROM usuarios_instituciones_roles WHERE id_usuario_institucion=?')->execute([(int)$idMembresia]);
+        $insertar = $pdo->prepare('INSERT INTO usuarios_instituciones_roles(id_usuario_institucion,id_rol) VALUES(?,?)');
+        foreach ($ids as $idRol => $codigo) { $insertar->execute([(int)$idMembresia,(int)$idRol]); }
+    }
+
+    public static function mdlActualizarRolesInstitucionales($idUsuario, array $roles)
+    {
+        ModeloTenant::exigirUsuario((int)($_SESSION['usuario']['id']??0), ['ADMINISTRADOR']);
+        $roles = self::normalizarRolesInstitucionales($roles);
+        $pdo = Conexion::conectar();
+        $stmt = $pdo->prepare('SELECT ui.idUsuarioInstitucion FROM usuarios_instituciones ui
+            INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario AND u.activo=1
+            WHERE ui.id_usuario=? AND ui.id_institucion=? AND ui.activo=1 AND ' . ModeloTenant::sesionActiva() . ' LIMIT 1');
+        $stmt->execute([(int)$idUsuario,ModeloTenant::id()]);
+        $idMembresia = (int) $stmt->fetchColumn();
+        if ($idMembresia <= 0) { throw new RuntimeException('Acceso institucional denegado.'); }
+        $transaccionPropia = false;
+        try {
+            if (!$pdo->inTransaction()) { $pdo->beginTransaction(); $transaccionPropia = true; }
+            self::reemplazarRolesMembresia($pdo, $idMembresia, $roles);
+            if ($transaccionPropia && $pdo->inTransaction()) { $pdo->commit(); }
+            return 'ok';
+        } catch (Throwable $e) {
+            if ($transaccionPropia && $pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
+    }
+
     public static function mdlModificarUsuario($tabla, $datos)
     {
+        if (ModeloTenant::activo()) {
+            return self::mdlActualizarRolesInstitucionales((int)($datos['idUsuario'] ?? 0), (array)($datos['roles'] ?? [$datos['rol'] ?? '']));
+        }
         $consulta = "UPDATE $tabla SET nombreUsuario = :nombreUsuario, apellidoUsuario = :apellidoUsuario, email = :email, rol = :rol";
         $valores = [
             ":nombreUsuario" => $datos["nombreUsuario"],
@@ -804,6 +958,19 @@ class ModeloUsuarios
 
     public static function mdlDarBajaUsuario($datos)
     {
+        if (ModeloTenant::activo()) {
+            ModeloTenant::exigirUsuario((int)($_SESSION['usuario']['id']??0), ['ADMINISTRADOR']);
+            $stmt = Conexion::conectar()->prepare('UPDATE usuarios_instituciones objetivo
+                INNER JOIN usuarios_instituciones acceso ON acceso.id_usuario=:idActor AND acceso.id_institucion=:idInstitucion AND acceso.activo=1
+                INNER JOIN usuarios actor ON actor.idUsuario=acceso.id_usuario AND actor.activo=1
+                INNER JOIN instituciones institucion ON institucion.idInstitucion=acceso.id_institucion AND institucion.activo=1
+                SET objetivo.activo=0,objetivo.fechaBaja=:fechaBaja,objetivo.motivoBaja=:motivoBaja
+                WHERE objetivo.id_usuario=:idUsuario AND objetivo.id_institucion=:idInstitucionObjetivo AND objetivo.activo=1');
+            $stmt->execute([':fechaBaja'=>$datos['fechaBaja'],':motivoBaja'=>$datos['motivoBaja'],
+                ':idUsuario'=>(int)$datos['idUsuario'],':idActor'=>(int)($_SESSION['usuario']['id']??0),
+                ':idInstitucion'=>ModeloTenant::id(),':idInstitucionObjetivo'=>ModeloTenant::id()]);
+            return $stmt->rowCount() === 1 ? 'ok' : 'error';
+        }
         $stmt = Conexion::conectar()->prepare("
             UPDATE usuarios
             SET activo = 0,
@@ -823,6 +990,18 @@ class ModeloUsuarios
 
     public static function mdlReactivarUsuario($idUsuario)
     {
+        if (ModeloTenant::activo()) {
+            ModeloTenant::exigirUsuario((int)($_SESSION['usuario']['id']??0), ['ADMINISTRADOR']);
+            $stmt = Conexion::conectar()->prepare('UPDATE usuarios_instituciones objetivo
+                INNER JOIN usuarios_instituciones acceso ON acceso.id_usuario=:idActor AND acceso.id_institucion=:idInstitucion AND acceso.activo=1
+                INNER JOIN usuarios actor ON actor.idUsuario=acceso.id_usuario AND actor.activo=1
+                INNER JOIN instituciones institucion ON institucion.idInstitucion=acceso.id_institucion AND institucion.activo=1
+                SET objetivo.activo=1,objetivo.fechaBaja=NULL,objetivo.motivoBaja=NULL
+                WHERE objetivo.id_usuario=:idUsuario AND objetivo.id_institucion=:idInstitucionObjetivo AND objetivo.activo=0');
+            $stmt->execute([':idUsuario'=>(int)$idUsuario,':idActor'=>(int)($_SESSION['usuario']['id']??0),
+                ':idInstitucion'=>ModeloTenant::id(),':idInstitucionObjetivo'=>ModeloTenant::id()]);
+            return $stmt->rowCount() === 1 ? 'ok' : 'error';
+        }
         $stmt = Conexion::conectar()->prepare("
             UPDATE usuarios
             SET activo = 1,
@@ -847,6 +1026,18 @@ class ModeloUsuarios
 
     public static function mdlRegistrarHistorial($datos)
     {
+        if (ModeloTenant::activo()) {
+            $stmt = Conexion::conectar()->prepare("INSERT INTO usuarios_historial
+                (id_usuario,accion,detalle,id_usuario_accion,fechaEvento,id_institucion)
+                SELECT :id_usuario,:accion,:detalle,:id_usuario_accion,:fechaEvento,:id_institucion
+                WHERE " . ModeloTenant::sesionActiva());
+            $stmt->execute([
+                ':id_usuario'=>(int)$datos['id_usuario'],':accion'=>(string)$datos['accion'],
+                ':detalle'=>(string)$datos['detalle'],':id_usuario_accion'=>(int)$datos['id_usuario_accion'],
+                ':fechaEvento'=>(string)$datos['fechaEvento'],':id_institucion'=>ModeloTenant::id(),
+            ]);
+            return $stmt->rowCount() === 1 ? 'ok' : 'error';
+        }
         $stmt = Conexion::conectar()->prepare("
             INSERT INTO usuarios_historial
                 (id_usuario, accion, detalle, id_usuario_accion, fechaEvento)
@@ -864,6 +1055,9 @@ class ModeloUsuarios
 
     public static function mdlHistorialUsuario($idUsuario)
     {
+        $filtroInstitucion = ModeloTenant::activo()
+            ? ' AND h.id_institucion=' . ModeloTenant::id() . ' AND ' . ModeloTenant::sesionActiva()
+            : '';
         $stmt = Conexion::conectar()->prepare("
             SELECT h.*,
                    CONCAT(u.nombreUsuario, ' ', u.apellidoUsuario) AS usuarioAccionNombre,
@@ -871,6 +1065,7 @@ class ModeloUsuarios
             FROM usuarios_historial h
             LEFT JOIN usuarios u ON u.idUsuario = h.id_usuario_accion
             WHERE h.id_usuario = :idUsuario
+            {$filtroInstitucion}
             ORDER BY h.fechaEvento DESC, h.idHistorial DESC
             LIMIT 20
         ");

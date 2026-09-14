@@ -7,6 +7,9 @@ $e = static function ($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
 $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
+$gestionInstitucional = class_exists('ControladorInstitucion', false) && ControladorInstitucion::activo();
+$soloMembresia = $gestionInstitucional && $modoFormulario === 'editar';
+$rolesActuales = preg_split('/\s*·\s*/', strtoupper((string) ($usuarioFormulario['rol'] ?? 'ESTUDIANTE'))) ?: ['ESTUDIANTE'];
 ?>
 
 <div class="card glass-card">
@@ -15,9 +18,9 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
       <h3 class="card-title mb-1"><?php echo $modoFormulario === 'editar' ? 'Editar usuario' : 'Crear usuario'; ?></h3>
       <small class="text-muted">
         <?php if ($modoFormulario === 'editar'): ?>
-          Ajusta los datos de cuenta, perfil y estado del usuario.
+          <?php echo $soloMembresia ? 'Ajustá los roles y el estado de la membresía institucional.' : 'Ajusta los datos de cuenta, perfil y estado del usuario.'; ?>
         <?php else: ?>
-          Carga la cuenta y el perfil inicial del nuevo usuario.
+          Cargá una identidad nueva o incorporá por email una identidad global existente.
         <?php endif; ?>
       </small>
     </div>
@@ -36,6 +39,12 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
       <?php endif; ?>
     </div>
 
+    <?php if ($gestionInstitucional): ?>
+      <div class="alert alert-info border-0">
+        La identidad, contraseña, foto y perfil son globales. Al editar una cuenta existente, esta institución sólo administra su membresía y sus roles.
+      </div>
+    <?php endif; ?>
+
     <form action="" method="post" autocomplete="off" enctype="multipart/form-data">
       <input type="hidden" name="idUsuario" value="<?php echo (int) ($usuarioFormulario['idUsuario'] ?? 0); ?>">
 
@@ -43,37 +52,38 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
         <div class="col-md-4">
           <div class="form-group">
             <label>Nombre</label>
-            <input type="text" class="form-control" placeholder="Juan" name="nombreUsuario" value="<?php echo $e($usuarioFormulario['nombreUsuario'] ?? ''); ?>" required>
+            <input type="text" class="form-control" placeholder="Juan" name="nombreUsuario" value="<?php echo $e($usuarioFormulario['nombreUsuario'] ?? ''); ?>" <?php echo $soloMembresia ? 'readonly' : ''; ?> required>
           </div>
         </div>
         <div class="col-md-4">
           <div class="form-group">
             <label>Apellido</label>
-            <input type="text" class="form-control" placeholder="Pérez" name="apellidoUsuario" value="<?php echo $e($usuarioFormulario['apellidoUsuario'] ?? ''); ?>" required>
+            <input type="text" class="form-control" placeholder="Pérez" name="apellidoUsuario" value="<?php echo $e($usuarioFormulario['apellidoUsuario'] ?? ''); ?>" <?php echo $soloMembresia ? 'readonly' : ''; ?> required>
           </div>
         </div>
         <div class="col-md-4">
           <div class="form-group">
             <label>Email</label>
-            <input type="email" class="form-control" placeholder="usuario@correo.com" name="emailUsuario" value="<?php echo $e($usuarioFormulario['email'] ?? $usuarioFormulario['emailUsuario'] ?? ''); ?>" required>
+            <input type="email" class="form-control" placeholder="usuario@correo.com" name="emailUsuario" value="<?php echo $e($usuarioFormulario['email'] ?? $usuarioFormulario['emailUsuario'] ?? ''); ?>" <?php echo $soloMembresia ? 'readonly' : ''; ?> required>
           </div>
         </div>
         <div class="col-md-4">
           <div class="form-group">
             <label>Rol</label>
-            <select class="custom-select" name="rol" required>
-              <?php $rolActual = strtoupper((string) ($usuarioFormulario['rol'] ?? 'ESTUDIANTE')); ?>
+            <select class="custom-select" name="<?php echo $gestionInstitucional ? 'roles[]' : 'rol'; ?>" <?php echo $gestionInstitucional ? 'multiple size="3"' : ''; ?> required>
               <?php foreach (['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'] as $rol): ?>
-                <option value="<?php echo $rol; ?>" <?php echo $rolActual === $rol ? 'selected' : ''; ?>><?php echo $rol; ?></option>
+                <option value="<?php echo $rol; ?>" <?php echo in_array($rol, $rolesActuales, true) ? 'selected' : ''; ?>><?php echo $rol; ?></option>
               <?php endforeach; ?>
             </select>
+            <?php if ($gestionInstitucional): ?><small class="form-text text-muted">Podés seleccionar más de un rol.</small><?php endif; ?>
           </div>
         </div>
+        <?php if (!$soloMembresia): ?>
         <div class="col-md-4">
           <div class="form-group">
             <label>Contraseña</label>
             <input type="password" class="form-control" placeholder="<?php echo $modoFormulario === 'editar' ? 'Dejar vacío para no cambiar' : 'Asignar contraseña'; ?>" name="passUsuario">
-            <small class="form-text text-muted"><?php echo $modoFormulario === 'editar' ? 'Opcional. Solo completalo si querés forzar un nuevo acceso.' : 'Se guardará la contraseña inicial del usuario.'; ?></small>
+            <small class="form-text text-muted"><?php echo $modoFormulario === 'editar' ? 'Opcional. Solo completalo si querés forzar un nuevo acceso.' : ($gestionInstitucional ? 'Obligatoria sólo si el email todavía no posee una identidad global.' : 'Se guardará la contraseña inicial del usuario.'); ?></small>
           </div>
         </div>
         <div class="col-md-4">
@@ -90,8 +100,10 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
             </div>
           </div>
         </div>
+        <?php endif; ?>
       </div>
 
+      <?php if (!$soloMembresia): ?>
       <div class="mt-4">
         <h4 class="section-title mb-3">Perfil personal</h4>
         <div class="row">
@@ -133,12 +145,13 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
           </div>
         </div>
       </div>
+      <?php endif; ?>
 
       <div class="form-actions mt-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
           <div class="text-muted small">
             <?php if ($modoFormulario === 'editar'): ?>
-              Los cambios se aplican sobre la cuenta seleccionada.
+              <?php echo $soloMembresia ? 'Los cambios se aplican sólo a la membresía de esta institución.' : 'Los cambios se aplican sobre la cuenta seleccionada.'; ?>
             <?php else: ?>
               El sistema asignará la fecha de alta automáticamente.
             <?php endif; ?>
@@ -157,7 +170,7 @@ $fechaAltaVista = $usuarioFormulario['fechaAltaFmt'] ?? '';
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
           <div>
             <h4 class="section-title mb-1 text-danger">Dar de baja</h4>
-            <small class="text-muted">El usuario no se elimina. Solo queda inactivo con historial.</small>
+            <small class="text-muted"><?php echo $gestionInstitucional ? 'Se desactiva sólo el acceso a esta institución; la identidad global se conserva.' : 'El usuario no se elimina. Solo queda inactivo con historial.'; ?></small>
           </div>
         </div>
 

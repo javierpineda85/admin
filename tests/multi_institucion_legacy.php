@@ -28,6 +28,23 @@ $idCurso=(int)$pdo->query('SELECT MIN(idCurso) FROM cursos')->fetchColumn();
 comprobarLegacy(ModeloCursos::mdlBuscarCursoPorId($idCurso)!==null, 'Consulta de curso habitual funciona sin contexto');
 $idUsuarioDetalle=(int)$pdo->query('SELECT MIN(idUsuario) FROM usuarios')->fetchColumn();
 comprobarLegacy(ModeloUsuarios::mdlObtenerUsuarioCompleto($idUsuarioDetalle)!==false, 'Detalle global habitual de usuario funciona sin contexto');
+$emailUsuarioLegacy='legacy.'.bin2hex(random_bytes(4)).'@campus.example';
+$altaUsuarioLegacy=['nombreUsuario'=>'Legacy','apellidoUsuario'=>'Prueba','email'=>$emailUsuarioLegacy,
+    'pass'=>password_hash('Clave-legacy-123',PASSWORD_DEFAULT),'resetPass'=>1,'imgUsuario'=>'','activo'=>1,
+    'rol'=>'ESTUDIANTE','fechaAlta'=>date('Y-m-d H:i:s')];
+comprobarLegacy(ModeloUsuarios::mdlGuardarUsuario('usuarios',$altaUsuarioLegacy)==='ok', 'Alta global habitual de usuario conserva compatibilidad');
+$idUsuarioLegacy=(int)$pdo->lastInsertId();
+comprobarLegacy(ModeloUsuarios::mdlModificarUsuario('usuarios',['idUsuario'=>$idUsuarioLegacy,'nombreUsuario'=>'Legacy editado',
+    'apellidoUsuario'=>'Prueba','emailUsuario'=>$emailUsuarioLegacy,'rol'=>'DOCENTE'])==='ok'
+    && (string)$pdo->query('SELECT rol FROM usuarios WHERE idUsuario='.(int)$idUsuarioLegacy)->fetchColumn()==='DOCENTE',
+    'Modificación global habitual de usuario conserva el rol legacy');
+comprobarLegacy(ModeloUsuarios::mdlDarBajaUsuario(['idUsuario'=>$idUsuarioLegacy,'fechaBaja'=>date('Y-m-d H:i:s'),
+    'motivoBaja'=>'Prueba legacy','usuarioBaja'=>$idUsuarioDetalle])==='ok'
+    && (int)$pdo->query('SELECT activo FROM usuarios WHERE idUsuario='.(int)$idUsuarioLegacy)->fetchColumn()===0,
+    'Baja global habitual conserva compatibilidad');
+comprobarLegacy(ModeloUsuarios::mdlReactivarUsuario($idUsuarioLegacy)==='ok'
+    && (int)$pdo->query('SELECT activo FROM usuarios WHERE idUsuario='.(int)$idUsuarioLegacy)->fetchColumn()===1,
+    'Reactivación global habitual conserva compatibilidad');
 $conectadosEsperados=(int)$pdo->query('SELECT COUNT(*) FROM usuarios WHERE activo=1 AND ultimaConexion >= (NOW() - INTERVAL 60 MINUTE)')->fetchColumn();
 comprobarLegacy(count(ModeloUsuarios::mdlUsuariosConectadosRecientes(60))===$conectadosEsperados, 'Listado global habitual de conectados conserva compatibilidad');
 $noConectadosEsperados=(int)$pdo->query('SELECT COUNT(*) FROM usuarios WHERE activo=1 AND (ultimaConexion IS NULL OR ultimaConexion < (NOW() - INTERVAL 60 MINUTE))')->fetchColumn();

@@ -97,6 +97,14 @@ No habilitarlo en producción: la fase 4 todavía no está completa.
 - La edición del perfil global exige que el ID del formulario coincida con la
   identidad autenticada. Un usuario conserva la edición de sus propios datos,
   pero ya no puede modificar otro perfil alterando el POST.
+- El alta institucional reutiliza por email una identidad global existente o
+  crea una nueva sin copiar el rol académico a `usuarios.rol`. La membresía
+  admite varios roles y su actualización no modifica nombre, email, contraseña,
+  foto ni perfil compartidos con otras instituciones.
+- Las bajas y reactivaciones administrativas actúan sobre
+  `usuarios_instituciones`. La identidad global y las demás membresías permanecen
+  activas; los roles se conservan al reactivar. El historial registra y filtra
+  `id_institucion` para que sus eventos tampoco se mezclen entre tenants.
 
 ## Pruebas
 
@@ -109,7 +117,7 @@ lecciones, recursos y entregas con relaciones cruzadas o inscripción revocada.
 Los casos de modelos no equivalen a una certificación de todos los endpoints.
 Se conserva el bloqueo HTTP de fases anteriores y no se modifica `classroom`.
 
-Última verificación: `campus_mt_fase2_20260914_022930_1e5891`, 236 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_024428_063e9c`, 247 comprobaciones
 correctas, incluidas las de fases 2 y 3. Se probaron también llamadas directas a
 controladores con un POST de duplicación de curso ajeno y descargas de adjuntos
 o recursos propios y ajenos. Los archivos sintéticos se eliminan después de
@@ -120,7 +128,7 @@ directamente a archivos de ambas carpetas protegidas.
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
 definiendo `CAMPUS_TEST_BASE` con el nombre devuelto por el ensayo de recursos;
-rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus veintidós
+rechaza nombres que no correspondan a estas bases de prueba. Pasaron sus veintiséis
 comprobaciones de listados, lecturas y escritura, incluidas materias, clases de
 asistencia, actividades, usuarios, relaciones académicas, contadores de mensajes
 y una descarga autorizada. No usa la base original.
@@ -136,9 +144,8 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
   revisar las vistas de calificaciones antes de habilitarlas.
 - Validar los endpoints HTTP de actividades cuando se retire el bloqueo
   preventivo de las aulas.
-- Transformar altas, cambios de rol, bajas y reactivaciones del administrador
-  institucional en operaciones sobre la membresía, sin cambiar la identidad
-  global compartida con otras instituciones.
+- Incorporar estas operaciones de membresía a las pruebas HTTP cuando se retire
+  el bloqueo preventivo de las aulas y del panel administrativo institucional.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas
   de entregas, posteos, calificaciones y eliminación de dependencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
