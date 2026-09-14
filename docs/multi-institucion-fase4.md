@@ -12,7 +12,8 @@ pero no debe habilitarse en producción: la fase 4 todavía no está completa.
 - Los listados de cursos y materias filtran institución en SQL. Los accesos por
   ID y las operaciones de estos modelos validan pertenencia antes de operar.
 - El controlador de rutas aplica una segunda frontera antes del renderizado y
-  responde 403 ante IDs ajenos de cursos, materias, actividades, mensajes y perfiles.
+  responde 403 ante IDs ajenos de cursos, materias, actividades, mensajes,
+  perfiles y edición de membresías.
 - El alta de cursos toma la institución desde el contexto, ignorando la que
   pudiera proporcionar el formulario. Las asignaciones validan roles de membresía.
 - Lecciones y recursos validan su ascendencia. Las entregas comprueban que curso,
@@ -128,11 +129,14 @@ comprobar que la copia mantiene exactamente su contenido.
 Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
 directamente a archivos de ambas carpetas protegidas.
 
-Última verificación: `campus_mt_fase2_20260914_030204_9fa357`, 258 comprobaciones
-correctas. Incluye apertura del panel, listado institucional, lectura de un curso
+Última verificación: `campus_mt_fase2_20260914_145256_d3fad4`, 278 comprobaciones
+correctas. Incluye apertura del panel, listados institucionales, lectura de un curso
 propio y respuestas 403 ante lectura o escritura cruzada de cursos, materias,
-actividades y mensajes. También conserva la actividad pública sin sesión y evita
-revelar actividades privadas por slug.
+asistencia, calificaciones, actividades, mensajes y usuarios. Por HTTP también
+reutiliza una identidad global, cambia roles y da de baja/reactiva exclusivamente
+su membresía. Las pruebas envían mensajes y entregas válidas dentro de Instituto
+Demo, rechazan destinatarios y tareas de MenteMotion, conservan la actividad pública
+sin sesión y evitan revelar o eliminar actividades privadas de otro tenant.
 
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
@@ -149,8 +153,9 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 ## Trabajo pendiente antes de finalizar y habilitar
 
-- Ampliar las pruebas HTTP de asistencia, calificaciones, actividades y membresías;
-  el panel, los listados y los accesos cruzados principales ya están cubiertos.
+- Ampliar las variantes HTTP residuales de actualización y eliminación de entregas,
+  intentos de actividades y acciones sobre mensajes ya existentes. Las altas y los
+  cruces principales de estos dominios ya están cubiertos.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas
   de entregas, posteos, calificaciones y eliminación de dependencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.

@@ -80,6 +80,8 @@ simultáneos y valida institucionalmente las personas asignables.
 
 La fase 4 está en curso. `php tests/multi_institucion_recursos.php` ensaya aislamiento
 de recursos y peticiones HTTP reales sobre datos sintéticos. Los accesos directos a
-cursos, materias, actividades, mensajes y perfiles pasan por una validación central.
+cursos, materias, actividades, mensajes, perfiles y membresías pasan por una
+validación central. La batería incluye asistencia, calificaciones, mensajes y
+entregas por HTTP, con casos permitidos y cruces institucionales denegados.
 El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y los
 dominios pendientes antes de habilitar el Campus multiinstitución.

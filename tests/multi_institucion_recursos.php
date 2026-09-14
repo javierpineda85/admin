@@ -492,6 +492,29 @@ denegado(function() use($actividadModelo,$preguntaModelo) {
     ]]);
 }, 'Visitante no puede forzar un intento sobre una actividad privada');
 
+sesionPara($ids['B']);
+$tareaHttpDemo=['nombreLeccion'=>'Tarea HTTP Demo','tipoLeccion'=>'TAREA','contenidoLeccion'=>'Entrega institucional',
+    'estadoLeccion'=>'PUBLICADA','fechaPublicacionLeccion'=>null,'id_modulo'=>$materiaDemo];
+verificar(ModeloLecciones::mdlGuardarLeccion('lecciones',$tareaHttpDemo)==='ok',
+    'Fixture HTTP: tarea de Instituto Demo conserva su materia institucional');
+$tareaDemo=(int)$pdo->lastInsertId();
+sesionPara($ids['A']);
+ControladorInstitucion::seleccionar($mm,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+$tareaHttpMM=$tareaHttpDemo;
+$tareaHttpMM['nombreLeccion']='Tarea HTTP MenteMotion';
+$tareaHttpMM['id_modulo']=$materiaMM;
+verificar(ModeloLecciones::mdlGuardarLeccion('lecciones',$tareaHttpMM)==='ok',
+    'Fixture HTTP: tarea de MenteMotion conserva su materia institucional');
+$tareaMM=(int)$pdo->lastInsertId();
+ControladorInstitucion::limpiar();
+$_SESSION=[];
+
+$emailUsuarioHttp='http.'.bin2hex(random_bytes(5)).'@campus.example';
+$pdo->prepare("INSERT INTO usuarios(nombreUsuario,apellidoUsuario,email,pass,resetPass,imgUsuario,activo,rol) VALUES ('Identidad','HTTP',?,?,0,'',1,'ADMINISTRADOR')")
+    ->execute([$emailUsuarioHttp,password_hash($password,PASSWORD_DEFAULT)]);
+$idUsuarioHttp=(int)$pdo->lastInsertId();
+$pdo->prepare("UPDATE periodos_seccion_estado SET estado='ABIERTO',fechaCierre=NULL WHERE id_periodo=? AND id_seccion=?")
+    ->execute([$periodoDemo,$materiaDemo]);
 [$servidorHttp,$urlHttp,$sesionesHttp]=levantarServidor('LOCAL');
 $curlHttp=curl_init();
 try {
@@ -515,6 +538,48 @@ try {
     verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Curso Demo')
         && !str_contains($respuestaHttp['body'],'Curso MenteMotion'),
         'HTTP académico: listado de cursos no mezcla instituciones');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=listado-usuarios');
+    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'a@campus.example')
+        && !str_contains($respuestaHttp['body'],'c@campus.example'),
+        'HTTP membresías: administrador lista sólo integrantes de su institución');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=editar-usuario&id='.$ids['C']);
+    verificar($respuestaHttp['codigo']===403 && !str_contains($respuestaHttp['body'],'c@campus.example'),
+        'HTTP membresías: identidad exclusiva de otra institución se deniega antes de la vista');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=crear-usuario',[
+        'nombreUsuario'=>'Nombre enviado',
+        'apellidoUsuario'=>'Desde formulario',
+        'emailUsuario'=>$emailUsuarioHttp,
+        'passUsuario'=>'',
+        'roles'=>['ESTUDIANTE'],
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && ModeloInstituciones::mdlRolesUsuarioInstitucion($idUsuarioHttp,$demo)===['ESTUDIANTE']
+        && (int)$pdo->query('SELECT COUNT(*) FROM usuarios WHERE email='.$pdo->quote($emailUsuarioHttp))->fetchColumn()===1,
+        'HTTP membresías: alta reutiliza la identidad global y crea la membresía sin duplicarla');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=editar-usuario&id='.$idUsuarioHttp,[
+        'idUsuario'=>$idUsuarioHttp,
+        'nombreUsuario'=>'Intento global',
+        'apellidoUsuario'=>'Intento global',
+        'emailUsuario'=>$emailUsuarioHttp,
+        'roles'=>['DOCENTE','ESTUDIANTE'],
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && ModeloInstituciones::mdlRolesUsuarioInstitucion($idUsuarioHttp,$demo)===['DOCENTE','ESTUDIANTE']
+        && (string)$pdo->query('SELECT nombreUsuario FROM usuarios WHERE idUsuario='.(int)$idUsuarioHttp)->fetchColumn()==='Identidad',
+        'HTTP membresías: edición cambia roles institucionales sin alterar la identidad global');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=editar-usuario&id='.$idUsuarioHttp,[
+        'accion_usuario'=>'baja_usuario',
+        'idUsuario'=>$idUsuarioHttp,
+        'motivoBaja'=>'Ensayo HTTP',
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT activo FROM usuarios_instituciones WHERE id_usuario='.(int)$idUsuarioHttp.' AND id_institucion='.(int)$demo)->fetchColumn()===0
+        && (int)$pdo->query('SELECT activo FROM usuarios WHERE idUsuario='.(int)$idUsuarioHttp)->fetchColumn()===1,
+        'HTTP membresías: baja afecta sólo la membresía institucional');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=usuarios-inactivos',['idReactivar'=>$idUsuarioHttp]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT activo FROM usuarios_instituciones WHERE id_usuario='.(int)$idUsuarioHttp.' AND id_institucion='.(int)$demo)->fetchColumn()===1,
+        'HTTP membresías: reactivación restaura la membresía sin recrear identidad');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-curso&idCurso='.$cursoDemo);
     verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Curso Demo'),
         'HTTP académico: recurso propio continúa disponible');
@@ -538,9 +603,82 @@ try {
     verificar($respuestaHttp['codigo']===403
         && (string)$pdo->query('SELECT tituloSeccion FROM secciones WHERE idSeccion='.(int)$materiaMM)->fetchColumn()==='Materia MenteMotion',
         'HTTP académico: docente o administrador no modifica una materia ajena');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=asistencia-seccion&idSeccion='.$materiaDemo);
+    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Clase Demo'),
+        'HTTP asistencia: planilla propia renderiza dentro del tenant');
+    $fechaAsistenciaHttp=date('Y-m-d',strtotime('+10 days'));
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=asistencia-seccion&idSeccion='.$materiaDemo,[
+        'accion_asistencia'=>'crear_clase',
+        'id_seccion'=>$materiaDemo,
+        'fechaClase'=>$fechaAsistenciaHttp,
+        'tema'=>'Asistencia HTTP Demo',
+    ]);
+    verificar($respuestaHttp['codigo']===302
+        && (int)$pdo->query('SELECT COUNT(*) FROM asistencia_clases WHERE id_seccion='.(int)$materiaDemo.' AND fechaClase='.$pdo->quote($fechaAsistenciaHttp))->fetchColumn()===1,
+        'HTTP asistencia: alta propia conserva materia y curso institucionales');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=asistencia-seccion&idSeccion='.$materiaMM,[
+        'accion_asistencia'=>'crear_clase',
+        'id_seccion'=>$materiaMM,
+        'fechaClase'=>$fechaAsistenciaHttp,
+        'tema'=>'Intento asistencia cruzada',
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query('SELECT COUNT(*) FROM asistencia_clases WHERE id_seccion='.(int)$materiaMM.' AND fechaClase='.$pdo->quote($fechaAsistenciaHttp))->fetchColumn()===0,
+        'HTTP asistencia: POST de otra institución queda denegado');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones-seccion&idSeccion='.$materiaDemo);
+    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Materia Demo'),
+        'HTTP calificaciones: planilla propia renderiza dentro del tenant');
+    $temaEvaluacionHttp='Evaluación HTTP '.bin2hex(random_bytes(3));
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones-seccion&idSeccion='.$materiaDemo,[
+        'accion'=>'crear_evaluacion',
+        'id_seccion'=>$materiaDemo,
+        'id_periodo'=>$periodoDemo,
+        'id_instrumento'=>(int)$contextoDemo['instrumentos'][0]['idInstrumento'],
+        'temaEvaluacion'=>$temaEvaluacionHttp,
+        'fechaEvaluacion'=>date('Y-m-d',strtotime('+5 days')),
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT COUNT(*) FROM evaluaciones WHERE id_seccion='.(int)$materiaDemo.' AND temaEvaluacion='.$pdo->quote($temaEvaluacionHttp))->fetchColumn()===1,
+        'HTTP calificaciones: evaluación propia se crea con catálogos del tenant');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones-seccion&idSeccion='.$materiaMM,[
+        'accion'=>'crear_evaluacion',
+        'id_seccion'=>$materiaMM,
+        'id_periodo'=>(int)$contextoMM['periodos'][0]['idPeriodo'],
+        'id_instrumento'=>(int)$contextoMM['instrumentos'][0]['idInstrumento'],
+        'temaEvaluacion'=>'Intento evaluación cruzada',
+        'fechaEvaluacion'=>date('Y-m-d',strtotime('+5 days')),
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query("SELECT COUNT(*) FROM evaluaciones WHERE temaEvaluacion='Intento evaluación cruzada'")->fetchColumn()===0,
+        'HTTP calificaciones: POST de otra institución queda denegado');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=ver-actividad&idActividad='.$actividadIncoherente);
     verificar($respuestaHttp['codigo']===403 && !str_contains($respuestaHttp['body'],'Actividad incoherente'),
         'HTTP académico: actividad de otro tenant no se revela por ID');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=editar-actividad&idActividad='.$actividadIncoherente,[
+        'accion_actividad'=>'eliminar_actividad',
+        'idActividad'=>$actividadIncoherente,
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query('SELECT COUNT(*) FROM actividades WHERE idActividad='.(int)$actividadIncoherente)->fetchColumn()===1,
+        'HTTP actividades: POST manipulado no elimina una actividad ajena');
+    $contenidoMensajeHttp='Mensaje HTTP Demo '.bin2hex(random_bytes(3));
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=nuevo-mensaje',[
+        'accion'=>'enviar_mensaje',
+        'contenidoMensaje'=>$contenidoMensajeHttp,
+        'id_destinatarios'=>[$ids['A']],
+    ]);
+    $mensajeHttp=$pdo->query('SELECT idMensaje,id_institucion FROM mensajes WHERE contenidoMensaje='.$pdo->quote($contenidoMensajeHttp))->fetch(PDO::FETCH_ASSOC);
+    verificar($respuestaHttp['codigo']===200 && (int)($mensajeHttp['id_institucion']??0)===$demo,
+        'HTTP mensajería: envío propio registra explícitamente la institución activa');
+    $mensajesAntesCruce=(int)$pdo->query('SELECT COUNT(*) FROM mensajes')->fetchColumn();
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=nuevo-mensaje',[
+        'accion'=>'enviar_mensaje',
+        'contenidoMensaje'=>'Intento mensaje cruzado',
+        'id_destinatarios'=>[$ids['C']],
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT COUNT(*) FROM mensajes')->fetchColumn()===$mensajesAntesCruce,
+        'HTTP mensajería: destinatario de otra institución se rechaza sin crear mensaje');
     peticion($curlHttp,$urlHttp.'?r=logout');
 
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=login',[
@@ -549,6 +687,33 @@ try {
     ]);
     verificar($respuestaHttp['destino']==='index.php?r=seleccionar-institucion',
         'HTTP académico: usuario multiinstitución vuelve a elegir contexto');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion');
+    $formularioHttp=formularioInstitucion($respuestaHttp['body']);
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion',$formularioHttp+['id_institucion'=>$demo]);
+    verificar($respuestaHttp['codigo']===303 && $respuestaHttp['destino']==='index.php',
+        'HTTP entregas: estudiante selecciona Instituto Demo antes de operar');
+    $comentarioEntregaHttp='Entrega HTTP Demo '.bin2hex(random_bytes(3));
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-seccion&idSeccion='.$materiaDemo,[
+        'accion'=>'entregar_tarea',
+        'id_leccion'=>$tareaDemo,
+        'id_seccion'=>$materiaDemo,
+        'id_curso'=>$cursoDemo,
+        'comentarioEntrega'=>$comentarioEntregaHttp,
+    ]);
+    verificar($respuestaHttp['codigo']===200
+        && (int)$pdo->query('SELECT COUNT(*) FROM entregaslecciones WHERE id_leccion='.(int)$tareaDemo
+            .' AND id_estudiante='.(int)$ids['A'].' AND comentarioEntrega='.$pdo->quote($comentarioEntregaHttp))->fetchColumn()===1,
+        'HTTP entregas: estudiante inscripto entrega una tarea de su institución');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-seccion&idSeccion='.$materiaMM,[
+        'accion'=>'entregar_tarea',
+        'id_leccion'=>$tareaMM,
+        'id_seccion'=>$materiaMM,
+        'id_curso'=>$cursoMM,
+        'comentarioEntrega'=>'Intento entrega cruzada',
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query("SELECT COUNT(*) FROM entregaslecciones WHERE comentarioEntrega='Intento entrega cruzada'")->fetchColumn()===0,
+        'HTTP entregas: POST de una tarea de otra institución queda denegado');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion');
     $formularioHttp=formularioInstitucion($respuestaHttp['body']);
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=seleccionar-institucion',$formularioHttp+['id_institucion'=>$mm]);

@@ -149,6 +149,11 @@ class RutasController
             );
         }
 
+        if ($ruta === 'editar-usuario') {
+            $idUsuario = (int) ($_GET['id'] ?? 0);
+            return $idUsuario > 0 && ModeloUsuarios::mdlObtenerUsuarioCompleto($idUsuario) !== false;
+        }
+
         return true;
     }
 
