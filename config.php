@@ -30,7 +30,7 @@ if (!defined('AUTH_MODE')) {
     define('AUTH_MODE', strtoupper((string) config_env('AUTH_MODE', 'LOCAL')));
 }
 
-// Fase 2: ensayo del contexto. No habilita los módulos académicos sin aislamiento.
+// Activación gradual: por defecto conserva el modo legacy hasta validar el corte.
 if (!defined('INSTITUCIONES_CONTEXTO_ACTIVO')) {
     define('INSTITUCIONES_CONTEXTO_ACTIVO', filter_var(config_env('INSTITUCIONES_CONTEXTO_ACTIVO', '0'), FILTER_VALIDATE_BOOLEAN));
 }
