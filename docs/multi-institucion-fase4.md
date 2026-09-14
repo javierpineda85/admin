@@ -17,6 +17,10 @@ pero no debe habilitarse en producción: la fase 4 todavía no está completa.
 - La misma frontera valida los IDs relacionados enviados por POST en acciones de
   lecciones, entregas, actividades y mensajes, aunque la URL principal pertenezca
   a la institución activa.
+- La revisión de formularios incorporó también los nombres legacy realmente usados
+  por las vistas: `idLeccion`, `idRecursoLeccion`, `id_clase`, `id_evaluacion`,
+  `id_periodo`, `id_instrumento`, `id_mensaje_respuesta` e `id_seccion_destino`.
+  Curso, materia y usuario enviados por POST deben coincidir con el recurso de la URL.
 - El alta de cursos toma la institución desde el contexto, ignorando la que
   pudiera proporcionar el formulario. Las asignaciones validan roles de membresía.
 - Lecciones y recursos validan su ascendencia. Las entregas comprueban que curso,
@@ -134,7 +138,7 @@ comprobar que la copia mantiene exactamente su contenido.
 Además, una comprobación HTTP local confirmó respuesta `403` al intentar acceder
 directamente a archivos de ambas carpetas protegidas.
 
-Última verificación: `campus_mt_fase2_20260914_151702_584d7f`, 291 comprobaciones
+Última verificación: `campus_mt_fase2_20260914_152333_0a1301`, 303 comprobaciones
 correctas. Incluye apertura del panel, listados institucionales, lectura de un curso
 propio y respuestas 403 ante lectura o escritura cruzada de cursos, materias,
 asistencia, calificaciones, actividades, mensajes y usuarios. Por HTTP también
@@ -143,6 +147,8 @@ su membresía. Las pruebas envían, actualizan y cancelan entregas válidas dent
 Instituto Demo; ejercitan lectura, papelera, restauración y eliminación personal de
 mensajes; y rechazan IDs relacionados de MenteMotion ocultos en formularios propios.
 También registran una actividad pública sin sesión y evitan forzar una privada.
+Los casos ocultos dentro de una URL válida comprueban cursos, usuarios, lecciones,
+recursos, clases, evaluaciones, catálogos y referencias de mensajería de otro tenant.
 
 `tests/multi_institucion_legacy.php` verifica el comportamiento habitual de los
 modelos contra la misma base sintética, con contexto desactivado. Se ejecuta
@@ -159,12 +165,13 @@ de transacciones/recuperación antes de habilitar el flujo en producción.
 
 ## Trabajo pendiente antes de finalizar y habilitar
 
-- Completar la revisión HTTP residual de acciones menos frecuentes y endpoints AJAX;
-  los flujos principales de entregas, actividades y mensajería ya están cubiertos.
+- Mantener la revisión HTTP al incorporar nuevas rutas o nombres de parámetros. El
+  inventario actual no contiene endpoints AJAX propios separados de los controladores MVC.
 - Terminar el tratamiento de referencias históricas inconsistentes en consultas
   de entregas, posteos, calificaciones y eliminación de dependencias.
 - Completar transacciones/recuperación de duplicaciones ante fallas de almacenamiento.
-- Completar la validación residual de todos los POST/AJAX y parámetros de recursos.
+- Revisar las acciones administrativas restantes que no transportan recursos académicos
+  y conservar la frontera central al agregar nuevos formularios.
 - Revisar enlaces de archivos que pudieran estar embebidos dentro de contenido
   enriquecido histórico y referencias de `archivoslecciones`; las rutas conocidas
   de adjuntos y recursos ya pasan por el controlador protegido.

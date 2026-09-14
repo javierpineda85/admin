@@ -83,6 +83,7 @@ de recursos y peticiones HTTP reales sobre datos sintéticos. Los accesos direct
 cursos, materias, actividades, mensajes, perfiles y membresías pasan por una
 validación central. La batería incluye asistencia, calificaciones, mensajes y
 entregas por HTTP, con casos permitidos, IDs relacionados manipulados y cruces
-institucionales denegados. También comprueba intentos públicos sin sesión.
+institucionales denegados. También comprueba intentos públicos sin sesión. Los
+formularios MVC revalidan centralmente sus recursos antes de ejecutar controladores.
 El [seguimiento de fase 4](docs/multi-institucion-fase4.md) detalla las pruebas y los
 dominios pendientes antes de habilitar el Campus multiinstitución.

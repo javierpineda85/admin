@@ -171,8 +171,14 @@ class RutasController
         }
 
         try {
-            if ($ruta === 'detalle-seccion') {
-                $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
+            if (in_array($ruta, ['detalle-curso', 'editar-curso'], true)
+                && isset($_POST['idCurso'])
+                && (int) $_POST['idCurso'] !== (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0)) {
+                return false;
+            }
+
+            if (in_array($ruta, ['detalle-seccion', 'editar-materia', 'calificaciones-seccion', 'asistencia-seccion'], true)) {
+                $idSeccion = (int) ($_GET['idSeccion'] ?? $_GET['id'] ?? 0);
                 $materia = $idSeccion > 0 ? ModeloMaterias::mdlBuscarMateriaPorId($idSeccion) : false;
                 if (!$materia) {
                     return false;
@@ -182,15 +188,66 @@ class RutasController
                     return false;
                 }
 
-                if (isset($_POST['id_curso']) && (int) $_POST['id_curso'] !== (int) ($materia['id_curso'] ?? 0)) {
+                if (isset($_POST['idSeccion']) && (int) $_POST['idSeccion'] !== $idSeccion) {
                     return false;
                 }
 
-                if (isset($_POST['id_leccion'])) {
-                    $leccion = ModeloLecciones::mdlBuscarLeccionPorId((int) $_POST['id_leccion']);
+                if (isset($_POST['id_curso']) && (int) $_POST['id_curso'] !== (int) ($materia['id_curso'] ?? 0)) {
+                    return false;
+                }
+            }
+
+            if ($ruta === 'detalle-seccion') {
+                $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
+                foreach (['id_leccion', 'idLeccion', 'id_modulo'] as $campoLeccion) {
+                    if ((int) ($_POST[$campoLeccion] ?? 0) <= 0) {
+                        continue;
+                    }
+
+                    $leccion = ModeloLecciones::mdlBuscarLeccionPorId((int) $_POST[$campoLeccion]);
                     if (!$leccion || (int) ($leccion['id_modulo'] ?? 0) !== $idSeccion) {
                         return false;
                     }
+                }
+
+                if ((int) ($_POST['idRecursoLeccion'] ?? 0) > 0) {
+                    $recurso = ModeloLecciones::mdlBuscarRecursoPorId((int) $_POST['idRecursoLeccion']);
+                    $leccion = $recurso
+                        ? ModeloLecciones::mdlBuscarLeccionPorId((int) ($recurso['id_leccion'] ?? 0))
+                        : null;
+                    if (!$leccion || (int) ($leccion['id_modulo'] ?? 0) !== $idSeccion) {
+                        return false;
+                    }
+                }
+            }
+
+            if ($ruta === 'calificaciones-seccion') {
+                $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
+                if ((int) ($_POST['id_evaluacion'] ?? 0) > 0) {
+                    $evaluacion = ModeloCalificaciones::mdlEvaluacionPorId((int) $_POST['id_evaluacion']);
+                    if (!$evaluacion || (int) ($evaluacion['id_seccion'] ?? 0) !== $idSeccion) {
+                        return false;
+                    }
+                }
+
+                if ((int) ($_POST['id_periodo'] ?? 0) > 0
+                    && ModeloCalificaciones::mdlPeriodoPorId((int) $_POST['id_periodo'], $idSeccion) === null) {
+                    return false;
+                }
+
+                if ((int) ($_POST['id_instrumento'] ?? 0) > 0) {
+                    $contexto = ModeloCalificaciones::mdlContextoAcademicoSeccion($idSeccion);
+                    $instrumentos = array_map('intval', array_column($contexto['instrumentos'] ?? [], 'idInstrumento'));
+                    if (!in_array((int) $_POST['id_instrumento'], $instrumentos, true)) {
+                        return false;
+                    }
+                }
+            }
+
+            if ($ruta === 'asistencia-seccion' && (int) ($_POST['id_clase'] ?? 0) > 0) {
+                $clase = ModeloAsistencias::mdlClase((int) $_POST['id_clase']);
+                if (!$clase || (int) ($clase['id_seccion'] ?? 0) !== (int) ($_GET['idSeccion'] ?? 0)) {
+                    return false;
                 }
             }
 
@@ -205,6 +262,29 @@ class RutasController
                     (int) $_POST['id_mensaje'],
                     (int) ($_SESSION['usuario']['id'] ?? 0)
                 ) !== null;
+            }
+
+            if ($ruta === 'nuevo-mensaje') {
+                $idUsuario = (int) ($_SESSION['usuario']['id'] ?? 0);
+                if ((int) ($_POST['id_mensaje_respuesta'] ?? 0) > 0
+                    && ModeloMensajes::mdlMensajeDetalle((int) $_POST['id_mensaje_respuesta'], $idUsuario) === null) {
+                    return false;
+                }
+
+                if ((int) ($_POST['id_seccion_destino'] ?? 0) > 0
+                    && ModeloMaterias::mdlBuscarMateriaPorId((int) $_POST['id_seccion_destino']) === false) {
+                    return false;
+                }
+            }
+
+            if ($ruta === 'editar-usuario' && isset($_POST['idUsuario'])
+                && (int) $_POST['idUsuario'] !== (int) ($_GET['id'] ?? 0)) {
+                return false;
+            }
+
+            if ($ruta === 'usuarios-inactivos' && (int) ($_POST['idReactivar'] ?? 0) > 0
+                && ModeloUsuarios::mdlObtenerUsuarioCompleto((int) $_POST['idReactivar']) === false) {
+                return false;
             }
         } catch (RuntimeException $e) {
             return false;

@@ -51,6 +51,8 @@ $evaluacionMM=ModeloCalificaciones::mdlCrearEvaluacion(['id_seccion'=>$materiaMM
     'id_periodo'=>$contextoMM['periodos'][0]['idPeriodo'],'id_instrumento'=>$contextoMM['instrumentos'][0]['idInstrumento'],
     'id_autor'=>$ids['A'],'temaEvaluacion'=>'Evaluación MenteMotion','fechaEvaluacion'=>'2026-09-20']);
 verificar($evaluacionMM>0, 'Evaluación se crea dentro del catálogo de MenteMotion');
+$claseMM=ModeloAsistencias::mdlCrearClase($materiaMM,$cursoMM,'2026-09-18','Clase MenteMotion',$ids['A']);
+verificar($claseMM>0, 'Asistencia de MenteMotion queda vinculada a su propia materia');
 sesionPara($ids['B']);
 $datosCurso['nombreCurso']='Curso Demo'; $datosCurso['creadoPor']=$ids['B']; $datosCurso['responsable']=$ids['B'];
 ModeloCursos::mdlGuardarCurso('cursos',$datosCurso); $cursoDemo=(int)$pdo->lastInsertId();
@@ -506,6 +508,11 @@ $tareaHttpMM['id_modulo']=$materiaMM;
 verificar(ModeloLecciones::mdlGuardarLeccion('lecciones',$tareaHttpMM)==='ok',
     'Fixture HTTP: tarea de MenteMotion conserva su materia institucional');
 $tareaMM=(int)$pdo->lastInsertId();
+verificar(ModeloLecciones::mdlGuardarRecursoLeccion('recursoslecciones',[
+    'id_leccion'=>$tareaMM,'tipoRecurso'=>'ENLACE','tituloRecurso'=>'Recurso HTTP MenteMotion',
+    'urlRecurso'=>'https://example.invalid/mentemotion','creadoPor'=>$ids['A']
+])==='ok', 'Fixture HTTP: recurso de MenteMotion hereda la institución de su lección');
+$recursoMM=(int)$pdo->lastInsertId();
 $mensajeMM=ModeloMensajes::mdlGuardarMensaje([
     'id_remitente'=>$ids['A'],'destinatarios'=>[$ids['C']],
     'contenidoMensaje'=>'Mensaje HTTP MenteMotion','fechaMensaje'=>date('Y-m-d H:i:s'),'adjuntos'=>[]
@@ -594,6 +601,17 @@ try {
         && ModeloInstituciones::mdlRolesUsuarioInstitucion($idUsuarioHttp,$demo)===['DOCENTE','ESTUDIANTE']
         && (string)$pdo->query('SELECT nombreUsuario FROM usuarios WHERE idUsuario='.(int)$idUsuarioHttp)->fetchColumn()==='Identidad',
         'HTTP membresías: edición cambia roles institucionales sin alterar la identidad global');
+    $nombreUsuarioCAntes=(string)$pdo->query('SELECT nombreUsuario FROM usuarios WHERE idUsuario='.(int)$ids['C'])->fetchColumn();
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=editar-usuario&id='.$idUsuarioHttp,[
+        'idUsuario'=>$ids['C'],
+        'nombreUsuario'=>'Intento oculto',
+        'apellidoUsuario'=>'Cruzado',
+        'emailUsuario'=>'c@campus.example',
+        'roles'=>['ADMINISTRADOR'],
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (string)$pdo->query('SELECT nombreUsuario FROM usuarios WHERE idUsuario='.(int)$ids['C'])->fetchColumn()===$nombreUsuarioCAntes,
+        'HTTP membresías: un usuario ajeno oculto en un formulario propio devuelve 403');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=editar-usuario&id='.$idUsuarioHttp,[
         'accion_usuario'=>'baja_usuario',
         'idUsuario'=>$idUsuarioHttp,
@@ -607,6 +625,10 @@ try {
     verificar($respuestaHttp['codigo']===200
         && (int)$pdo->query('SELECT activo FROM usuarios_instituciones WHERE id_usuario='.(int)$idUsuarioHttp.' AND id_institucion='.(int)$demo)->fetchColumn()===1,
         'HTTP membresías: reactivación restaura la membresía sin recrear identidad');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=usuarios-inactivos',['idReactivar'=>$ids['C']]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query('SELECT activo FROM usuarios WHERE idUsuario='.(int)$ids['C'])->fetchColumn()===1,
+        'HTTP membresías: reactivación manipulada no alcanza identidades de otra institución');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-curso&idCurso='.$cursoDemo);
     verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Curso Demo'),
         'HTTP académico: recurso propio continúa disponible');
@@ -621,6 +643,13 @@ try {
     verificar($respuestaHttp['codigo']===403
         && (int)$pdo->query('SELECT COUNT(*) FROM cursos WHERE idCurso='.(int)$cursoMM)->fetchColumn()===1,
         'HTTP académico: POST manipulado no elimina un curso ajeno');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-curso&idCurso='.$cursoDemo,[
+        'accion_curso'=>'eliminar_curso',
+        'idCurso'=>$cursoMM,
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query('SELECT COUNT(*) FROM cursos WHERE idCurso='.(int)$cursoMM)->fetchColumn()===1,
+        'HTTP académico: un ID de curso ajeno oculto en una URL propia también devuelve 403');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=editar-materia&idSeccion='.$materiaMM,[
         'idSeccion'=>$materiaMM,
         'tituloSeccion'=>'Intento HTTP cruzado',
@@ -630,6 +659,23 @@ try {
     verificar($respuestaHttp['codigo']===403
         && (string)$pdo->query('SELECT tituloSeccion FROM secciones WHERE idSeccion='.(int)$materiaMM)->fetchColumn()==='Materia MenteMotion',
         'HTTP académico: docente o administrador no modifica una materia ajena');
+    $nombreTareaMMAntes=(string)$pdo->query('SELECT nombreLeccion FROM lecciones WHERE idLeccion='.(int)$tareaMM)->fetchColumn();
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-seccion&idSeccion='.$materiaDemo,[
+        'accion'=>'actualizar_leccion',
+        'idLeccion'=>$tareaMM,
+        'nombreLeccion'=>'Intento oculto sobre lección',
+        'tipoLeccion'=>'TAREA',
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (string)$pdo->query('SELECT nombreLeccion FROM lecciones WHERE idLeccion='.(int)$tareaMM)->fetchColumn()===$nombreTareaMMAntes,
+        'HTTP lecciones: ID camelCase de otra institución se rechaza dentro de una materia propia');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=detalle-seccion&idSeccion='.$materiaDemo,[
+        'accion'=>'eliminar_recurso',
+        'idRecursoLeccion'=>$recursoMM,
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query('SELECT COUNT(*) FROM recursoslecciones WHERE idRecursoLeccion='.(int)$recursoMM)->fetchColumn()===1,
+        'HTTP recursos: ID de recurso ajeno queda bloqueado antes del controlador');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=asistencia-seccion&idSeccion='.$materiaDemo);
     verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Clase Demo'),
         'HTTP asistencia: planilla propia renderiza dentro del tenant');
@@ -652,6 +698,14 @@ try {
     verificar($respuestaHttp['codigo']===403
         && (int)$pdo->query('SELECT COUNT(*) FROM asistencia_clases WHERE id_seccion='.(int)$materiaMM.' AND fechaClase='.$pdo->quote($fechaAsistenciaHttp))->fetchColumn()===0,
         'HTTP asistencia: POST de otra institución queda denegado');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=asistencia-seccion&idSeccion='.$materiaDemo,[
+        'accion_asistencia'=>'guardar_asistencia',
+        'id_seccion'=>$materiaDemo,
+        'id_clase'=>$claseMM,
+        'estados'=>[$ids['A']=>'PRESENTE'],
+    ]);
+    verificar($respuestaHttp['codigo']===403,
+        'HTTP asistencia: una clase ajena oculta en la planilla propia se rechaza antes de escribir');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones-seccion&idSeccion='.$materiaDemo);
     verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Materia Demo'),
         'HTTP calificaciones: planilla propia renderiza dentro del tenant');
@@ -678,6 +732,24 @@ try {
     verificar($respuestaHttp['codigo']===403
         && (int)$pdo->query("SELECT COUNT(*) FROM evaluaciones WHERE temaEvaluacion='Intento evaluación cruzada'")->fetchColumn()===0,
         'HTTP calificaciones: POST de otra institución queda denegado');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones-seccion&idSeccion='.$materiaDemo,[
+        'accion'=>'eliminar_evaluacion',
+        'id_evaluacion'=>$evaluacionMM,
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query('SELECT COUNT(*) FROM evaluaciones WHERE idEvaluacion='.(int)$evaluacionMM)->fetchColumn()===1,
+        'HTTP calificaciones: evaluación ajena oculta en una planilla propia no se elimina');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones-seccion&idSeccion='.$materiaDemo,[
+        'accion'=>'crear_evaluacion',
+        'id_seccion'=>$materiaDemo,
+        'id_periodo'=>(int)$contextoMM['periodos'][0]['idPeriodo'],
+        'id_instrumento'=>(int)$contextoMM['instrumentos'][0]['idInstrumento'],
+        'temaEvaluacion'=>'Catálogos ocultos cruzados',
+        'fechaEvaluacion'=>date('Y-m-d',strtotime('+6 days')),
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query("SELECT COUNT(*) FROM evaluaciones WHERE temaEvaluacion='Catálogos ocultos cruzados'")->fetchColumn()===0,
+        'HTTP calificaciones: período e instrumento ajenos devuelven 403 en una materia propia');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=ver-actividad&idActividad='.$actividadIncoherente);
     verificar($respuestaHttp['codigo']===403 && !str_contains($respuestaHttp['body'],'Actividad incoherente'),
         'HTTP académico: actividad de otro tenant no se revela por ID');
@@ -724,6 +796,22 @@ try {
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=nuevo-mensaje&t=reply&idMsj='.$mensajeMM);
     verificar($respuestaHttp['codigo']===403 && !str_contains($respuestaHttp['body'],'Mensaje HTTP MenteMotion'),
         'HTTP mensajería: responder o reenviar no revela un mensaje de otra institución');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=nuevo-mensaje',[
+        'accion'=>'enviar_mensaje',
+        'contenidoMensaje'=>'Respuesta oculta cruzada',
+        'id_mensaje_respuesta'=>$mensajeMM,
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query("SELECT COUNT(*) FROM mensajes WHERE contenidoMensaje='Respuesta oculta cruzada'")->fetchColumn()===0,
+        'HTTP mensajería: un mensaje de respuesta ajeno oculto en POST se rechaza');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=nuevo-mensaje',[
+        'accion'=>'enviar_mensaje',
+        'contenidoMensaje'=>'Sección oculta cruzada',
+        'id_seccion_destino'=>$materiaMM,
+    ]);
+    verificar($respuestaHttp['codigo']===403
+        && (int)$pdo->query("SELECT COUNT(*) FROM mensajes WHERE contenidoMensaje='Sección oculta cruzada'")->fetchColumn()===0,
+        'HTTP mensajería: una materia destinataria de otro tenant se rechaza');
     peticion($curlHttp,$urlHttp.'?r=logout');
 
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=login',[
