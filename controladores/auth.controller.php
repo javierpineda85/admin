@@ -2,6 +2,7 @@
 
 require_once 'modelos/usuarios.modelo.php';
 require_once __DIR__ . '/institucion.controller.php';
+require_once __DIR__ . '/../modelos/correo.php';
 
 class ControladorAuth
 {
@@ -338,15 +339,15 @@ class ControladorAuth
             return false;
         }
 
-        $asunto = 'Classroom - Tu contrasena temporal';
+        $asunto = '=?UTF-8?B?' . base64_encode(MAIL_FROM_NAME . ' - Tu contraseña temporal') . '?=';
         $mensaje = "Hola " . trim((string) $usuario['nombreUsuario']) . ",\n\n"
             . "Se genero una contrasena temporal para tu cuenta:\n\n"
             . $claveTemporal . "\n\n"
-            . "Ingresa en http://localhost/admin/index.php?r=login y luego actualizala desde tu perfil.\n";
+            . 'Ingresá en ' . APP_BASE_URL . "/index.php?r=login y luego actualizala desde tu perfil.\n";
         $cabeceras = implode("\r\n", [
             'MIME-Version: 1.0',
             'Content-type: text/plain; charset=UTF-8',
-            'From: Classroom <no-reply@classroom.local>',
+            'From: ' . CorreoCampus::remitente(),
         ]);
         @mail((string) $usuario['email'], $asunto, $mensaje, $cabeceras);
 

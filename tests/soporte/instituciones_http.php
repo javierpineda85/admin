@@ -33,7 +33,11 @@ function levantarServidor($modo, $activo = true)
         'WP_DB_HOST'=>DB_HOST,'WP_DB_PORT'=>DB_PORT,'WP_DB_NAME'=>DB_NAME,'WP_DB_USER'=>DB_USER,'WP_DB_PASSWORD'=>DB_PASSWORD,
         'WP_TABLE_PREFIX'=>'prueba_wp_','WP_ROOT_PATH'=>'','AUTH_MODE'=>$modo,'AUTH_DEBUG'=>'0',
         'INSTITUCIONES_CONTEXTO_ACTIVO'=>$activo?'1':'0']);
+    // Fijar la base sintética antes de config.local.php: nunca dirigir pruebas HTTP a datos locales.
+    $bootstrap = $directorio . '/config-prueba.php';
+    file_put_contents($bootstrap, '<?php foreach (["DB_HOST","DB_PORT","DB_NAME","DB_USER","DB_PASSWORD","WP_DB_HOST","WP_DB_PORT","WP_DB_NAME","WP_DB_USER","WP_DB_PASSWORD","WP_TABLE_PREFIX","WP_ROOT_PATH","AUTH_MODE"] as $key) { define($key, getenv($key)); } define("INSTITUCIONES_CONTEXTO_ACTIVO", getenv("INSTITUCIONES_CONTEXTO_ACTIVO")==="1");');
     $proceso=proc_open([PHP_BINARY,'-d','display_errors=0','-d','session.save_path='.$directorio,
+        '-d','auto_prepend_file='.$bootstrap,
         '-d','session.serialize_handler=php_serialize','-S',$direccion,'-t',dirname(__DIR__,2)],
         [0=>['pipe','r'],1=>['file',$directorio.'/servidor.log','a'],2=>['file',$directorio.'/servidor.log','a']],$pipes,dirname(__DIR__,2),$entorno);
     if (!is_resource($proceso)) { throw new RuntimeException('No se pudo iniciar PHP local'); }

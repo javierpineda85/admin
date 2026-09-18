@@ -124,7 +124,7 @@ class ControladorPermisos
                 'editar-materia',
                 'calificaciones-seccion',
                 'calificaciones',
-                'asistencias','asistencia-seccion',
+                'asistencias','asistencia-seccion','asistencia-curso',
                 'bandeja-entrada',
                 'nuevo-mensaje',
                 'mensajes-enviados',

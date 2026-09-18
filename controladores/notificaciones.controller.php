@@ -1,5 +1,6 @@
 <?php
 require_once('modelos/notificaciones.modelo.php');
+require_once __DIR__ . '/../modelos/correo.php';
 
 class ControladorNotificaciones
 {
@@ -88,24 +89,20 @@ class ControladorNotificaciones
             return false;
         }
 
-        $nombre = trim((string) ($estudiante['nombreUsuario'] ?? ''));
         $asunto = (string) ($datos['asuntoEmail'] ?? 'Nueva publicacion');
-        $mensaje = "Hola " . ($nombre !== '' ? $nombre : 'estudiante') . ",\n\n"
-            . "Se publico nuevo contenido en tu curso:\n\n"
-            . (string) ($datos['tituloEmail'] ?? 'Nueva publicacion') . "\n"
-            . (string) ($datos['contextoEmail'] ?? '') . "\n\n"
-            . "Podes verlo desde este enlace:\n"
-            . (string) ($datos['urlEmail'] ?? APP_BASE_URL) . "\n";
-
-        $fromName = trim((string) MAIL_FROM_NAME);
-        $fromEmail = trim((string) MAIL_FROM_EMAIL);
-        $from = $fromName !== '' ? $fromName . ' <' . $fromEmail . '>' : $fromEmail;
+        try {
+            $mensaje = CorreoCampus::publicacionHtml($estudiante, $datos);
+            $remitente = CorreoCampus::remitente();
+        } catch (InvalidArgumentException $e) {
+            error_log('No se envió la notificación: ' . $e->getMessage());
+            return false;
+        }
         $cabeceras = implode("\r\n", [
             'MIME-Version: 1.0',
-            'Content-type: text/plain; charset=UTF-8',
-            'From: ' . $from,
+            'Content-type: text/html; charset=UTF-8',
+            'From: ' . $remitente,
         ]);
 
-        return @mail($email, $asunto, $mensaje, $cabeceras);
+        return @mail($email, '=?UTF-8?B?' . base64_encode($asunto) . '?=', $mensaje, $cabeceras);
     }
 }

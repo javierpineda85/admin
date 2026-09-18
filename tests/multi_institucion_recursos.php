@@ -817,8 +817,8 @@ try {
         'tema'=>'Asistencia HTTP Demo',
     ]);
     verificar($respuestaHttp['codigo']===302
-        && (int)$pdo->query('SELECT COUNT(*) FROM asistencia_clases WHERE id_seccion='.(int)$materiaDemo.' AND fechaClase='.$pdo->quote($fechaAsistenciaHttp))->fetchColumn()===1,
-        'HTTP asistencia: alta propia conserva materia y curso institucionales');
+        && (int)$pdo->query('SELECT COUNT(*) FROM asistencia_clases WHERE id_seccion='.(int)$materiaDemo.' AND fechaClase='.$pdo->quote($fechaAsistenciaHttp))->fetchColumn()===0,
+        'HTTP asistencia: historial por materia rechaza nuevas cargas');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=asistencia-seccion&idSeccion='.$materiaMM,[
         'accion_asistencia'=>'crear_clase',
         'id_seccion'=>$materiaMM,

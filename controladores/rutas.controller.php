@@ -40,6 +40,7 @@ class RutasController
             'calificaciones' => 'materias/calificaciones.php',
             'asistencias' => 'materias/asistencias.php',
             'asistencia-seccion' => 'materias/asistencia-seccion.php',
+            'asistencia-curso' => 'cursos/asistencia-curso.php',
 
             // Mensajes
             'bandeja-entrada' => 'mensajes/bandeja-entrada.php',
@@ -123,7 +124,7 @@ class RutasController
             return true;
         }
 
-        if (in_array($ruta, ['detalle-curso', 'editar-curso'], true)) {
+        if (in_array($ruta, ['detalle-curso', 'editar-curso', 'asistencia-curso'], true)) {
             $idCurso = (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0);
             return $idCurso > 0 && ModeloCursos::mdlBuscarCursoPorId($idCurso) !== null;
         }
@@ -174,6 +175,15 @@ class RutasController
         }
 
         try {
+            if ($ruta === 'asistencia-curso') {
+                $idCurso = (int)($_GET['idCurso'] ?? 0);
+                if ($idCurso !== (int)($_POST['id_curso'] ?? 0) || !ControladorAsistencias::crtPuedeGestionarCurso($idCurso)) {
+                    return false;
+                }
+                if ((int)($_POST['id_clase'] ?? 0) > 0 && !ModeloAsistenciasCurso::clase((int)$_POST['id_clase'], $idCurso)) {
+                    return false;
+                }
+            }
             if (in_array($ruta, ['detalle-curso', 'editar-curso'], true)
                 && isset($_POST['idCurso'])
                 && (int) $_POST['idCurso'] !== (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0)) {
@@ -354,7 +364,20 @@ class RutasController
             }
         }
 
-        if($ruta==='asistencia-seccion'){$idSeccion=(int)($_GET['idSeccion']??0);$resultado=ControladorAsistencias::crtProcesar();if($resultado!==null){$destino='index.php?r=asistencia-seccion&idSeccion='.$idSeccion;if((int)$resultado>0){$destino.='&idClase='.(int)$resultado;}header('Location: '.$destino);exit;}}
+        if ($ruta === 'asistencia-curso') {
+            $resultado = ControladorAsistencias::crtProcesarCurso();
+            if ($resultado !== null) {
+                $destino = 'index.php?r=asistencia-curso&idCurso=' . (int)($_GET['idCurso'] ?? 0);
+                if ((int)$resultado > 0) { $destino .= '&idClase=' . (int)$resultado; }
+                header('Location: ' . $destino);
+                exit;
+            }
+        }
+        if ($ruta === 'asistencia-seccion' && isset($_POST['accion_asistencia'])) {
+            $_SESSION['error_message'] = 'El historial por materia es de consulta. Registrá la asistencia desde el curso.';
+            header('Location: index.php?r=asistencia-seccion&idSeccion=' . (int)($_GET['idSeccion'] ?? 0));
+            exit;
+        }
 
         if ($ruta === 'editar-curso') {
             $idCurso = (int) ($_GET['idCurso'] ?? $_GET['id'] ?? 0);
