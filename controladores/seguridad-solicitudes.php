@@ -5,12 +5,13 @@ class SeguridadSolicitudes
     public static function aplicarCabeceras($ruta, array $servidor = null)
     {
         if (headers_sent()) { return; }
+        header_remove('X-Powered-By');
         $servidor = $servidor ?? $_SERVER;
         $ruta = trim((string) $ruta);
         $ancestros = $ruta === 'actividad-publica'
             ? "'self' https://mentemotion.com https://*.mentemotion.com"
             : "'self'";
-        header("Content-Security-Policy: base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors " . $ancestros);
+        header("Content-Security-Policy: upgrade-insecure-requests; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors " . $ancestros);
         header('X-Content-Type-Options: nosniff');
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');

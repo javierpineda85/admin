@@ -1,7 +1,10 @@
 RewriteEngine On
+Options -Indexes
 
 # Los artefactos internos no forman parte de la superficie pública.
 RewriteRule ^(?:docs|sql|tests|tmp)(?:/|$) - [F,L,NC]
+RewriteRule ^\.git(?:/|$) - [F,L,NC]
+RewriteRule ^(?:login|forgot-password)\.html$ - [G,L,NC]
 
 # URL pública del panel global. El parámetro r queda interno al MVC.
 RewriteRule ^superadmin/?$ index.php?r=superadmin [QSA,L]
@@ -9,3 +12,7 @@ RewriteRule ^superadmin/?$ index.php?r=superadmin [QSA,L]
 <FilesMatch "(?i)(^\.|^(?:config(?:\.local)?\.php|README(?:\.md)?|ROADMAP\.md|TO DO\.txt)$|\.(?:sql|log|ini|env|bak|dist|md)$)">
   Require all denied
 </FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always unset X-Powered-By
+</IfModule>
