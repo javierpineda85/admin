@@ -36,6 +36,10 @@ if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET'
 
 
 
+if (!ControladorAuth::validarSesionActual()) {
+    header('Location: index.php?r=login', true, 303);
+    exit;
+}
 ControladorInstitucion::procesarAntesDeRenderizar();
 ControladorDescargas::crtProcesar();
 

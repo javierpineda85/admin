@@ -25,4 +25,16 @@ class CorreoCampus
         require __DIR__ . '/../vistas/correos/publicacion.php';
         return ob_get_clean();
     }
+
+    public static function recuperacionHtml(array $usuario, $url)
+    {
+        $url = (string) $url;
+        if (!filter_var($url, FILTER_VALIDATE_URL) || strtolower((string) parse_url($url, PHP_URL_SCHEME)) !== 'https') {
+            throw new InvalidArgumentException('La URL de recuperación debe usar HTTPS.');
+        }
+        $nombre = trim((string) ($usuario['nombreUsuario'] ?? '')) ?: 'usuario';
+        ob_start();
+        require __DIR__ . '/../vistas/correos/recuperacion-password.php';
+        return ob_get_clean();
+    }
 }

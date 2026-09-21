@@ -28,6 +28,12 @@ function csrfRegistro($html)
     return $csrf[1] ?? '';
 }
 
+function csrfRecuperacion($html)
+{
+    preg_match('/name="recuperacion_csrf" value="([^"]+)"/', $html, $csrf);
+    return $csrf[1] ?? '';
+}
+
 function levantarServidor($modo, $activo = true)
 {
     $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);
@@ -139,10 +145,14 @@ foreach (['LOCAL','WORDPRESS','HYBRID'] as $modo) {
         $r=peticion($curl,$url.'?r=seleccionar-institucion');
         verificar($r['destino']==='index.php?r=login',"$modo: sesión vencida regresa a login");
         $r=peticion($curl,$url.'?r=forgot');
-        verificar($r['codigo']===200 && str_contains($r['body'],'forgot_email'),"$modo: recuperación sigue disponible");
+        verificar($r['codigo']===200,"$modo: ruta de recuperación responde");
         if ($modo==='WORDPRESS') {
-            $r=peticion($curl,$url.'?r=forgot',['forgot_email'=>'a@campus.example']);
-            verificar(str_contains($r['body'],'mentemotion.com'), 'WORDPRESS: recuperación continúa delegada a WordPress');
+            verificar(str_contains($r['body'],'mentemotion.com') && !str_contains($r['body'],'name="forgot_email"'), 'WORDPRESS: recuperación continúa delegada a WordPress');
+        } else {
+            $csrfRecuperacion=csrfRecuperacion($r['body']);
+            verificar($csrfRecuperacion!=='' && str_contains($r['body'],'name="forgot_email"'),"$modo: recuperación local usa CSRF");
+            $r=peticion($curl,$url.'?r=forgot',['accion_solicitar_recuperacion'=>1,'recuperacion_csrf'=>$csrfRecuperacion,'forgot_email'=>'inexistente@campus.example']);
+            verificar(str_contains($r['body'],'Si existe una cuenta local activa'),"$modo: recuperación no enumera cuentas");
         }
         if ($modo==='LOCAL') {
             $r=peticion($curl,$url.'?r=login',['login_email'=>'c@campus.example','login_pass'=>$password]);

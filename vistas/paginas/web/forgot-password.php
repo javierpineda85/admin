@@ -1,7 +1,13 @@
 <?php
 ControladorAuth::crtRecuperarPassword();
 $forgotError = $_SESSION['forgot_error'] ?? '';
-unset($_SESSION['forgot_error'], $_SESSION['forgot_success'], $_SESSION['forgot_temp_password']);
+$forgotSuccess = $_SESSION['forgot_success'] ?? '';
+$recuperacionLocalDisponible = ControladorAuth::recuperacionLocalDisponible();
+$tokenRecuperacion = strtolower(trim((string) ($_GET['token'] ?? $_POST['token'] ?? '')));
+$tokenValido = $recuperacionLocalDisponible && $forgotSuccess === '' && $tokenRecuperacion !== ''
+  ? ControladorAuth::tokenRecuperacionValido($tokenRecuperacion)
+  : false;
+unset($_SESSION['forgot_error'], $_SESSION['forgot_success']);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -39,12 +45,46 @@ unset($_SESSION['forgot_error'], $_SESSION['forgot_success'], $_SESSION['forgot_
       </div>
       <div class="mb-4">
         <h1 class="login-card-title mb-2">Recuperar contraseña</h1>
-        <p class="login-card-subtitle mb-0">La recuperación automática está temporalmente deshabilitada por seguridad.</p>
+        <p class="login-card-subtitle mb-0">
+          <?php echo $tokenValido ? 'Elegí una contraseña nueva para tu cuenta.' : ($recuperacionLocalDisponible ? 'Te enviaremos un enlace seguro si el correo corresponde a una cuenta local activa.' : 'La recuperación de esta cuenta se gestiona desde MenteMotion.'); ?>
+        </p>
       </div>
 
-      <div class="alert alert-warning" role="alert">
-        Para recuperar el acceso, contactá al soporte de tu institución. No se generan ni se muestran contraseñas temporales desde esta página.
-      </div>
+      <?php if (!$recuperacionLocalDisponible): ?>
+        <div class="alert alert-info" role="status">Usá la recuperación de contraseña de <a href="https://mentemotion.com/wp-login.php?action=lostpassword" rel="noopener noreferrer">mentemotion.com</a>.</div>
+      <?php elseif ($forgotSuccess !== ''): ?>
+        <div class="alert alert-success" role="status"><?php echo htmlspecialchars($forgotSuccess, ENT_QUOTES, 'UTF-8'); ?></div>
+      <?php elseif ($tokenRecuperacion !== '' && !$tokenValido): ?>
+        <div class="alert alert-danger" role="alert">El enlace no es válido, ya fue utilizado o venció.</div>
+      <?php endif; ?>
+
+      <?php if ($recuperacionLocalDisponible && $tokenValido): ?>
+        <form action="index.php?r=forgot" method="post" autocomplete="off">
+          <input type="hidden" name="accion_restablecer_password" value="1">
+          <input type="hidden" name="recuperacion_csrf" value="<?php echo htmlspecialchars(ControladorAuth::csrfRecuperacion(), ENT_QUOTES, 'UTF-8'); ?>">
+          <input type="hidden" name="token" value="<?php echo htmlspecialchars($tokenRecuperacion, ENT_QUOTES, 'UTF-8'); ?>">
+          <div class="form-group">
+            <label for="passwordNueva">Nueva contraseña</label>
+            <input id="passwordNueva" type="password" class="form-control" name="password_nueva" minlength="8" maxlength="72" autocomplete="new-password" required>
+            <small class="form-text text-muted">Entre 8 y 72 caracteres, con letras y números.</small>
+          </div>
+          <div class="form-group">
+            <label for="passwordConfirmacion">Confirmar contraseña</label>
+            <input id="passwordConfirmacion" type="password" class="form-control" name="password_confirmacion" minlength="8" maxlength="72" autocomplete="new-password" required>
+          </div>
+          <button type="submit" class="btn auth-cta text-white btn-block">Guardar contraseña</button>
+        </form>
+      <?php elseif ($recuperacionLocalDisponible && $forgotSuccess === ''): ?>
+        <form action="index.php?r=forgot" method="post" autocomplete="off">
+          <input type="hidden" name="accion_solicitar_recuperacion" value="1">
+          <input type="hidden" name="recuperacion_csrf" value="<?php echo htmlspecialchars(ControladorAuth::csrfRecuperacion(), ENT_QUOTES, 'UTF-8'); ?>">
+          <div class="input-group mb-3">
+            <input type="email" class="form-control" name="forgot_email" maxlength="254" placeholder="Correo electrónico" autocomplete="email" required>
+            <div class="input-group-append"><div class="input-group-text"><span class="fas fa-envelope"></span></div></div>
+          </div>
+          <button type="submit" class="btn auth-cta text-white btn-block">Enviar enlace</button>
+        </form>
+      <?php endif; ?>
 
       <p class="mt-3 mb-1">
         <a href="index.php?r=login">Volver al inicio de sesión</a>

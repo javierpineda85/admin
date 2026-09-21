@@ -1,6 +1,8 @@
 <?php
 
 require_once 'modelos/usuarios.modelo.php';
+require_once __DIR__ . '/../modelos/seguridad-auth.modelo.php';
+require_once __DIR__ . '/../modelos/correo.php';
 require_once __DIR__ . '/institucion.controller.php';
 
 class ControladorAuth
@@ -45,12 +47,64 @@ class ControladorAuth
         return ControladorInstitucion::activo() && self::obtenerModoAuth() !== 'WORDPRESS';
     }
 
+    public static function recuperacionLocalDisponible()
+    {
+        return self::obtenerModoAuth() !== 'WORDPRESS';
+    }
+
     public static function csrfRegistro()
     {
         if (empty($_SESSION['registro_csrf'])) {
             $_SESSION['registro_csrf'] = bin2hex(random_bytes(32));
         }
         return (string) $_SESSION['registro_csrf'];
+    }
+
+    public static function csrfRecuperacion()
+    {
+        if (empty($_SESSION['recuperacion_csrf'])) {
+            $_SESSION['recuperacion_csrf'] = bin2hex(random_bytes(32));
+        }
+        return (string) $_SESSION['recuperacion_csrf'];
+    }
+
+    private static function ipCliente()
+    {
+        $ip = trim((string) ($_SERVER['REMOTE_ADDR'] ?? 'desconocida'));
+        return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : 'desconocida';
+    }
+
+    private static function claveLimite($email)
+    {
+        return strtolower(trim((string) $email)) . '|' . self::ipCliente();
+    }
+
+    private static function limiteExcedido($tipo, $clave, $maximo, $ventana)
+    {
+        try {
+            return ModeloSeguridadAuth::limitado($tipo, $clave, $maximo, $ventana);
+        } catch (Throwable $e) {
+            error_log('No se pudo consultar el límite de autenticación: ' . get_class($e));
+            return false;
+        }
+    }
+
+    private static function registrarFalloSeguro($tipo, $clave)
+    {
+        try {
+            ModeloSeguridadAuth::registrarFallo($tipo, $clave);
+        } catch (Throwable $e) {
+            error_log('No se pudo registrar un intento de autenticación: ' . get_class($e));
+        }
+    }
+
+    private static function limpiarIntentosSeguro($tipo, $clave)
+    {
+        try {
+            ModeloSeguridadAuth::limpiarIntentos($tipo, $clave);
+        } catch (Throwable $e) {
+            error_log('No se pudieron limpiar intentos de autenticación: ' . get_class($e));
+        }
     }
 
     public static function crtRegistrarCuenta()
@@ -158,6 +212,7 @@ class ControladorAuth
             'rol' => $usuario['rol'],
             'img' => $usuario['imgUsuario'],
         ];
+        $_SESSION['auth_fingerprint'] = hash('sha256', (string) ($usuario['pass'] ?? ''));
 
         unset($_SESSION['login_error']);
 
@@ -180,6 +235,23 @@ class ControladorAuth
         exit;
     }
 
+    public static function validarSesionActual()
+    {
+        if (($_SESSION['logueado'] ?? false) !== true) { return true; }
+        $usuario = ModeloUsuarios::mdlObtenerUsuarioPorId((int) ($_SESSION['usuario']['id'] ?? 0));
+        $fingerprint = hash('sha256', (string) ($usuario['pass'] ?? ''));
+        $fingerprintSesion = (string) ($_SESSION['auth_fingerprint'] ?? '');
+        if (!$usuario || (int) ($usuario['activo'] ?? 0) !== 1
+            || $fingerprintSesion === '' || !hash_equals($fingerprint, $fingerprintSesion)) {
+            $_SESSION = [];
+            ControladorInstitucion::limpiar();
+            session_regenerate_id(true);
+            $_SESSION['login_error'] = 'La sesión finalizó porque cambiaron las credenciales de la cuenta. Ingresá nuevamente.';
+            return false;
+        }
+        return true;
+    }
+
     private static function autenticarLocal($email, $password, &$error = null)
     {
         $usuario = ModeloUsuarios::mdlObtenerUsuarioPorEmail($email);
@@ -190,14 +262,14 @@ class ControladorAuth
         }
 
         $claveGuardada = (string) $usuario['pass'];
-        $claveValida = password_verify($password, $claveGuardada) || hash_equals($claveGuardada, $password);
+        $claveValida = password_verify($password, $claveGuardada);
 
         if (!$claveValida) {
             $error = 'Credenciales incorrectas.';
             return null;
         }
 
-        if (password_get_info($claveGuardada)['algo'] === 0) {
+        if (password_needs_rehash($claveGuardada, PASSWORD_DEFAULT)) {
             ModeloUsuarios::mdlActualizarPassword($usuario['idUsuario'], password_hash($password, PASSWORD_DEFAULT));
             $usuario = ModeloUsuarios::mdlObtenerUsuarioPorId((int) $usuario['idUsuario']) ?: $usuario;
         }
@@ -367,7 +439,16 @@ class ControladorAuth
         $password = (string) $_POST['login_pass'];
 
         if ($email === '' || $password === '') {
-            $_SESSION['login_error'] = 'Completa correo y contrasena.';
+            $_SESSION['login_error'] = 'No se pudo iniciar sesión con las credenciales ingresadas.';
+            return;
+        }
+
+        $claveLimite = self::claveLimite($email);
+        $claveIp = 'ip|' . self::ipCliente();
+        if (self::limiteExcedido('login', $claveLimite, 5, 900)
+            || self::limiteExcedido('login_ip', $claveIp, 20, 900)) {
+            http_response_code(429);
+            $_SESSION['login_error'] = 'Se realizaron demasiados intentos. Esperá unos minutos antes de volver a probar.';
             return;
         }
 
@@ -379,6 +460,8 @@ class ControladorAuth
             if (in_array($modo, ['LOCAL', 'HYBRID'], true)) {
                 $usuarioLocal = self::autenticarLocal($email, $password, $errorLocal);
                 if ($usuarioLocal) {
+                    self::limpiarIntentosSeguro('login', $claveLimite);
+                    self::limpiarIntentosSeguro('login_ip', $claveIp);
                     self::iniciarSesionUsuario($usuarioLocal);
                 }
             }
@@ -386,6 +469,8 @@ class ControladorAuth
             if (in_array($modo, ['WORDPRESS', 'HYBRID'], true)) {
                 $usuarioWordPress = self::autenticarWordPress($email, $password, $errorWordPress);
                 if ($usuarioWordPress) {
+                    self::limpiarIntentosSeguro('login', $claveLimite);
+                    self::limpiarIntentosSeguro('login_ip', $claveIp);
                     self::iniciarSesionUsuario($usuarioWordPress);
                 }
             }
@@ -398,20 +483,108 @@ class ControladorAuth
             return;
         }
 
-        $_SESSION['login_error'] = $errorWordPress ?: $errorLocal ?: 'No se pudo iniciar sesion.';
+        self::registrarFalloSeguro('login', $claveLimite);
+        self::registrarFalloSeguro('login_ip', $claveIp);
+        $_SESSION['login_error'] = 'No se pudo iniciar sesión con las credenciales ingresadas.';
     }
 
     public static function crtRecuperarPassword()
     {
-        if (!isset($_POST['forgot_email'])) {
+        if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
             return null;
         }
+        $csrf = (string) ($_POST['recuperacion_csrf'] ?? '');
+        if ($csrf === '' || !hash_equals(self::csrfRecuperacion(), $csrf)) {
+            http_response_code(403);
+            $_SESSION['forgot_error'] = 'El formulario venció. Recargá la página e intentá nuevamente.';
+            $_SESSION['recuperacion_csrf'] = bin2hex(random_bytes(32));
+            return false;
+        }
+        $_SESSION['recuperacion_csrf'] = bin2hex(random_bytes(32));
 
-        // Contención de seguridad: el flujo anterior cambiaba la contraseña sin
-        // acreditar el control del correo. La fase siguiente incorporará tokens
-        // de un solo uso antes de volver a habilitar la recuperación automática.
-        unset($_SESSION['forgot_success'], $_SESSION['forgot_temp_password']);
-        $_SESSION['forgot_error'] = 'La recuperación automática está temporalmente deshabilitada. Contactá al soporte institucional.';
-        return false;
+        if (isset($_POST['accion_restablecer_password'])) {
+            return self::crtRestablecerPassword();
+        }
+        if (!isset($_POST['accion_solicitar_recuperacion'])) { return null; }
+
+        $email = strtolower(trim((string) ($_POST['forgot_email'] ?? '')));
+        $mensajeUniforme = 'Si existe una cuenta local activa con ese correo, recibirás un enlace para restablecer la contraseña.';
+        $claveLimite = self::claveLimite($email);
+        $claveIp = 'ip|' . self::ipCliente();
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 254
+            || self::limiteExcedido('recuperacion', $claveLimite, 3, 3600)
+            || self::limiteExcedido('recuperacion_ip', $claveIp, 20, 3600)) {
+            self::registrarFalloSeguro('recuperacion', $claveLimite);
+            self::registrarFalloSeguro('recuperacion_ip', $claveIp);
+            $_SESSION['forgot_success'] = $mensajeUniforme;
+            return true;
+        }
+
+        self::registrarFalloSeguro('recuperacion', $claveLimite);
+        self::registrarFalloSeguro('recuperacion_ip', $claveIp);
+        try {
+            $usuario = self::obtenerModoAuth() === 'WORDPRESS' ? null : ModeloUsuarios::mdlObtenerUsuarioPorEmail($email);
+            $origen = strtoupper((string) ($usuario['origenAuth'] ?? 'LOCAL'));
+            if ($usuario && (int) ($usuario['activo'] ?? 0) === 1 && $origen !== 'WORDPRESS') {
+                $token = ModeloSeguridadAuth::crearRecuperacion((int) $usuario['idUsuario'], self::ipCliente(), 3600);
+                $url = rtrim((string) APP_BASE_URL, '/') . '/index.php?r=forgot&token=' . rawurlencode($token);
+                $asunto = '=?UTF-8?B?' . base64_encode(MAIL_FROM_NAME . ' - Restablecer contraseña') . '?=';
+                $mensaje = CorreoCampus::recuperacionHtml($usuario, $url);
+                $cabeceras = implode("\r\n", [
+                    'MIME-Version: 1.0',
+                    'Content-type: text/html; charset=UTF-8',
+                    'From: ' . CorreoCampus::remitente(),
+                ]);
+                if (!@mail((string) $usuario['email'], $asunto, $mensaje, $cabeceras)) {
+                    ModeloSeguridadAuth::invalidarRecuperacion($token);
+                    error_log('No se pudo enviar un correo de recuperación de Campus.');
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('No se pudo procesar una recuperación de contraseña: ' . get_class($e));
+        }
+        $_SESSION['forgot_success'] = $mensajeUniforme;
+        return true;
+    }
+
+    private static function crtRestablecerPassword()
+    {
+        $token = strtolower(trim((string) ($_POST['token'] ?? '')));
+        $password = (string) ($_POST['password_nueva'] ?? '');
+        $confirmacion = (string) ($_POST['password_confirmacion'] ?? '');
+        if (strlen($password) < 8 || strlen($password) > 72
+            || !preg_match('/[[:alpha:]]/', $password) || !preg_match('/[[:digit:]]/', $password)) {
+            $_SESSION['forgot_error'] = 'La contraseña debe tener entre 8 y 72 caracteres e incluir letras y números.';
+            return false;
+        }
+        if (!hash_equals($password, $confirmacion)) {
+            $_SESSION['forgot_error'] = 'Las contraseñas no coinciden.';
+            return false;
+        }
+        try {
+            $idUsuario = ModeloSeguridadAuth::consumirRecuperacion($token, password_hash($password, PASSWORD_DEFAULT));
+            if ($idUsuario <= 0) {
+                $_SESSION['forgot_error'] = 'El enlace no es válido o ya venció.';
+                return false;
+            }
+            $_SESSION = [];
+            session_regenerate_id(true);
+            $_SESSION['forgot_success'] = 'La contraseña fue actualizada. Ya podés iniciar sesión.';
+            return true;
+        } catch (Throwable $e) {
+            error_log('No se pudo completar una recuperación de contraseña: ' . get_class($e));
+            $_SESSION['forgot_error'] = 'No se pudo actualizar la contraseña. Intentá nuevamente más tarde.';
+            return false;
+        }
+    }
+
+    public static function tokenRecuperacionValido($token)
+    {
+        try {
+            return ModeloSeguridadAuth::buscarRecuperacion((string) $token) !== null;
+        } catch (Throwable $e) {
+            error_log('No se pudo validar un enlace de recuperación: ' . get_class($e));
+            return false;
+        }
     }
 }

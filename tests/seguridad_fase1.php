@@ -1,6 +1,7 @@
 <?php
 
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
+ob_start();
 
 require_once __DIR__ . '/../controladores/seguridad-archivos.php';
 
@@ -60,15 +61,16 @@ class CorreoCampus { public static function remitente() { return 'prueba@example
 PHP);
 eval('namespace PruebaSeguridadFase1; use \\Throwable; ' . $fuenteClase);
 
-$_SESSION = ['forgot_success' => 'anterior', 'forgot_temp_password' => 'anterior'];
-$_POST = ['forgot_email' => 'persona@example.invalid'];
+$_SESSION = ['forgot_success' => 'anterior'];
+$_SERVER['REQUEST_METHOD'] = 'POST';
+$_POST = ['accion_solicitar_recuperacion' => '1', 'forgot_email' => 'persona@example.invalid'];
 $resultado = \PruebaSeguridadFase1\ControladorAuth::crtRecuperarPassword();
-comprobarFase1($resultado === false, 'La recuperación automática permanece deshabilitada');
-comprobarFase1(\PruebaSeguridadFase1\ModeloUsuarios::$actualizaciones === 0, 'La recuperación no modifica contraseñas');
-comprobarFase1(!isset($_SESSION['forgot_temp_password']), 'La recuperación no expone contraseñas temporales');
+comprobarFase1($resultado === false, 'La recuperación rechaza solicitudes sin token CSRF');
+comprobarFase1(\PruebaSeguridadFase1\ModeloUsuarios::$actualizaciones === 0, 'Una solicitud inválida no modifica contraseñas');
+comprobarFase1(!isset($_SESSION['forgot_temp_password']), 'La recuperación no expone contraseñas temporales nuevas');
 comprobarFase1(
-    str_contains((string) ($_SESSION['forgot_error'] ?? ''), 'temporalmente deshabilitada'),
-    'La página informa la contención vigente'
+    str_contains((string) ($_SESSION['forgot_error'] ?? ''), 'formulario venció'),
+    'La recuperación informa el rechazo del formulario inválido'
 );
 
 foreach (['usuarios', 'secciones', 'instituciones'] as $carpeta) {
@@ -91,8 +93,9 @@ comprobarFase1(
     'El despliegue excluye pruebas, SQL y archivos temporales'
 );
 foreach (['img/secciones/.htaccess', 'img/usuarios/.htaccess', 'img/instituciones/.htaccess'] as $reglaImagen) {
-    comprobarFase1(
-        str_contains($despliegue, $reglaImagen),
-        'El despliegue incluye la protección ' . $reglaImagen
+comprobarFase1(
+    str_contains($despliegue, $reglaImagen),
+    'El despliegue incluye la protección ' . $reglaImagen
     );
 }
+ob_end_flush();
