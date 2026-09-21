@@ -53,6 +53,20 @@ try {
         'HTTP_SEC_FETCH_SITE' => 'same-origin',
         'HTTP_ORIGIN' => 'https://otro.example',
     ]), 'Un encabezado Origin que no coincide se rechaza');
+    comprobarFase3(SeguridadSolicitudes::origenPostValido([
+        'REQUEST_METHOD' => 'POST',
+        'HTTP_SEC_FETCH_SITE' => 'same-origin',
+        'HTTP_ORIGIN' => 'https://campus-produccion.example',
+        'HTTP_HOST' => 'campus-produccion.example',
+        'HTTPS' => 'on',
+    ]), 'El origen real de la solicitud se acepta aunque APP_BASE_URL no represente el entorno desplegado');
+    comprobarFase3(!SeguridadSolicitudes::origenPostValido([
+        'REQUEST_METHOD' => 'POST',
+        'HTTP_SEC_FETCH_SITE' => 'same-origin',
+        'HTTP_ORIGIN' => 'https://ataque.example',
+        'HTTP_HOST' => 'campus.mentemotion.com',
+        'HTTPS' => 'on',
+    ]), 'El host real de la solicitud no permite un Origin ajeno');
 
     $proteccionLecciones = file_get_contents(__DIR__ . '/../uploads/lecciones/.htaccess');
     $proteccionMensajes = file_get_contents(__DIR__ . '/../uploads/mensajes/.htaccess');

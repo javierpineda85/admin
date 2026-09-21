@@ -34,10 +34,10 @@ class SeguridadSolicitudes
         if ($fetchSite !== '' && !in_array($fetchSite, ['same-origin', 'none'], true)) { return false; }
 
         $origen = trim((string) ($servidor['HTTP_ORIGIN'] ?? ''));
-        if ($origen !== '') { return hash_equals(self::origenAplicacion(), self::normalizarOrigen($origen)); }
+        if ($origen !== '') { return self::origenCoincideConSolicitud($origen, $servidor); }
 
         $referer = trim((string) ($servidor['HTTP_REFERER'] ?? ''));
-        if ($referer !== '') { return hash_equals(self::origenAplicacion(), self::normalizarOrigen($referer)); }
+        if ($referer !== '') { return self::origenCoincideConSolicitud($referer, $servidor); }
 
         // Clientes antiguos y pruebas de consola pueden no enviar metadatos.
         // Las sesiones SameSite y los tokens de los flujos críticos mantienen
@@ -48,6 +48,27 @@ class SeguridadSolicitudes
     private static function origenAplicacion()
     {
         return self::normalizarOrigen((string) APP_BASE_URL);
+    }
+
+    private static function origenCoincideConSolicitud($url, array $servidor)
+    {
+        $origenRecibido = self::normalizarOrigen($url);
+        if ($origenRecibido === '') { return false; }
+
+        $origenConfigurado = self::origenAplicacion();
+        if ($origenConfigurado !== '' && hash_equals($origenConfigurado, $origenRecibido)) { return true; }
+
+        $host = trim((string) ($servidor['HTTP_HOST'] ?? ''));
+        if ($host === '' || preg_match('/[^a-z0-9.\-:\[\]]/i', $host)) { return false; }
+
+        $protoReenviado = strtolower(trim(explode(',', (string) ($servidor['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
+        $https = !empty($servidor['HTTPS']) && strtolower((string) $servidor['HTTPS']) !== 'off';
+        $esquema = in_array($protoReenviado, ['http', 'https'], true)
+            ? $protoReenviado
+            : ($https ? 'https' : 'http');
+        $origenSolicitud = self::normalizarOrigen($esquema . '://' . $host);
+
+        return $origenSolicitud !== '' && hash_equals($origenSolicitud, $origenRecibido);
     }
 
     private static function normalizarOrigen($url)
