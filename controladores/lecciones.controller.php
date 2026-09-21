@@ -1,6 +1,8 @@
 <?php
 require_once('modelos/lecciones.modelo.php');
 require_once('controladores/notificaciones.controller.php');
+require_once __DIR__ . '/seguridad-archivos.php';
+require_once __DIR__ . '/seguridad-html.php';
 
 class ControladorLecciones
 {
@@ -430,11 +432,11 @@ class ControladorLecciones
         if ($tipoRecurso === 'ARCHIVO' && !empty($_FILES['archivoRecurso']['name']) && ($_FILES['archivoRecurso']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
             $urlRecurso = self::subirArchivo($_FILES['archivoRecurso']);
             $urlSubida = $urlRecurso;
-        } elseif ($tipoRecurso === 'ENLACE' && $urlRecurso !== '' && !filter_var($urlRecurso, FILTER_VALIDATE_URL)) {
-            $urlRecurso = 'https://' . ltrim($urlRecurso, '/');
+        } elseif ($tipoRecurso === 'ENLACE') {
+            $urlRecurso = self::normalizarUrlRecurso($urlRecurso);
         }
 
-        if ($urlRecurso === '' || ($tipoRecurso === 'ENLACE' && !filter_var($urlRecurso, FILTER_VALIDATE_URL))) {
+        if ($urlRecurso === '') {
             self::eliminarArchivoLocal($urlSubida);
             $_SESSION['error_message'] = 'El recurso no tiene una URL valida.';
             return 'error';
@@ -721,31 +723,23 @@ class ControladorLecciones
     private static function subirArchivo(array $archivo)
     {
         $directorio = __DIR__ . '/../uploads/lecciones/';
-
-        if (!is_dir($directorio) && !mkdir($directorio, 0775, true) && !is_dir($directorio)) {
-            return '';
-        }
-
-        $nombreOriginal = (string) ($archivo['name'] ?? '');
-        $extension = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
         $extensionesPermitidas = [
             'pdf', 'doc', 'docx', 'odt', 'xls', 'xlsx', 'ods', 'csv',
             'ppt', 'pptx', 'odp', 'jpg', 'jpeg', 'png', 'gif', 'webp',
             'txt', 'zip', 'rar', '7z', 'mp3', 'mp4'
         ];
-
-        if ($extension === '' || !in_array($extension, $extensionesPermitidas, true)) {
+        try {
+            $guardado = SeguridadArchivos::guardarAdjuntoSubido(
+                $archivo,
+                $directorio,
+                'leccion_',
+                $extensionesPermitidas
+            );
+        } catch (InvalidArgumentException | RuntimeException $e) {
+            $_SESSION['error_message'] = $e->getMessage();
             return '';
         }
-
-        $nombreSeguro = 'leccion_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
-        $rutaDestino = $directorio . $nombreSeguro;
-
-        if (!move_uploaded_file($archivo['tmp_name'], $rutaDestino)) {
-            return '';
-        }
-
-        return 'uploads/lecciones/' . $nombreSeguro;
+        return 'uploads/lecciones/' . $guardado['nombreGuardado'];
     }
 
     private static function normalizarArchivos($nombreCampo)
@@ -806,11 +800,10 @@ class ControladorLecciones
             return '';
         }
 
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        if (!preg_match('/^[a-z][a-z0-9+.-]*:/i', $url)) {
             $url = 'https://' . ltrim($url, '/');
         }
-
-        return filter_var($url, FILTER_VALIDATE_URL) ? $url : '';
+        return SeguridadHtml::urlHttpSegura($url, false);
     }
 
     private static function tituloDesdeUrl($url)

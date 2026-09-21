@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../../controladores/seguridad-html.php';
 ControladorActividades::crtProcesarAcciones();
 
 $idActividad = (int) ($_GET['idActividad'] ?? 0);
@@ -33,6 +34,7 @@ $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $intentosPermitidos = (int) ($actividad['intentosPermitidos'] ?? 1);
 $intentosUsados = $idUsuarioActual > 0 ? ControladorActividades::crtIntentosUsadosUsuario($idActividad, $idUsuarioActual) : 0;
 $intentosAgotados = ControladorActividades::intentosAgotados($actividad, $idUsuarioActual);
+$urlExternaSegura = SeguridadHtml::urlHttpSegura($actividad['recursoExternoUrl'] ?? '', false);
 $renderIframe = static function ($embed, $url) use ($e) {
   $src = '';
   if (preg_match('/<iframe[^>]+src=["\']([^"\']+)["\']/i', (string) $embed, $match)) {
@@ -41,11 +43,12 @@ $renderIframe = static function ($embed, $url) use ($e) {
     $src = (string) $url;
   }
 
+  $src = SeguridadHtml::urlHttpSegura($src, false);
   if ($src === '') {
     return '<p class="text-muted mb-0">No hay recurso externo cargado.</p>';
   }
 
-  return '<div class="embed-responsive embed-responsive-16by9"><iframe class="embed-responsive-item" src="' . $e($src) . '" allowfullscreen loading="lazy"></iframe></div>';
+  return '<div class="embed-responsive embed-responsive-16by9"><iframe class="embed-responsive-item" src="' . $e($src) . '" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" referrerpolicy="no-referrer" allowfullscreen loading="lazy"></iframe></div>';
 };
 $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) {
   $contenido = ControladorActividades::renderCodigoConEstilo($codigo, $lenguaje, $e);
@@ -107,8 +110,8 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
       <div class="card-body">
         <?php if ($esExterna): ?>
           <?php echo $renderIframe($actividad['recursoExternoEmbed'] ?? '', $actividad['recursoExternoUrl'] ?? ''); ?>
-          <?php if (!empty($actividad['recursoExternoUrl'])): ?>
-            <a href="<?php echo $e($actividad['recursoExternoUrl']); ?>" target="_blank" class="btn btn-primary mt-3">Abrir en nueva pestana</a>
+          <?php if ($urlExternaSegura !== ''): ?>
+            <a href="<?php echo $e($urlExternaSegura); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-3">Abrir en nueva pestana</a>
           <?php endif; ?>
         <?php else: ?>
           <?php if (is_array($resultadoIntento)): ?>

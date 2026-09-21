@@ -90,7 +90,7 @@ $esRespuesta = $tipoMensaje === 'reply' && !empty($mensajeOriginal);
                                 <div class="alert alert-light border">
                                     <strong>Mensaje original:</strong>
                                     <div class="mt-2 p-3 rounded bg-white border">
-                                        <?php echo $mensajeOriginal['contenidoMensaje']; ?>
+                                        <?php echo SeguridadHtml::sanitizarFragmento($mensajeOriginal['contenidoMensaje'] ?? ''); ?>
                                     </div>
                                     <small class="text-muted d-block mt-2">
                                         Enviado el <?php echo htmlspecialchars((string) ($mensajeOriginal['fechaMensaje'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
@@ -140,7 +140,7 @@ $esRespuesta = $tipoMensaje === 'reply' && !empty($mensajeOriginal);
 
                                 <div class="form-group">
                                     <label>Mensaje</label>
-                                    <textarea id="contenidoMensaje" class="form-control" name="contenidoMensaje" required><?php echo $textoInicial !== '' ? $textoInicial : ''; ?></textarea>
+                                    <textarea id="contenidoMensaje" class="form-control" name="contenidoMensaje" required><?php echo htmlspecialchars($textoInicial, ENT_QUOTES, 'UTF-8'); ?></textarea>
                                 </div>
 
                                 <div class="form-group">

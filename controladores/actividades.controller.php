@@ -1,6 +1,7 @@
 <?php
 require_once('modelos/actividades.modelo.php');
 require_once('controladores/notificaciones.controller.php');
+require_once __DIR__ . '/seguridad-html.php';
 
 class ControladorActividades
 {
@@ -451,7 +452,7 @@ class ControladorActividades
             'permiteVisitantes' => isset($_POST['permiteVisitantes']) ? 1 : 0,
             'esPlantilla' => max(0, min(1, (int) ($actividadActual['esPlantilla'] ?? 0))),
             'id_actividad_origen' => (int) ($actividadActual['id_actividad_origen'] ?? 0),
-            'recursoExternoUrl' => trim((string) ($_POST['recursoExternoUrl'] ?? '')),
+            'recursoExternoUrl' => SeguridadHtml::urlHttpSegura($_POST['recursoExternoUrl'] ?? '', false),
             'recursoExternoEmbed' => trim((string) ($_POST['recursoExternoEmbed'] ?? '')),
         ];
 

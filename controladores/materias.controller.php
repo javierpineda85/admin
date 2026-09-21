@@ -5,6 +5,12 @@ require_once __DIR__ . '/seguridad-archivos.php';
 
 class ControladorMaterias
 {
+    private static function colorSeguro($valor, $predeterminado)
+    {
+        $valor = trim((string) $valor);
+        return preg_match('/^#[0-9a-f]{6}$/i', $valor) ? strtolower($valor) : $predeterminado;
+    }
+
     private static function docenteAdjuntoValido($idUsuario)
     {
         $idUsuario = (int) $idUsuario;
@@ -68,8 +74,8 @@ class ControladorMaterias
                 "docente" => $_POST["docente"],
                 "tutor" => $_POST["tutor"],
                 "bannerSeccion" => '',
-                "colorInicioBanner" => trim((string) ($_POST["colorInicioBanner"] ?? '#0f172a')),
-                "colorFinBanner" => trim((string) ($_POST["colorFinBanner"] ?? '#1d4ed8')),
+                "colorInicioBanner" => self::colorSeguro($_POST["colorInicioBanner"] ?? '', '#0f172a'),
+                "colorFinBanner" => self::colorSeguro($_POST["colorFinBanner"] ?? '', '#1d4ed8'),
                 "creadoPor" => (int) ($_SESSION['usuario']['id'] ?? 0),
             );
 
@@ -158,8 +164,8 @@ class ControladorMaterias
                 "docente" => $_POST["docente"],
                 "tutor" => $_POST["tutor"],
                 "bannerSeccion" => $bannerSeccion,
-                "colorInicioBanner" => trim((string) ($_POST["colorInicioBanner"] ?? '#0f172a')),
-                "colorFinBanner" => trim((string) ($_POST["colorFinBanner"] ?? '#1d4ed8')),
+                "colorInicioBanner" => self::colorSeguro($_POST["colorInicioBanner"] ?? '', '#0f172a'),
+                "colorFinBanner" => self::colorSeguro($_POST["colorFinBanner"] ?? '', '#1d4ed8'),
             );
 
             if ((int) ($datos['tutor'] ?? 0) === (int) $datos['docente']) {

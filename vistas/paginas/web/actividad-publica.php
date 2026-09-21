@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../../controladores/seguridad-html.php';
 ControladorActividades::crtProcesarAcciones();
 
 $slug = trim((string) ($_GET['slug'] ?? ''));
@@ -22,11 +23,12 @@ $renderIframe = static function ($embed, $url) use ($e) {
     $src = (string) $url;
   }
 
+  $src = SeguridadHtml::urlHttpSegura($src, false);
   if ($src === '') {
     return '<p class="muted">No hay recurso externo cargado.</p>';
   }
 
-  return '<iframe class="activity-frame" src="' . $e($src) . '" allowfullscreen loading="lazy"></iframe>';
+  return '<iframe class="activity-frame" src="' . $e($src) . '" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" referrerpolicy="no-referrer" allowfullscreen loading="lazy"></iframe>';
 };
 $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) {
   $contenido = ControladorActividades::renderCodigoConEstilo($codigo, $lenguaje, $e);
@@ -148,6 +150,7 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
         $intentosPermitidos = (int) ($actividad['intentosPermitidos'] ?? 1);
         $intentosUsados = $idUsuarioActual > 0 ? ControladorActividades::crtIntentosUsadosUsuario((int) $actividad['idActividad'], $idUsuarioActual) : 0;
         $intentosAgotados = ControladorActividades::intentosAgotados($actividad, $idUsuarioActual);
+        $urlExternaSegura = SeguridadHtml::urlHttpSegura($actividad['recursoExternoUrl'] ?? '', false);
       ?>
       <section class="hero">
         <span class="kicker"><?php echo $e($actividad['nombreCurso'] ?? 'Actividad publica'); ?></span>
@@ -170,8 +173,8 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
       <?php elseif ($esExterna): ?>
         <article class="card">
           <?php echo $renderIframe($actividad['recursoExternoEmbed'] ?? '', $actividad['recursoExternoUrl'] ?? ''); ?>
-          <?php if (!empty($actividad['recursoExternoUrl'])): ?>
-            <p><a class="btn" href="<?php echo $e($actividad['recursoExternoUrl']); ?>" target="_blank">Abrir en nueva pestana</a></p>
+          <?php if ($urlExternaSegura !== ''): ?>
+            <p><a class="btn" href="<?php echo $e($urlExternaSegura); ?>" target="_blank" rel="noopener noreferrer">Abrir en nueva pestana</a></p>
           <?php endif; ?>
         </article>
       <?php else: ?>

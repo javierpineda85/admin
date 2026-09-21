@@ -120,7 +120,7 @@ $enPapelera = (int) ($mensaje['enPapelera'] ?? 0) === 1;
               </div>
 
               <div class="p-4 rounded border bg-white mb-4" style="min-height: 160px;">
-                <?php echo $mensaje['contenidoMensaje']; ?>
+                <?php echo SeguridadHtml::sanitizarFragmento($mensaje['contenidoMensaje'] ?? ''); ?>
               </div>
 
               <div class="mb-4">

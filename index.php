@@ -1,5 +1,6 @@
 <?php
 require_once("config.php");
+require_once("controladores/seguridad-solicitudes.php");
 require_once("controladores/institucion.controller.php");
 require_once("controladores/superadmin.controller.php");
 require_once("controladores/auth.controller.php");
@@ -18,6 +19,12 @@ require_once("controladores/panel.controller.php");
 require_once("controladores/perfiles.controller.php");
 require_once("controladores/mensajes.controller.php");
 require_once("controladores/descargas.controller.php");
+
+if (!SeguridadSolicitudes::origenPostValido()) {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=UTF-8');
+    exit('Solicitud rechazada por validación de origen.');
+}
 
 // URL canónica del panel global: conservar compatibilidad con enlaces antiguos
 // sin dejar expuesto el parámetro interno de dispatch en el navegador.

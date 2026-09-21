@@ -1,6 +1,8 @@
 <?php
 require_once('modelos/usuarios.modelo.php');
 require_once('modelos/mensajes.modelo.php');
+require_once __DIR__ . '/seguridad-archivos.php';
+require_once __DIR__ . '/seguridad-html.php';
 
 class ControladorMensajes
 {
@@ -16,8 +18,7 @@ class ControladorMensajes
 
     private static function limpiarMensaje($mensaje)
     {
-        $mensaje = trim((string) $mensaje);
-        return $mensaje;
+        return SeguridadHtml::sanitizarFragmento($mensaje);
     }
 
     public static function crtDestinatariosPermitidos()
@@ -237,25 +238,37 @@ class ControladorMensajes
         }
 
         $carpeta = __DIR__ . '/../uploads/mensajes/';
-        if (!is_dir($carpeta)) {
-            mkdir($carpeta, 0777, true);
-        }
-
         $permitidos = [];
         $nombres = $_FILES['adjuntos']['name'];
-        $tipos = $_FILES['adjuntos']['type'];
         $tmpNames = $_FILES['adjuntos']['tmp_name'];
         $errores = $_FILES['adjuntos']['error'];
         $tamanos = $_FILES['adjuntos']['size'];
         $archivosGuardados = [];
+        $extensionesPermitidas = [
+            'pdf', 'doc', 'docx', 'odt', 'xls', 'xlsx', 'ods', 'csv',
+            'ppt', 'pptx', 'odp', 'jpg', 'jpeg', 'png', 'gif', 'webp',
+            'txt', 'zip', 'rar', '7z', 'mp3', 'mp4',
+        ];
+        $cantidadRecibida = count(array_filter($nombres, static fn($nombre) => trim((string) $nombre) !== ''));
+        if ($cantidadRecibida > 5 || array_sum(array_map('intval', $tamanos)) > 25 * 1024 * 1024) {
+            $_SESSION['error_message'] = 'Podés adjuntar hasta 5 archivos y 25 MB en total.';
+            return false;
+        }
 
         for ($i = 0, $total = count($nombres); $i < $total; $i++) {
             if (($errores[$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
                 continue;
             }
 
-            if (($errores[$i] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK || !is_uploaded_file($tmpNames[$i])) {
-                $_SESSION['error_message'] = 'Uno de los adjuntos no se pudo subir correctamente.';
+            try {
+                $guardado = SeguridadArchivos::guardarAdjuntoSubido([
+                    'name' => $nombres[$i] ?? '',
+                    'tmp_name' => $tmpNames[$i] ?? '',
+                    'error' => $errores[$i] ?? UPLOAD_ERR_NO_FILE,
+                    'size' => $tamanos[$i] ?? 0,
+                ], $carpeta, 'msg_', $extensionesPermitidas);
+            } catch (InvalidArgumentException | RuntimeException $e) {
+                $_SESSION['error_message'] = $e->getMessage();
                 foreach ($archivosGuardados as $rutaCompleta) {
                     if (is_file($rutaCompleta)) {
                         @unlink($rutaCompleta);
@@ -264,21 +277,10 @@ class ControladorMensajes
                 return false;
             }
 
-            $original = basename((string) $nombres[$i]);
-            $extension = pathinfo($original, PATHINFO_EXTENSION);
-            $nombreGuardado = uniqid('msg_', true) . ($extension !== '' ? '.' . strtolower($extension) : '');
+            $original = $guardado['nombreOriginal'];
+            $nombreGuardado = $guardado['nombreGuardado'];
             $rutaRelativa = 'uploads/mensajes/' . $nombreGuardado;
             $rutaCompleta = $carpeta . $nombreGuardado;
-
-            if (!move_uploaded_file($tmpNames[$i], $rutaCompleta)) {
-                $_SESSION['error_message'] = 'No se pudo guardar uno de los adjuntos.';
-                foreach ($archivosGuardados as $rutaAnterior) {
-                    if (is_file($rutaAnterior)) {
-                        @unlink($rutaAnterior);
-                    }
-                }
-                return false;
-            }
 
             $archivosGuardados[] = $rutaCompleta;
 
@@ -287,8 +289,8 @@ class ControladorMensajes
                 'nombreGuardado' => $nombreGuardado,
                 'rutaArchivo' => $rutaRelativa,
                 'rutaCompleta' => $rutaCompleta,
-                'mimeType' => (string) ($tipos[$i] ?? ''),
-                'tamanoArchivo' => (int) ($tamanos[$i] ?? 0),
+                'mimeType' => $guardado['mimeType'],
+                'tamanoArchivo' => $guardado['tamanoArchivo'],
             ];
         }
 

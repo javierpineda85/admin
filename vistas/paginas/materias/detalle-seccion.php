@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../../controladores/seguridad-html.php';
 $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
 $accion = trim((string) ($_POST['accion'] ?? ''));
 $seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
@@ -59,9 +60,11 @@ $misEvaluaciones = ControladorPermisos::esEstudiante() && $idSeccion > 0 && $idE
   ? ControladorCalificaciones::crtEvaluacionesPorEstudiante($idSeccion, $idEstudianteContexto)
   : [];
 $puedeAccederDocente = !$esDocente || $esAdmin || $vistaEstudianteSimulada || ($seccion && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuarioActual));
-$bannerSeccion = (string) ($seccion['bannerSeccion'] ?? '');
-$colorInicioBanner = (string) ($seccion['colorInicioBanner'] ?? '#0f172a');
-$colorFinBanner = (string) ($seccion['colorFinBanner'] ?? '#1d4ed8');
+$bannerSeccion = preg_match('~^secciones/[a-z0-9_-]{1,120}\.(?:jpe?g|png|gif|webp)$~i', (string) ($seccion['bannerSeccion'] ?? ''))
+  ? (string) $seccion['bannerSeccion']
+  : '';
+$colorInicioBanner = preg_match('/^#[0-9a-f]{6}$/i', (string) ($seccion['colorInicioBanner'] ?? '')) ? (string) $seccion['colorInicioBanner'] : '#0f172a';
+$colorFinBanner = preg_match('/^#[0-9a-f]{6}$/i', (string) ($seccion['colorFinBanner'] ?? '')) ? (string) $seccion['colorFinBanner'] : '#1d4ed8';
 $heroStyle = 'background: linear-gradient(135deg, ' . htmlspecialchars($colorInicioBanner, ENT_QUOTES, 'UTF-8') . ', ' . htmlspecialchars($colorFinBanner, ENT_QUOTES, 'UTF-8') . ');';
 if ($bannerSeccion !== '') {
   $heroStyle = 'background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(29, 78, 216, 0.74)), url(\'img/' . htmlspecialchars($bannerSeccion, ENT_QUOTES, 'UTF-8') . '\'); background-size: cover; background-position: center;';
@@ -78,19 +81,10 @@ $buscarCalificacion = function (array $lista, int $idLeccion, int $idEstudiante)
 };
 
 $renderContenidoLeccion = static function ($valor): string {
-  $html = trim((string) $valor);
-
-  if ($html === '') {
+  if (trim((string) $valor) === '') {
     return '<p class="text-muted mb-0">Sin contenido cargado.</p>';
   }
-
-  $html = preg_replace('#<(script|style|iframe|object|embed|form|meta|link)\b[^>]*>.*?</\1>#is', '', $html);
-  $html = preg_replace('#<((script|style|iframe|object|embed|form|meta|link)\b[^>]*)/?>#is', '', $html);
-  $html = strip_tags($html, '<p><br><strong><b><em><i><u><s><span><font><div><ul><ol><li><blockquote><pre><code><h1><h2><h3><h4><h5><h6><a><img><table><thead><tbody><tr><th><td>');
-  $html = preg_replace('/\s+on[a-z]+\s*=\s*(["\']).*?\1/is', '', $html);
-  $html = preg_replace('/\s+(href|src)\s*=\s*(["\'])\s*javascript:.*?\2/is', '', $html);
-
-  return $html;
+  return SeguridadHtml::sanitizarFragmento($valor);
 };
 
 $renderComentarioEntrega = static function ($valor): string {
