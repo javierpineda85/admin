@@ -516,6 +516,7 @@ class ControladorAuth
             || self::limiteExcedido('recuperacion_ip', $claveIp, 20, 3600)) {
             self::registrarFalloSeguro('recuperacion', $claveLimite);
             self::registrarFalloSeguro('recuperacion_ip', $claveIp);
+            self::registrarAuthDebug('Recuperación rechazada por validación o límite');
             $_SESSION['forgot_success'] = $mensajeUniforme;
             return true;
         }
@@ -526,6 +527,7 @@ class ControladorAuth
             $usuario = self::obtenerModoAuth() === 'WORDPRESS' ? null : ModeloUsuarios::mdlObtenerUsuarioPorEmail($email);
             $origen = strtoupper((string) ($usuario['origenAuth'] ?? 'LOCAL'));
             if ($usuario && (int) ($usuario['activo'] ?? 0) === 1 && $origen !== 'WORDPRESS') {
+                self::registrarAuthDebug('Recuperación: cuenta local elegible');
                 $token = ModeloSeguridadAuth::crearRecuperacion((int) $usuario['idUsuario'], self::ipCliente(), 3600);
                 $url = rtrim((string) APP_BASE_URL, '/') . '/index.php?r=forgot&token=' . rawurlencode($token);
                 $asunto = '=?UTF-8?B?' . base64_encode(MAIL_FROM_NAME . ' - Restablecer contraseña') . '?=';
@@ -535,12 +537,17 @@ class ControladorAuth
                     'Content-type: text/html; charset=UTF-8',
                     'From: ' . CorreoCampus::remitente(),
                 ]);
-                if (!@mail((string) $usuario['email'], $asunto, $mensaje, $cabeceras)) {
+                $enviado = @mail((string) $usuario['email'], $asunto, $mensaje, $cabeceras);
+                self::registrarAuthDebug('Recuperación: resultado de mail()', ['aceptado' => (bool) $enviado]);
+                if (!$enviado) {
                     ModeloSeguridadAuth::invalidarRecuperacion($token);
                     error_log('No se pudo enviar un correo de recuperación de Campus.');
                 }
+            } else {
+                self::registrarAuthDebug('Recuperación: no hay cuenta local elegible');
             }
         } catch (Throwable $e) {
+            self::registrarAuthDebug('Recuperación: excepción durante el envío', ['tipo' => get_class($e)]);
             error_log('No se pudo procesar una recuperación de contraseña: ' . get_class($e));
         }
         $_SESSION['forgot_success'] = $mensajeUniforme;
