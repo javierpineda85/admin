@@ -336,3 +336,16 @@ repetir las pruebas HTTP con la configuración y el dominio reales, validar
 WordPress y SMTP reales, revisar enlaces embebidos históricos y definir la cuenta
 que recibirá `esSuperAdmin=1`. Ninguna de esas acciones se ejecutó sobre datos
 productivos desde los ensayos.
+### Membresías y planes
+
+Una membresía es el vínculo de acceso entre una cuenta global y una institución. Puede estar activa o suspendida y contiene uno o más roles académicos (`ADMINISTRADOR`, `DOCENTE` o `ESTUDIANTE`). No representa un plan contratado: planes, límites y vencimientos quedan reservados para una evolución comercial posterior.
+
+El SuperAdmin gestiona estos vínculos desde **Plataforma MenteMotion > Membresías institucionales**. Allí puede buscar por persona, email, institución o rol; agregar una cuenta existente a una institución; cambiar sus roles; suspender el acceso conservando el historial; y reactivarlo. Los administradores institucionales no acceden a esta administración global.
+
+### Logos institucionales
+
+La creación y edición de instituciones recibe el logo como archivo. El servidor acepta PNG, JPG, WEBP o GIF de hasta 2 MB, verifica que el contenido sea realmente una imagen y genera un nombre interno único bajo `img/instituciones/`. Las rutas no se aceptan desde el formulario. En una edición se puede conservar, reemplazar o quitar el logo actual.
+
+### URL pública del panel global
+
+El panel del SuperAdmin se accede mediante `/superadmin`. El MVC continúa usando internamente `r=superadmin`, pero Apache lo resuelve mediante `.htaccess` y los accesos antiguos a `index.php?r=superadmin` se redirigen a la URL limpia. También existe un adaptador para el servidor PHP integrado, por lo que el mismo enlace funciona durante las pruebas locales.

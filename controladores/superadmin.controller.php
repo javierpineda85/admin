@@ -26,7 +26,47 @@ class ControladorSuperAdmin
         return [
             'resumen' => ModeloInstituciones::mdlResumenPlataforma(),
             'instituciones' => ModeloInstituciones::mdlListarInstituciones(),
+            'membresias' => ModeloInstituciones::mdlListarMembresias(),
+            'roles' => ModeloInstituciones::mdlRolesDisponibles(),
         ];
+    }
+
+    private static function rolesFormulario()
+    {
+        return isset($_POST['roles']) && is_array($_POST['roles']) ? $_POST['roles'] : [];
+    }
+
+    private static function procesarLogoInstitucion()
+    {
+        $archivo = $_FILES['logoArchivo'] ?? null;
+        if (!$archivo || (int)($archivo['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) { return null; }
+        if ((int)$archivo['error'] !== UPLOAD_ERR_OK) { throw new InvalidArgumentException('No se pudo recibir el logo. Intentá nuevamente.'); }
+        if ((int)($archivo['size'] ?? 0) <= 0 || (int)$archivo['size'] > 2 * 1024 * 1024) {
+            throw new InvalidArgumentException('El logo debe pesar como máximo 2 MB.');
+        }
+        $temporal = (string)($archivo['tmp_name'] ?? '');
+        if ($temporal === '' || !is_uploaded_file($temporal)) { throw new InvalidArgumentException('El archivo recibido no es una carga válida.'); }
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($temporal);
+        $extensiones = ['image/png'=>'png','image/jpeg'=>'jpg','image/webp'=>'webp','image/gif'=>'gif'];
+        if (!isset($extensiones[$mime]) || @getimagesize($temporal) === false) {
+            throw new InvalidArgumentException('El logo debe ser una imagen PNG, JPG, WEBP o GIF.');
+        }
+        $directorio = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'instituciones';
+        if (!is_dir($directorio) && !mkdir($directorio, 0775, true) && !is_dir($directorio)) {
+            throw new RuntimeException('No se pudo preparar la carpeta de logos.');
+        }
+        $nombre = 'institucion_' . bin2hex(random_bytes(12)) . '.' . $extensiones[$mime];
+        if (!move_uploaded_file($temporal, $directorio . DIRECTORY_SEPARATOR . $nombre)) {
+            throw new RuntimeException('No se pudo guardar el logo.');
+        }
+        return 'img/instituciones/' . $nombre;
+    }
+
+    private static function eliminarLogoSeguro($ruta)
+    {
+        if (!is_string($ruta) || !preg_match('~^img/instituciones/institucion_[a-f0-9]{24}\.(png|jpe?g|webp|gif)$~i', $ruta)) { return; }
+        $archivo = dirname(__DIR__) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $ruta);
+        if (is_file($archivo)) { @unlink($archivo); }
     }
 
     public static function crtProcesar()
@@ -46,14 +86,28 @@ class ControladorSuperAdmin
         }
 
         $accion = trim((string) $_POST['accion_superadmin']);
+        $logoNuevo = null;
         try {
             if ($accion === 'crear_institucion') {
+                $logoNuevo = self::procesarLogoInstitucion();
+                $_POST['logo'] = $logoNuevo ?? '';
                 $id = ModeloInstituciones::mdlCrearInstitucion($_POST);
+                $logoNuevo = null;
                 $_SESSION['success_message'] = 'Institución creada correctamente.';
                 return $id;
             }
             if ($accion === 'editar_institucion') {
-                ModeloInstituciones::mdlActualizarInstitucion((int) ($_POST['idInstitucion'] ?? 0), $_POST);
+                $idInstitucion = (int)($_POST['idInstitucion'] ?? 0);
+                $actual = ModeloInstituciones::mdlObtenerInstitucion($idInstitucion);
+                if (!$actual) { throw new RuntimeException('La institución no existe.'); }
+                $logoNuevo = self::procesarLogoInstitucion();
+                $logoAnterior = (string)($actual['logo'] ?? '');
+                $_POST['logo'] = $logoNuevo ?? (!empty($_POST['quitarLogo']) ? '' : $logoAnterior);
+                ModeloInstituciones::mdlActualizarInstitucion($idInstitucion, $_POST);
+                if ($_POST['logo'] !== $logoAnterior && $logoAnterior !== '' && !ModeloInstituciones::mdlLogoUsadoPorOtraInstitucion($logoAnterior, $idInstitucion)) {
+                    self::eliminarLogoSeguro($logoAnterior);
+                }
+                $logoNuevo = null;
                 $_SESSION['success_message'] = 'Institución actualizada correctamente.';
                 return true;
             }
@@ -76,11 +130,33 @@ class ControladorSuperAdmin
                 $_SESSION['success_message'] = 'Administrador institucional asignado correctamente.';
                 return true;
             }
+            if ($accion === 'guardar_membresia') {
+                ModeloInstituciones::mdlGuardarMembresia((int)($_POST['idInstitucion'] ?? 0), $_POST['email'] ?? '', self::rolesFormulario());
+                $_SESSION['success_message'] = 'Membresía institucional guardada correctamente.';
+                return true;
+            }
+            if ($accion === 'actualizar_roles_membresia') {
+                ModeloInstituciones::mdlActualizarRolesMembresia((int)($_POST['idUsuarioInstitucion'] ?? 0), self::rolesFormulario());
+                $_SESSION['success_message'] = 'Roles de la membresía actualizados correctamente.';
+                return true;
+            }
+            if ($accion === 'suspender_membresia') {
+                ModeloInstituciones::mdlCambiarEstadoMembresia((int)($_POST['idUsuarioInstitucion'] ?? 0), false, $_POST['motivoBaja'] ?? '');
+                $_SESSION['success_message'] = 'Membresía suspendida correctamente.';
+                return true;
+            }
+            if ($accion === 'activar_membresia') {
+                ModeloInstituciones::mdlCambiarEstadoMembresia((int)($_POST['idUsuarioInstitucion'] ?? 0), true);
+                $_SESSION['success_message'] = 'Membresía reactivada correctamente.';
+                return true;
+            }
             throw new InvalidArgumentException('Acción global inválida.');
         } catch (InvalidArgumentException | RuntimeException $e) {
+            if ($logoNuevo) { self::eliminarLogoSeguro($logoNuevo); }
             $_SESSION['error_message'] = $e->getMessage();
             return false;
         } catch (Throwable $e) {
+            if ($logoNuevo) { self::eliminarLogoSeguro($logoNuevo); }
             error_log('No se pudo procesar una acción SuperAdmin: ' . get_class($e));
             $_SESSION['error_message'] = 'No se pudo completar la operación global. Revisá el estado e intentá nuevamente.';
             return false;

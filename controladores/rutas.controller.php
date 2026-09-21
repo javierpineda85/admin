@@ -331,7 +331,7 @@ class RutasController
                 self::denegarRecursoInstitucional();
             }
             if ($resultado !== null) {
-                header('Location: index.php?r=superadmin', true, 303);
+                header('Location: superadmin', true, 303);
                 exit;
             }
             return;

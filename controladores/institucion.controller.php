@@ -140,7 +140,7 @@ class ControladorInstitucion
 
     private static function redirigir($ruta)
     {
-        $destino = $ruta === '' ? 'index.php' : 'index.php?r=' . rawurlencode($ruta);
+        $destino = $ruta === '' ? 'index.php' : ($ruta === 'superadmin' ? 'superadmin' : 'index.php?r=' . rawurlencode($ruta));
         header('Location: ' . $destino, true, 303);
         exit;
     }

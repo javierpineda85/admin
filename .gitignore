@@ -19,3 +19,5 @@ uploads/lecciones/*
 uploads/mensajes/*
 !uploads/mensajes/.gitkeep
 !uploads/mensajes/.htaccess
+img/instituciones/*
+!img/instituciones/.gitkeep

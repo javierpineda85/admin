@@ -2,6 +2,11 @@
 <html lang="es">
 
 <head>
+  <?php
+  $pathCampus = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+  $baseAssetsCampus = preg_match('~/superadmin(?:/|$)~i', $pathCampus) ? '../' : './';
+  ?>
+  <base href="<?php echo htmlspecialchars($baseAssetsCampus, ENT_QUOTES, 'UTF-8'); ?>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="author" content="Javier Pineda">

@@ -19,6 +19,21 @@ require_once("controladores/perfiles.controller.php");
 require_once("controladores/mensajes.controller.php");
 require_once("controladores/descargas.controller.php");
 
+// URL canónica del panel global: conservar compatibilidad con enlaces antiguos
+// sin dejar expuesto el parámetro interno de dispatch en el navegador.
+$rutaSolicitada = trim((string) ($_GET['r'] ?? ''));
+$pathSolicitado = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET'
+    && $rutaSolicitada === 'superadmin'
+    && preg_match('~/index\\.php$~i', $pathSolicitado)) {
+    $baseAplicacion = rtrim(str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'))), '/.');
+    if (preg_match('~/superadmin$~i', $baseAplicacion)) {
+        $baseAplicacion = preg_replace('~/superadmin$~i', '', $baseAplicacion);
+    }
+    header('Location: ' . ($baseAplicacion === '' ? '' : $baseAplicacion) . '/superadmin', true, 301);
+    exit;
+}
+
 
 
 ControladorInstitucion::procesarAntesDeRenderizar();

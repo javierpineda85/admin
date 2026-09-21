@@ -54,6 +54,32 @@ class ModeloInstituciones
         return [$nombre, $slug, $logo];
     }
 
+    private static function normalizarRoles(array $roles)
+    {
+        $permitidos = array_flip(self::codigosRolesPermitidos());
+        $normalizados = [];
+        foreach ($roles as $rol) {
+            $codigo = strtoupper(trim((string) $rol));
+            if (isset($permitidos[$codigo])) { $normalizados[$codigo] = true; }
+        }
+        $normalizados = array_keys($normalizados);
+        if (!$normalizados) { throw new InvalidArgumentException('Seleccioná al menos un rol institucional.'); }
+        return $normalizados;
+    }
+
+    private static function reemplazarRoles(PDO $pdo, $idMembresia, array $roles)
+    {
+        $roles = self::normalizarRoles($roles);
+        $marcadores = implode(',', array_fill(0, count($roles), '?'));
+        $stmt = $pdo->prepare("SELECT idRol,codigo FROM roles WHERE codigo IN ($marcadores)");
+        $stmt->execute($roles);
+        $catalogo = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        if (count($catalogo) !== count($roles)) { throw new RuntimeException('El catálogo de roles institucionales está incompleto.'); }
+        $pdo->prepare('DELETE FROM usuarios_instituciones_roles WHERE id_usuario_institucion=?')->execute([(int)$idMembresia]);
+        $insertar = $pdo->prepare('INSERT INTO usuarios_instituciones_roles(id_usuario_institucion,id_rol) VALUES(?,?)');
+        foreach (array_keys($catalogo) as $idRol) { $insertar->execute([(int)$idMembresia,(int)$idRol]); }
+    }
+
     public static function mdlVerificarEsquema()
     {
         $pdo = Conexion::conectar();
@@ -174,6 +200,54 @@ class ModeloInstituciones
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public static function mdlObtenerInstitucion($idInstitucion)
+    {
+        self::exigirSuperAdmin();
+        $stmt = Conexion::conectar()->prepare('SELECT * FROM instituciones WHERE idInstitucion=? LIMIT 1');
+        $stmt->execute([(int)$idInstitucion]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public static function mdlLogoUsadoPorOtraInstitucion($ruta, $idExcluir)
+    {
+        self::exigirSuperAdmin();
+        $stmt = Conexion::conectar()->prepare('SELECT 1 FROM instituciones WHERE logo=? AND idInstitucion<>? LIMIT 1');
+        $stmt->execute([(string)$ruta,(int)$idExcluir]);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    public static function mdlRolesDisponibles()
+    {
+        self::exigirSuperAdmin();
+        $permitidos = self::codigosRolesPermitidos();
+        $marcadores = implode(',', array_fill(0, count($permitidos), '?'));
+        $stmt = Conexion::conectar()->prepare("SELECT codigo,nombre FROM roles WHERE codigo IN ($marcadores) ORDER BY FIELD(codigo,'ADMINISTRADOR','DOCENTE','ESTUDIANTE')");
+        $stmt->execute($permitidos);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function mdlListarMembresias()
+    {
+        self::exigirSuperAdmin();
+        $stmt = Conexion::conectar()->query("SELECT ui.idUsuarioInstitucion,ui.id_usuario,ui.id_institucion,ui.activo,
+                ui.fechaAlta,ui.fechaBaja,ui.motivoBaja,u.nombreUsuario,u.apellidoUsuario,u.email,u.activo usuarioActivo,
+                i.nombre institucion,i.activo institucionActiva,
+                GROUP_CONCAT(DISTINCT r.codigo ORDER BY FIELD(r.codigo,'ADMINISTRADOR','DOCENTE','ESTUDIANTE') SEPARATOR ',') roles
+            FROM usuarios_instituciones ui
+            INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario
+            INNER JOIN instituciones i ON i.idInstitucion=ui.id_institucion
+            LEFT JOIN usuarios_instituciones_roles uir ON uir.id_usuario_institucion=ui.idUsuarioInstitucion
+            LEFT JOIN roles r ON r.idRol=uir.id_rol
+            GROUP BY ui.idUsuarioInstitucion
+            ORDER BY i.nombre,u.apellidoUsuario,u.nombreUsuario,u.idUsuario");
+        $membresias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($membresias as &$membresia) {
+            $membresia['roles'] = array_values(array_filter(explode(',', (string)($membresia['roles'] ?? ''))));
+        }
+        unset($membresia);
+        return $membresias;
+    }
+
     public static function mdlCrearInstitucion(array $datos)
     {
         self::exigirSuperAdmin();
@@ -217,9 +291,15 @@ class ModeloInstituciones
 
     public static function mdlAsignarAdministrador($idInstitucion, $email)
     {
+        return self::mdlGuardarMembresia($idInstitucion, $email, ['ADMINISTRADOR']);
+    }
+
+    public static function mdlGuardarMembresia($idInstitucion, $email, array $roles)
+    {
         self::exigirSuperAdmin();
         $idInstitucion = (int) $idInstitucion;
         $email = strtolower(trim((string) $email));
+        $roles = self::normalizarRoles($roles);
         if ($idInstitucion <= 0 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new InvalidArgumentException('Indicá una institución y un email válidos.');
         }
@@ -242,18 +322,64 @@ class ModeloInstituciones
             $stmt->execute([$idUsuario, $idInstitucion]);
             $idMembresia = (int) $stmt->fetchColumn();
             if ($idMembresia > 0) {
-                $pdo->prepare('UPDATE usuarios_instituciones SET activo = 1, fechaBaja = NULL WHERE idUsuarioInstitucion = ?')->execute([$idMembresia]);
+                $pdo->prepare('UPDATE usuarios_instituciones SET activo=1,fechaBaja=NULL,motivoBaja=NULL WHERE idUsuarioInstitucion=?')->execute([$idMembresia]);
             } else {
                 $pdo->prepare('INSERT INTO usuarios_instituciones (id_usuario, id_institucion, activo, fechaAlta) VALUES (?, ?, 1, NOW())')->execute([$idUsuario, $idInstitucion]);
                 $idMembresia = (int) $pdo->lastInsertId();
             }
-            $stmt = $pdo->prepare("INSERT IGNORE INTO usuarios_instituciones_roles (id_usuario_institucion, id_rol) SELECT ?, idRol FROM roles WHERE codigo = 'ADMINISTRADOR'");
-            $stmt->execute([$idMembresia]);
+            self::reemplazarRoles($pdo, $idMembresia, $roles);
             $pdo->commit();
             return true;
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
             throw $e;
         }
+    }
+
+    public static function mdlActualizarRolesMembresia($idMembresia, array $roles)
+    {
+        self::exigirSuperAdmin();
+        $idMembresia = (int)$idMembresia;
+        $roles = self::normalizarRoles($roles);
+        $pdo = Conexion::conectar();
+        $stmt = $pdo->prepare('SELECT 1 FROM usuarios_instituciones ui INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario INNER JOIN instituciones i ON i.idInstitucion=ui.id_institucion WHERE ui.idUsuarioInstitucion=? LIMIT 1');
+        $stmt->execute([$idMembresia]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('La membresía no existe.'); }
+        $pdo->beginTransaction();
+        try {
+            self::reemplazarRoles($pdo, $idMembresia, $roles);
+            $pdo->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
+    }
+
+    public static function mdlCambiarEstadoMembresia($idMembresia, $activo, $motivo = '')
+    {
+        self::exigirSuperAdmin();
+        $idMembresia = (int)$idMembresia;
+        $activo = (bool)$activo;
+        $motivo = trim((string)$motivo);
+        if ($idMembresia <= 0 || (!$activo && $motivo === '')) {
+            throw new InvalidArgumentException('Indicá la membresía y el motivo de suspensión.');
+        }
+        $pdo = Conexion::conectar();
+        if ($activo) {
+            $stmt = $pdo->prepare('UPDATE usuarios_instituciones ui INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario AND u.activo=1 INNER JOIN instituciones i ON i.idInstitucion=ui.id_institucion AND i.activo=1 SET ui.activo=1,ui.fechaBaja=NULL,ui.motivoBaja=NULL WHERE ui.idUsuarioInstitucion=? AND ui.activo=0');
+            $stmt->execute([$idMembresia]);
+        } else {
+            $stmt = $pdo->prepare('UPDATE usuarios_instituciones SET activo=0,fechaBaja=NOW(),motivoBaja=? WHERE idUsuarioInstitucion=? AND activo=1');
+            $stmt->execute([$motivo,$idMembresia]);
+        }
+        if ($stmt->rowCount() === 0) {
+            $existe = $pdo->prepare('SELECT activo FROM usuarios_instituciones WHERE idUsuarioInstitucion=?');
+            $existe->execute([$idMembresia]);
+            $estado = $existe->fetchColumn();
+            if ($estado === false) { throw new RuntimeException('La membresía no existe.'); }
+            if ($activo && (int)$estado === 0) { throw new RuntimeException('La cuenta o la institución no están activas.'); }
+        }
+        return true;
     }
 }

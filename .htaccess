@@ -1,0 +1,4 @@
+RewriteEngine On
+
+# URL pública del panel global. El parámetro r queda interno al MVC.
+RewriteRule ^superadmin/?$ index.php?r=superadmin [QSA,L]

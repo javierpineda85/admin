@@ -76,7 +76,10 @@ class ControladorAuth
                 exit;
             }
             $rutaInstitucional = ControladorInstitucion::rutaDestino();
-            header('Location: ' . ($rutaInstitucional === '' ? 'index.php' : 'index.php?r=' . rawurlencode($rutaInstitucional)), true, 303);
+            $destinoInstitucional = $rutaInstitucional === ''
+                ? 'index.php'
+                : ($rutaInstitucional === 'superadmin' ? 'superadmin' : 'index.php?r=' . rawurlencode($rutaInstitucional));
+            header('Location: ' . $destinoInstitucional, true, 303);
             exit;
         }
 
