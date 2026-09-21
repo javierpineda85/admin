@@ -86,6 +86,18 @@ try {
     $correcto = $metodoLogin->invokeArgs(null, ['persona@example.invalid', $claveNueva, &$error]);
     comprobarAuth(is_array($correcto) && (int) $correcto['idUsuario'] === $idUsuario, 'La contraseña real continúa autenticando correctamente');
 
+    $metodoFallbackWordPress = new ReflectionMethod(ControladorAuth::class, 'debeIntentarWordPress');
+    comprobarAuth(
+        !$metodoFallbackWordPress->invoke(null, 'persona@example.invalid'),
+        'Una cuenta local no vuelve a autenticarse contra WordPress después de un error de contraseña'
+    );
+    $pdo->prepare("UPDATE usuarios SET origenAuth = 'WORDPRESS' WHERE idUsuario = ?")->execute([$idUsuario]);
+    comprobarAuth(
+        $metodoFallbackWordPress->invoke(null, 'persona@example.invalid'),
+        'Las cuentas que siguen administradas por WordPress conservan su autenticación heredada'
+    );
+    $pdo->prepare("UPDATE usuarios SET origenAuth = 'LOCAL' WHERE idUsuario = ?")->execute([$idUsuario]);
+
     $_SESSION = [
         'logueado' => true,
         'usuario' => ['id' => $idUsuario],

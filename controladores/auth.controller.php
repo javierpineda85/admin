@@ -429,6 +429,16 @@ class ControladorAuth
         return $usuarioLocal;
     }
 
+    private static function debeIntentarWordPress($email)
+    {
+        $usuario = ModeloUsuarios::mdlObtenerUsuarioPorEmail((string) $email);
+        if (!$usuario) {
+            return true;
+        }
+
+        return strtoupper(trim((string) ($usuario['origenAuth'] ?? 'LOCAL'))) === 'WORDPRESS';
+    }
+
     public static function crtIniciarSesion()
     {
         if (!isset($_POST['login_email'], $_POST['login_pass'])) {
@@ -466,7 +476,7 @@ class ControladorAuth
                 }
             }
 
-            if (in_array($modo, ['WORDPRESS', 'HYBRID'], true)) {
+            if ($modo === 'WORDPRESS' || ($modo === 'HYBRID' && self::debeIntentarWordPress($email))) {
                 $usuarioWordPress = self::autenticarWordPress($email, $password, $errorWordPress);
                 if ($usuarioWordPress) {
                     self::limpiarIntentosSeguro('login', $claveLimite);
