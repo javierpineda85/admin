@@ -86,6 +86,16 @@ foreach (['LOCAL','WORDPRESS','HYBRID'] as $modo) {
                 && (str_contains($r['body'],'index.php?r=registro') === ($modo !== 'WORDPRESS')),
             "$modo: login muestra el acceso al registro solo cuando corresponde"
         );
+        verificar(
+            stripos($r['headers'], 'Content-Security-Policy:') !== false
+                && stripos($r['headers'], 'X-Content-Type-Options: nosniff') !== false
+                && stripos($r['headers'], 'Referrer-Policy: strict-origin-when-cross-origin') !== false,
+            "$modo: respuestas dinámicas incluyen cabeceras de seguridad"
+        );
+        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Sec-Fetch-Site: cross-site', 'Origin: https://ataque.example']);
+        $cruzada=peticion($curl,$url.'?r=login',['login_email'=>'a@campus.example','login_pass'=>'irrelevante']);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, []);
+        verificar($cruzada['codigo']===403 && str_contains($cruzada['body'],'validación de origen'),"$modo: POST cruzado bloqueado antes de autenticar");
         $r=peticion($curl,$url.'?r=registro');
         if ($modo === 'WORDPRESS') {
             verificar($r['codigo']===200 && !str_contains($r['body'],'name="accion_registro"'),'WORDPRESS: registro directo deshabilitado');

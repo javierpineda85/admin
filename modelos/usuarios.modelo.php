@@ -178,12 +178,13 @@ class ModeloUsuarios
                    MAX(CASE WHEN um.meta_key = '_is_tutor_student' THEN um.meta_value END) AS is_tutor_student
             FROM {$tablaUsuarios} u
             LEFT JOIN {$tablaMeta} um ON um.user_id = u.ID
-            WHERE u.user_email = :email OR u.user_login = :email
+            WHERE u.user_email = :emailUsuario OR u.user_login = :loginUsuario
             GROUP BY u.ID, u.user_login, u.user_pass, u.user_email, u.user_status, u.display_name
             LIMIT 1
         ");
         $stmt->bindValue(':metaCapabilities', $metaCapabilities, PDO::PARAM_STR);
-        $stmt->bindValue(':email', (string) $email, PDO::PARAM_STR);
+        $stmt->bindValue(':emailUsuario', (string) $email, PDO::PARAM_STR);
+        $stmt->bindValue(':loginUsuario', (string) $email, PDO::PARAM_STR);
         $stmt->execute();
 
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
@@ -761,6 +762,7 @@ class ModeloUsuarios
 
     public static function mdlGuardarUsuario($tabla, $datos)
     {
+        if ($tabla !== 'usuarios') { throw new InvalidArgumentException('Tabla inválida.'); }
         $registro = Conexion::conectar()->prepare("
             INSERT INTO $tabla
                 (nombreUsuario, apellidoUsuario, email, pass, resetPass, imgUsuario, activo, rol, fechaAlta)
@@ -975,6 +977,7 @@ class ModeloUsuarios
 
     public static function mdlModificarUsuario($tabla, $datos)
     {
+        if ($tabla !== 'usuarios') { throw new InvalidArgumentException('Tabla inválida.'); }
         if (ModeloTenant::activo()) {
             return self::mdlActualizarRolesInstitucionales((int)($datos['idUsuario'] ?? 0), (array)($datos['roles'] ?? [$datos['rol'] ?? '']));
         }

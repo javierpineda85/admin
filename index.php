@@ -20,6 +20,8 @@ require_once("controladores/perfiles.controller.php");
 require_once("controladores/mensajes.controller.php");
 require_once("controladores/descargas.controller.php");
 
+$rutaSolicitada = trim((string) ($_GET['r'] ?? ''));
+SeguridadSolicitudes::aplicarCabeceras($rutaSolicitada);
 if (!SeguridadSolicitudes::origenPostValido()) {
     http_response_code(403);
     header('Content-Type: text/plain; charset=UTF-8');
@@ -28,7 +30,6 @@ if (!SeguridadSolicitudes::origenPostValido()) {
 
 // URL canónica del panel global: conservar compatibilidad con enlaces antiguos
 // sin dejar expuesto el parámetro interno de dispatch en el navegador.
-$rutaSolicitada = trim((string) ($_GET['r'] ?? ''));
 $pathSolicitado = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
 if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET'
     && $rutaSolicitada === 'superadmin'

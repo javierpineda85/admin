@@ -2,6 +2,28 @@
 
 class SeguridadSolicitudes
 {
+    public static function aplicarCabeceras($ruta, array $servidor = null)
+    {
+        if (headers_sent()) { return; }
+        $servidor = $servidor ?? $_SERVER;
+        $ruta = trim((string) $ruta);
+        $ancestros = $ruta === 'actividad-publica'
+            ? "'self' https://mentemotion.com https://*.mentemotion.com"
+            : "'self'";
+        header("Content-Security-Policy: base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors " . $ancestros);
+        header('X-Content-Type-Options: nosniff');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+        header('Cache-Control: no-store, private');
+
+        if ($ruta !== 'actividad-publica') { header('X-Frame-Options: SAMEORIGIN'); }
+        $https = !empty($servidor['HTTPS']) && strtolower((string) $servidor['HTTPS']) !== 'off';
+        $host = strtolower(preg_replace('/:\d+$/', '', (string) ($servidor['HTTP_HOST'] ?? '')));
+        if ($https && ($host === 'mentemotion.com' || str_ends_with($host, '.mentemotion.com'))) {
+            header('Strict-Transport-Security: max-age=31536000');
+        }
+    }
+
     public static function origenPostValido(array $servidor = null)
     {
         $servidor = $servidor ?? $_SERVER;
