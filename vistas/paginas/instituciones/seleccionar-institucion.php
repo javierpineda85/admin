@@ -64,6 +64,9 @@ $iniciales = static function ($nombre) {
           <?php endforeach; ?>
           </div>
         <?php elseif ($estado === 'sin-acceso-institucional'): ?>
+          <?php if (!empty($_SESSION['registro_reciente'])): unset($_SESSION['registro_reciente']); ?>
+            <div class="alert alert-success">Tu cuenta fue creada correctamente.</div>
+          <?php endif; ?>
           <p>Tu identidad fue verificada, pero no tenés una membresía activa en una institución disponible. Contactá a la administración de tu institución para solicitar acceso.</p>
         <?php elseif ($estado === 'solicitud-invalida'): ?>
           <p>La solicitud venció o ya no tenés acceso a esa institución. Volvé a la selección para actualizar las opciones.</p>

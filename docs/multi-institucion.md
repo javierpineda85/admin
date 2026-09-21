@@ -342,6 +342,8 @@ Una membresía es el vínculo de acceso entre una cuenta global y una instituci�
 
 El SuperAdmin gestiona estos vínculos desde **Plataforma MenteMotion > Membresías institucionales**. Allí puede buscar por persona, email, institución o rol; agregar una cuenta existente a una institución; cambiar sus roles; suspender el acceso conservando el historial; y reactivarlo. Los administradores institucionales no acceden a esta administración global.
 
+Desde **Instituciones > Agregar membresías** se pueden seleccionar varias cuentas activas mediante casillas, buscar por nombre, correo o ID y filtrar por institución de origen. Los roles elegidos se aplican a todos los seleccionados; para dar roles diferentes, realizar grupos separados. El contador incluye las selecciones que quedan fuera del filtro, y **Seleccionar visibles** afecta solamente a las filas visibles disponibles. Cada operación admite hasta 200 cuentas y se guarda completa o se revierte ante un error. Las membresías existentes, incluso las suspendidas, conservan su estado y sus roles; se administran desde el listado principal. Esta acción no modifica las membresías de origen, no inscribe en cursos ni traslada contenido o historial académico.
+
 ### Logos institucionales
 
 La creación y edición de instituciones recibe el logo como archivo. El servidor acepta PNG, JPG, WEBP o GIF de hasta 2 MB, verifica que el contenido sea realmente una imagen y genera un nombre interno único bajo `img/instituciones/`. Las rutas no se aceptan desde el formulario. En una edición se puede conservar, reemplazar o quitar el logo actual.

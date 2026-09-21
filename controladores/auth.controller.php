@@ -48,6 +48,107 @@ class ControladorAuth
         return in_array($modo, ['LOCAL', 'WORDPRESS', 'HYBRID'], true) ? $modo : 'LOCAL';
     }
 
+    public static function registroDisponible()
+    {
+        return ControladorInstitucion::activo() && self::obtenerModoAuth() !== 'WORDPRESS';
+    }
+
+    public static function csrfRegistro()
+    {
+        if (empty($_SESSION['registro_csrf'])) {
+            $_SESSION['registro_csrf'] = bin2hex(random_bytes(32));
+        }
+        return (string) $_SESSION['registro_csrf'];
+    }
+
+    public static function crtRegistrarCuenta()
+    {
+        if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST'
+            || !isset($_POST['accion_registro'])) {
+            return null;
+        }
+        if (!self::registroDisponible()) {
+            http_response_code(403);
+            $_SESSION['registro_error'] = 'El registro directo no está disponible en este momento.';
+            return false;
+        }
+
+        $ahora = time();
+        $intentos = array_values(array_filter(
+            is_array($_SESSION['registro_intentos'] ?? null) ? $_SESSION['registro_intentos'] : [],
+            static fn($marca) => is_int($marca) && $marca >= $ahora - 900
+        ));
+        if (count($intentos) >= 5) {
+            http_response_code(429);
+            $_SESSION['registro_error'] = 'Se realizaron demasiados intentos. Esperá unos minutos antes de volver a probar.';
+            return false;
+        }
+        $intentos[] = $ahora;
+        $_SESSION['registro_intentos'] = $intentos;
+
+        $csrf = (string)($_POST['registro_csrf'] ?? '');
+        if ($csrf === '' || !hash_equals(self::csrfRegistro(), $csrf)) {
+            http_response_code(403);
+            $_SESSION['registro_error'] = 'El formulario venció. Recargá la página e intentá nuevamente.';
+            $_SESSION['registro_csrf'] = bin2hex(random_bytes(32));
+            return false;
+        }
+        $_SESSION['registro_csrf'] = bin2hex(random_bytes(32));
+
+        // Campo trampa: una persona no lo completa, los envíos automáticos suelen hacerlo.
+        if (trim((string)($_POST['website'] ?? '')) !== '') {
+            $_SESSION['registro_error'] = 'No se pudo completar el registro.';
+            return false;
+        }
+
+        $nombre = trim((string)($_POST['registro_nombre'] ?? ''));
+        $apellido = trim((string)($_POST['registro_apellido'] ?? ''));
+        $email = strtolower(trim((string)($_POST['registro_email'] ?? '')));
+        $password = (string)($_POST['registro_password'] ?? '');
+        $confirmacion = (string)($_POST['registro_password_confirmacion'] ?? '');
+        $largo = static fn($valor) => function_exists('mb_strlen') ? mb_strlen($valor, 'UTF-8') : strlen($valor);
+        $nombreValido = $nombre !== '' && $largo($nombre) <= 20 && preg_match("/^[\\p{L}\\p{M}' -]+$/u", $nombre);
+        $apellidoValido = $apellido !== '' && $largo($apellido) <= 20 && preg_match("/^[\\p{L}\\p{M}' -]+$/u", $apellido);
+
+        if (!$nombreValido || !$apellidoValido) {
+            $_SESSION['registro_error'] = 'Ingresá un nombre y apellido válidos, de hasta 20 caracteres cada uno.';
+            return false;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 50) {
+            $_SESSION['registro_error'] = 'Ingresá un correo electrónico válido.';
+            return false;
+        }
+        if (strlen($password) < 8 || strlen($password) > 72
+            || !preg_match('/[[:alpha:]]/', $password) || !preg_match('/[[:digit:]]/', $password)) {
+            $_SESSION['registro_error'] = 'La contraseña debe tener entre 8 y 72 caracteres e incluir letras y números.';
+            return false;
+        }
+        if (!hash_equals($password, $confirmacion)) {
+            $_SESSION['registro_error'] = 'Las contraseñas no coinciden.';
+            return false;
+        }
+
+        try {
+            $usuario = ModeloUsuarios::mdlRegistrarIdentidadPublica([
+                'nombreUsuario' => $nombre,
+                'apellidoUsuario' => $apellido,
+                'email' => $email,
+                'pass' => $password,
+            ]);
+            unset($_SESSION['registro_error'], $_SESSION['registro_intentos'], $_SESSION['registro_csrf']);
+            $_SESSION['registro_reciente'] = true;
+            self::iniciarSesionUsuario($usuario);
+        } catch (InvalidArgumentException | RuntimeException $e) {
+            $_SESSION['registro_error'] = $e->getMessage();
+            return false;
+        } catch (Throwable $e) {
+            error_log('No se pudo registrar una identidad desde Campus: ' . get_class($e));
+            $_SESSION['registro_error'] = 'No se pudo crear la cuenta. Intentá nuevamente más tarde.';
+            return false;
+        }
+        return true;
+    }
+
     private static function iniciarSesionUsuario($usuario)
     {
         ModeloUsuarios::mdlActualizarUltimaConexion($usuario['idUsuario']);

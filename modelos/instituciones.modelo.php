@@ -294,6 +294,63 @@ class ModeloInstituciones
         return self::mdlGuardarMembresia($idInstitucion, $email, ['ADMINISTRADOR']);
     }
 
+    public static function mdlUsuariosParaMembresias()
+    {
+        self::exigirSuperAdmin();
+        return Conexion::conectar()->query('SELECT idUsuario,nombreUsuario,apellidoUsuario,email FROM usuarios
+            WHERE activo=1 ORDER BY apellidoUsuario,nombreUsuario,idUsuario')->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Agrega accesos sin modificar membresías anteriores, ni siquiera las suspendidas. */
+    public static function mdlAgregarMembresias($idInstitucion, array $usuarios, array $roles)
+    {
+        self::exigirSuperAdmin();
+        $roles = self::normalizarRoles($roles);
+        if (!$usuarios || count($usuarios) > 200) {
+            throw new InvalidArgumentException('Seleccioná entre 1 y 200 usuarios por operación.');
+        }
+        $ids = [];
+        foreach ($usuarios as $usuario) {
+            if (!is_scalar($usuario) || !ctype_digit((string)$usuario) || (int)$usuario <= 0) {
+                throw new InvalidArgumentException('La selección contiene un usuario inválido.');
+            }
+            $ids[(int)$usuario] = (int)$usuario;
+        }
+        sort($ids);
+        $pdo = Conexion::conectar();
+        $pdo->beginTransaction();
+        try {
+            $institucion = $pdo->prepare('SELECT idInstitucion FROM instituciones WHERE idInstitucion=? AND activo=1 FOR UPDATE');
+            $institucion->execute([(int)$idInstitucion]);
+            if (!$institucion->fetchColumn()) {
+                throw new InvalidArgumentException('Seleccioná una institución activa.');
+            }
+            $cuenta = $pdo->prepare('SELECT idUsuario FROM usuarios WHERE idUsuario=? AND activo=1 FOR UPDATE');
+            $existente = $pdo->prepare('SELECT idUsuarioInstitucion FROM usuarios_instituciones WHERE id_usuario=? AND id_institucion=? FOR UPDATE');
+            $insertar = $pdo->prepare('INSERT INTO usuarios_instituciones(id_usuario,id_institucion,activo,fechaAlta) VALUES(?,?,1,NOW())');
+            $resultado = ['agregadas'=>0, 'existentes'=>0];
+            foreach ($ids as $idUsuario) {
+                $cuenta->execute([$idUsuario]);
+                if (!$cuenta->fetchColumn()) {
+                    throw new InvalidArgumentException('Una cuenta seleccionada ya no está activa o no existe. No se agregó ninguna membresía.');
+                }
+                $existente->execute([$idUsuario,(int)$idInstitucion]);
+                if ($existente->fetchColumn()) {
+                    $resultado['existentes']++;
+                    continue;
+                }
+                $insertar->execute([$idUsuario,(int)$idInstitucion]);
+                self::reemplazarRoles($pdo, (int)$pdo->lastInsertId(), $roles);
+                $resultado['agregadas']++;
+            }
+            $pdo->commit();
+            return $resultado;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
+    }
+
     public static function mdlGuardarMembresia($idInstitucion, $email, array $roles)
     {
         self::exigirSuperAdmin();

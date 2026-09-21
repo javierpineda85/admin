@@ -9,7 +9,7 @@ class RutasController
 
     private static function rutasPublicas()
     {
-        return ['login', 'forgot', 'actividad-publica'];
+        return ['login', 'registro', 'forgot', 'actividad-publica'];
     }
 
     private static function mapaRutas()
@@ -60,6 +60,7 @@ class RutasController
 
             // Web pública
             'login'           => 'web/login.php',
+            'registro'        => 'web/registro.php',
             'forgot'          => 'web/forgot-password.php',
             'actividad-publica' => 'web/actividad-publica.php',
             'logout'          => 'web/logout.php',

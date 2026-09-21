@@ -5,6 +5,11 @@ $resumen = $datosPanel['resumen'];
 $instituciones = $datosPanel['instituciones'];
 $membresias = $datosPanel['membresias'];
 $rolesDisponibles = $datosPanel['roles'];
+$usuariosDisponibles = $datosPanel['usuarios'];
+$institucionesPorUsuario = [];
+foreach ($membresias as $membresia) {
+  $institucionesPorUsuario[(int)$membresia['id_usuario']][(int)$membresia['id_institucion']] = $membresia;
+}
 $mensajeOk = $_SESSION['success_message'] ?? '';
 $mensajeError = $_SESSION['error_message'] ?? '';
 unset($_SESSION['success_message'], $_SESSION['error_message']);
@@ -60,7 +65,7 @@ $logoSeguro = static function ($ruta) {
               <td><?php echo $e($institucion['fechaAlta']); ?></td>
               <td class="text-right text-nowrap">
                 <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#editarInstitucion<?php echo $idInstitucion; ?>" title="Editar"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-sm btn-outline-info" data-toggle="modal" data-target="#membresiaInstitucion<?php echo $idInstitucion; ?>" title="Agregar membresía" <?php echo $activa ? '' : 'disabled'; ?>><i class="fas fa-user-plus"></i></button>
+                <button class="btn btn-sm btn-outline-info" data-toggle="modal" data-target="#modalAgregarMembresias" data-institucion-id="<?php echo $idInstitucion; ?>" data-institucion-nombre="<?php echo $e($institucion['nombre']); ?>" title="Agregar membresías" aria-label="Agregar membresías a <?php echo $e($institucion['nombre']); ?>" <?php echo $activa ? '' : 'disabled'; ?>><i class="fas fa-user-plus"></i></button>
                 <button class="btn btn-sm btn-outline-<?php echo $activa ? 'warning' : 'success'; ?>" data-toggle="modal" data-target="#estadoInstitucion<?php echo $idInstitucion; ?>" title="<?php echo $activa ? 'Suspender' : 'Activar'; ?>"><i class="fas <?php echo $activa ? 'fa-pause' : 'fa-play'; ?>"></i></button>
               </td>
             </tr>
@@ -86,19 +91,14 @@ $logoSeguro = static function ($ruta) {
 
 <?php foreach ($instituciones as $institucion): ?>
   <?php $idInstitucion = (int) $institucion['idInstitucion']; $activa = (int) $institucion['activo'] === 1; ?>
-  <div class="modal fade" id="editarInstitucion<?php echo $idInstitucion; ?>" tabindex="-1"><div class="modal-dialog"><form method="post" enctype="multipart/form-data" class="modal-content"><div class="modal-header"><h5 class="modal-title">Editar institución</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
+  <div class="modal fade" id="editarInstitucion<?php echo $idInstitucion; ?>" tabindex="-1"><div class="modal-dialog"><form method="post" action="index.php?r=superadmin" enctype="multipart/form-data" class="modal-content"><div class="modal-header"><h5 class="modal-title">Editar institución</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
     <input type="hidden" name="accion_superadmin" value="editar_institucion"><input type="hidden" name="superadmin_csrf" value="<?php echo $e($csrfSuperAdmin); ?>"><input type="hidden" name="idInstitucion" value="<?php echo $idInstitucion; ?>">
     <div class="form-group"><label>Nombre</label><input name="nombre" class="form-control" maxlength="150" required value="<?php echo $e($institucion['nombre']); ?>"></div>
     <div class="form-group"><label>Slug</label><input name="slug" class="form-control" maxlength="120" required value="<?php echo $e($institucion['slug']); ?>"></div>
     <div class="form-group"><label>Logo</label><?php $logoEditar=$logoSeguro($institucion['logo']??''); ?><div class="mb-2"><img class="vista-previa-logo border rounded p-1" src="<?php echo $e($logoEditar); ?>" alt="Vista previa" style="<?php echo $logoEditar===''?'display:none;':''; ?>max-width:160px;max-height:90px"></div><div class="custom-file"><input type="file" name="logoArchivo" class="custom-file-input selector-logo" id="logo<?php echo $idInstitucion; ?>" accept="image/png,image/jpeg,image/webp,image/gif"><label class="custom-file-label" for="logo<?php echo $idInstitucion; ?>">Elegir imagen</label></div><small class="form-text text-muted">PNG, JPG, WEBP o GIF. Máximo 2 MB.</small><?php if($logoEditar!==''): ?><div class="custom-control custom-checkbox mt-2"><input type="checkbox" class="custom-control-input" name="quitarLogo" value="1" id="quitarLogo<?php echo $idInstitucion; ?>"><label class="custom-control-label" for="quitarLogo<?php echo $idInstitucion; ?>">Quitar logo actual</label></div><?php endif; ?></div>
   </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button><button class="btn btn-primary">Guardar</button></div></form></div></div>
 
-  <div class="modal fade" id="membresiaInstitucion<?php echo $idInstitucion; ?>" tabindex="-1"><div class="modal-dialog"><form method="post" class="modal-content"><div class="modal-header"><h5 class="modal-title">Agregar membresía</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
-    <input type="hidden" name="accion_superadmin" value="guardar_membresia"><input type="hidden" name="superadmin_csrf" value="<?php echo $e($csrfSuperAdmin); ?>"><input type="hidden" name="idInstitucion" value="<?php echo $idInstitucion; ?>">
-    <p>Vinculá una cuenta global existente con <strong><?php echo $e($institucion['nombre']); ?></strong>.</p><div class="form-group"><label>Email</label><input type="email" name="email" class="form-control" required autocomplete="off"></div><div class="form-group"><label>Roles en esta institución</label><?php foreach($rolesDisponibles as $indice=>$rol): ?><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" name="roles[]" value="<?php echo $e($rol['codigo']); ?>" id="rolNueva<?php echo $idInstitucion.'_'.$indice; ?>"><label class="custom-control-label" for="rolNueva<?php echo $idInstitucion.'_'.$indice; ?>"><?php echo $e($rol['nombre']); ?></label></div><?php endforeach; ?></div>
-  </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button><button class="btn btn-info">Guardar membresía</button></div></form></div></div>
-
-  <div class="modal fade" id="estadoInstitucion<?php echo $idInstitucion; ?>" tabindex="-1"><div class="modal-dialog"><form method="post" class="modal-content"><div class="modal-header"><h5 class="modal-title"><?php echo $activa ? 'Suspender' : 'Activar'; ?> institución</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
+  <div class="modal fade" id="estadoInstitucion<?php echo $idInstitucion; ?>" tabindex="-1"><div class="modal-dialog"><form method="post" action="index.php?r=superadmin" class="modal-content"><div class="modal-header"><h5 class="modal-title"><?php echo $activa ? 'Suspender' : 'Activar'; ?> institución</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
     <input type="hidden" name="accion_superadmin" value="<?php echo $activa ? 'suspender_institucion' : 'activar_institucion'; ?>"><input type="hidden" name="superadmin_csrf" value="<?php echo $e($csrfSuperAdmin); ?>"><input type="hidden" name="idInstitucion" value="<?php echo $idInstitucion; ?>">
     <p><?php echo $activa ? 'Los usuarios perderán el acceso a esta institución mientras permanezca suspendida.' : 'Las membresías activas volverán a habilitar el acceso institucional.'; ?></p>
     <?php if ($activa): ?><div class="form-group"><label>Motivo de suspensión</label><textarea name="motivoBaja" class="form-control" maxlength="500" required></textarea></div><?php endif; ?>
@@ -107,25 +107,27 @@ $logoSeguro = static function ($ruta) {
 
 <?php foreach ($membresias as $membresia): ?>
   <?php $idMembresia=(int)$membresia['idUsuarioInstitucion']; $membresiaActiva=(int)$membresia['activo']===1; ?>
-  <div class="modal fade" id="rolesMembresia<?php echo $idMembresia; ?>" tabindex="-1"><div class="modal-dialog"><form method="post" class="modal-content"><div class="modal-header"><h5 class="modal-title">Editar roles institucionales</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
+  <div class="modal fade" id="rolesMembresia<?php echo $idMembresia; ?>" tabindex="-1"><div class="modal-dialog"><form method="post" action="index.php?r=superadmin" class="modal-content"><div class="modal-header"><h5 class="modal-title">Editar roles institucionales</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
     <input type="hidden" name="accion_superadmin" value="actualizar_roles_membresia"><input type="hidden" name="superadmin_csrf" value="<?php echo $e($csrfSuperAdmin); ?>"><input type="hidden" name="idUsuarioInstitucion" value="<?php echo $idMembresia; ?>">
     <p><strong><?php echo $e($membresia['email']); ?></strong><br><span class="text-muted"><?php echo $e($membresia['institucion']); ?></span></p>
     <?php foreach($rolesDisponibles as $indice=>$rol): ?><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" name="roles[]" value="<?php echo $e($rol['codigo']); ?>" id="rolEditar<?php echo $idMembresia.'_'.$indice; ?>" <?php echo in_array($rol['codigo'],$membresia['roles'],true)?'checked':''; ?>><label class="custom-control-label" for="rolEditar<?php echo $idMembresia.'_'.$indice; ?>"><?php echo $e($rol['nombre']); ?></label></div><?php endforeach; ?>
   </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button><button class="btn btn-primary">Guardar roles</button></div></form></div></div>
 
-  <div class="modal fade" id="estadoMembresia<?php echo $idMembresia; ?>" tabindex="-1"><div class="modal-dialog"><form method="post" class="modal-content"><div class="modal-header"><h5 class="modal-title"><?php echo $membresiaActiva?'Suspender':'Reactivar'; ?> membresía</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
+  <div class="modal fade" id="estadoMembresia<?php echo $idMembresia; ?>" tabindex="-1"><div class="modal-dialog"><form method="post" action="index.php?r=superadmin" class="modal-content"><div class="modal-header"><h5 class="modal-title"><?php echo $membresiaActiva?'Suspender':'Reactivar'; ?> membresía</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
     <input type="hidden" name="accion_superadmin" value="<?php echo $membresiaActiva?'suspender_membresia':'activar_membresia'; ?>"><input type="hidden" name="superadmin_csrf" value="<?php echo $e($csrfSuperAdmin); ?>"><input type="hidden" name="idUsuarioInstitucion" value="<?php echo $idMembresia; ?>">
     <p><?php echo $membresiaActiva?'La cuenta perderá el acceso a esta institución, sin eliminar su historial ni sus roles.':'La cuenta recuperará el acceso con los roles que tiene asignados.'; ?></p><?php if($membresiaActiva): ?><div class="form-group"><label>Motivo de suspensión</label><textarea name="motivoBaja" class="form-control" maxlength="500" required></textarea></div><?php endif; ?>
   </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button><button class="btn btn-<?php echo $membresiaActiva?'warning':'success'; ?>"><?php echo $membresiaActiva?'Suspender':'Reactivar'; ?></button></div></form></div></div>
 <?php endforeach; ?>
 
-<div class="modal fade" id="modalCrearInstitucion" tabindex="-1"><div class="modal-dialog"><form method="post" enctype="multipart/form-data" class="modal-content"><div class="modal-header"><h5 class="modal-title">Nueva institución</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
+<div class="modal fade" id="modalCrearInstitucion" tabindex="-1"><div class="modal-dialog"><form method="post" action="index.php?r=superadmin" enctype="multipart/form-data" class="modal-content"><div class="modal-header"><h5 class="modal-title">Nueva institución</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div><div class="modal-body">
   <input type="hidden" name="accion_superadmin" value="crear_institucion"><input type="hidden" name="superadmin_csrf" value="<?php echo $e($csrfSuperAdmin); ?>">
   <div class="form-group"><label>Nombre</label><input name="nombre" class="form-control" maxlength="150" required></div>
   <div class="form-group"><label>Slug</label><input name="slug" class="form-control" maxlength="120" placeholder="Se genera desde el nombre si queda vacío"></div>
   <div class="form-group"><label>Logo</label><div class="mb-2"><img class="vista-previa-logo border rounded p-1" alt="Vista previa" style="display:none;max-width:160px;max-height:90px"></div><div class="custom-file"><input type="file" name="logoArchivo" class="custom-file-input selector-logo" id="logoNueva" accept="image/png,image/jpeg,image/webp,image/gif"><label class="custom-file-label" for="logoNueva">Elegir imagen</label></div><small class="form-text text-muted">Opcional. PNG, JPG, WEBP o GIF. Máximo 2 MB.</small></div>
 </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button><button class="btn btn-primary">Crear institución</button></div></form></div></div>
 
+<?php require __DIR__ . '/_agregar-membresias.php'; ?>
+<script src="js/superadmin-membresias.js" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.selector-logo').forEach(function (input) {

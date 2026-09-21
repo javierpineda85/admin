@@ -71,9 +71,10 @@ unset($_SESSION['login_error']);
         </div>
       </form>
 
-      <p class="mt-3 mb-1">
+      <div class="d-flex justify-content-between align-items-center mt-3">
         <a href="index.php?r=forgot">Olvidé mi contraseña</a>
-      </p>
+        <?php if (ControladorAuth::registroDisponible()): ?><a href="index.php?r=registro">Registrarme</a><?php endif; ?>
+      </div>
     </div>
   </div>
 </div>

@@ -781,6 +781,58 @@ class ModeloUsuarios
         return $registro->execute() ? "ok" : "error";
     }
 
+    public static function mdlRegistrarIdentidadPublica(array $datos)
+    {
+        if (!defined('INSTITUCIONES_CONTEXTO_ACTIVO') || INSTITUCIONES_CONTEXTO_ACTIVO !== true) {
+            throw new RuntimeException('El registro directo requiere el contexto institucional activo.');
+        }
+        $nombre = trim((string)($datos['nombreUsuario'] ?? ''));
+        $apellido = trim((string)($datos['apellidoUsuario'] ?? ''));
+        $email = strtolower(trim((string)($datos['email'] ?? '')));
+        $password = (string)($datos['pass'] ?? '');
+        $largo = static fn($valor) => function_exists('mb_strlen') ? mb_strlen($valor, 'UTF-8') : strlen($valor);
+        if ($nombre === '' || $apellido === '' || $largo($nombre) > 20 || $largo($apellido) > 20
+            || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 50
+            || strlen($password) < 8 || strlen($password) > 72) {
+            throw new InvalidArgumentException('Los datos de registro no son válidos.');
+        }
+
+        $pdo = Conexion::conectar();
+        $candado = 'campus_registro_' . substr(hash('sha256', DB_NAME . '|' . $email), 0, 44);
+        $lock = $pdo->prepare('SELECT GET_LOCK(?,5)');
+        $lock->execute([$candado]);
+        if ((int)$lock->fetchColumn() !== 1) {
+            throw new RuntimeException('No se pudo reservar la cuenta para el registro. Intentá nuevamente.');
+        }
+
+        $idUsuario = 0;
+        try {
+            $buscar = $pdo->prepare('SELECT idUsuario FROM usuarios WHERE LOWER(TRIM(email))=? LIMIT 2');
+            $buscar->execute([$email]);
+            if ($buscar->fetchColumn()) {
+                throw new InvalidArgumentException('Ya existe una cuenta con ese correo. Iniciá sesión o recuperá tu contraseña.');
+            }
+            $insertar = $pdo->prepare("INSERT INTO usuarios
+                (nombreUsuario,apellidoUsuario,email,pass,resetPass,imgUsuario,activo,rol,fechaAlta)
+                VALUES (?,?,?,?,0,'',1,'',NOW())");
+            $insertar->execute([$nombre,$apellido,$email,password_hash($password,PASSWORD_DEFAULT)]);
+            $idUsuario = (int)$pdo->lastInsertId();
+            self::asegurarPerfilBasico($idUsuario);
+            $usuario = self::mdlObtenerUsuarioPorId($idUsuario);
+            if (!$usuario) { throw new RuntimeException('No se pudo recuperar la cuenta creada.'); }
+            return $usuario;
+        } catch (Throwable $e) {
+            if ($idUsuario > 0) {
+                $pdo->prepare('DELETE FROM perfiles WHERE id_usuario=?')->execute([$idUsuario]);
+                $pdo->prepare('DELETE FROM usuarios WHERE idUsuario=? AND NOT EXISTS
+                    (SELECT 1 FROM usuarios_instituciones WHERE id_usuario=?)')->execute([$idUsuario,$idUsuario]);
+            }
+            throw $e;
+        } finally {
+            $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$candado]);
+        }
+    }
+
     public static function mdlCrearOMatricularUsuarioInstitucional(array $datos, array $perfil, array $roles)
     {
         ModeloTenant::exigirUsuario((int)($_SESSION['usuario']['id']??0), ['ADMINISTRADOR']);

@@ -46,6 +46,17 @@ Cuando un usuario inicia sesion correctamente desde WordPress:
 3. Si no existe, crea el usuario local automaticamente.
 4. Si el perfil no existe, genera un perfil basico para no romper las vistas internas.
 
+## Registro directo desde Campus
+
+Cuando el modo es `LOCAL` o `HYBRID` y el contexto institucional está activo, la
+pantalla de login ofrece **Registrarme** junto a **Olvidé mi contraseña**. El alta
+crea una identidad local activa con contraseña cifrada, pero no asigna rol ni
+membresía institucional. Después del registro, el usuario inicia sesión y Campus
+le informa que la administración de su institución debe habilitarle el acceso.
+
+En modo `WORDPRESS`, el registro directo permanece deshabilitado porque la fuente
+de identidad es WordPress.
+
 ## Base de datos
 
 La tabla `usuarios` incorpora:

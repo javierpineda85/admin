@@ -22,6 +22,12 @@ function formularioInstitucion($html)
     return ['institucion_csrf'=>$csrf[1]??'', 'institucion_version'=>$version[1]??''];
 }
 
+function csrfRegistro($html)
+{
+    preg_match('/name="registro_csrf" value="([^"]+)"/', $html, $csrf);
+    return $csrf[1] ?? '';
+}
+
 function levantarServidor($modo, $activo = true)
 {
     $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);
@@ -68,6 +74,46 @@ foreach (['LOCAL','WORDPRESS','HYBRID'] as $modo) {
     try {
         $r=peticion($curl,$url.'?r=seleccionar-institucion');
         verificar($r['destino']==='index.php?r=login',"$modo: selección requiere autenticación");
+        $r=peticion($curl,$url.'?r=login');
+        verificar(
+            str_contains($r['body'],'Olvidé mi contraseña')
+                && (str_contains($r['body'],'index.php?r=registro') === ($modo !== 'WORDPRESS')),
+            "$modo: login muestra el acceso al registro solo cuando corresponde"
+        );
+        $r=peticion($curl,$url.'?r=registro');
+        if ($modo === 'WORDPRESS') {
+            verificar($r['codigo']===200 && !str_contains($r['body'],'name="accion_registro"'),'WORDPRESS: registro directo deshabilitado');
+        } else {
+            $csrfRegistro=csrfRegistro($r['body']);
+            verificar($r['codigo']===200 && $csrfRegistro!=='',"$modo: formulario de registro público disponible");
+            $emailRegistro='registro-'.strtolower($modo).'@campus.example';
+            $claveRegistro='Registro-'.bin2hex(random_bytes(6));
+            $r=peticion($curl,$url.'?r=registro',[
+                'accion_registro'=>'crear_cuenta',
+                'registro_csrf'=>$csrfRegistro,
+                'website'=>'',
+                'registro_nombre'=>'Ada',
+                'registro_apellido'=>'Lovelace',
+                'registro_email'=>$emailRegistro,
+                'registro_password'=>$claveRegistro,
+                'registro_password_confirmacion'=>$claveRegistro,
+            ]);
+            verificar($r['codigo']===303 && $r['destino']==='index.php?r=sin-acceso-institucional',"$modo: alta inicia sesión sin inventar acceso institucional");
+            $stmtRegistro=$pdo->prepare('SELECT idUsuario,pass,rol,activo,origenAuth FROM usuarios WHERE email=?');
+            $stmtRegistro->execute([$emailRegistro]);
+            $usuarioRegistro=$stmtRegistro->fetch(PDO::FETCH_ASSOC);
+            verificar(
+                $usuarioRegistro && (int)$usuarioRegistro['activo']===1 && $usuarioRegistro['rol']===''
+                    && $usuarioRegistro['origenAuth']==='LOCAL' && password_verify($claveRegistro,$usuarioRegistro['pass']),
+                "$modo: identidad registrada queda activa con contraseña segura y origen local"
+            );
+            $stmtMembresias=$pdo->prepare('SELECT COUNT(*) FROM usuarios_instituciones WHERE id_usuario=?');
+            $stmtMembresias->execute([(int)$usuarioRegistro['idUsuario']]);
+            verificar((int)$stmtMembresias->fetchColumn()===0,"$modo: registro no concede membresías ni roles");
+            $r=peticion($curl,$url.'?r=sin-acceso-institucional');
+            verificar(str_contains($r['body'],'Tu cuenta fue creada correctamente.'),"$modo: el alta explica el siguiente paso");
+            peticion($curl,$url.'?r=logout');
+        }
         $claveLogin=$modo==='HYBRID'?'Wp-fallback-'.bin2hex(random_bytes(5)):$password;
         if ($modo==='HYBRID') {
             $pdo->prepare('UPDATE prueba_wp_users SET user_pass=? WHERE ID=101')->execute([password_hash($claveLogin,PASSWORD_DEFAULT)]);

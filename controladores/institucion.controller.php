@@ -165,7 +165,7 @@ class ControladorInstitucion
         try {
             ModeloInstituciones::mdlVerificarEsquema();
             if (($_SESSION['logueado'] ?? false) !== true) {
-                if (in_array($ruta, ['login', 'forgot', 'actividad-publica'], true)) { return; }
+                if (in_array($ruta, ['login', 'registro', 'forgot', 'actividad-publica'], true)) { return; }
                 self::redirigir('login');
             }
             $ultima = (int) ($_SESSION['ultima_actividad'] ?? 0);

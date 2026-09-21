@@ -28,6 +28,7 @@ class ControladorSuperAdmin
             'instituciones' => ModeloInstituciones::mdlListarInstituciones(),
             'membresias' => ModeloInstituciones::mdlListarMembresias(),
             'roles' => ModeloInstituciones::mdlRolesDisponibles(),
+            'usuarios' => ModeloInstituciones::mdlUsuariosParaMembresias(),
         ];
     }
 
@@ -128,6 +129,16 @@ class ControladorSuperAdmin
             if ($accion === 'asignar_administrador') {
                 ModeloInstituciones::mdlAsignarAdministrador((int) ($_POST['idInstitucion'] ?? 0), $_POST['email'] ?? '');
                 $_SESSION['success_message'] = 'Administrador institucional asignado correctamente.';
+                return true;
+            }
+            if ($accion === 'agregar_membresias') {
+                $resultado = ModeloInstituciones::mdlAgregarMembresias(
+                    (int)($_POST['idInstitucion'] ?? 0),
+                    isset($_POST['usuarios']) && is_array($_POST['usuarios']) ? $_POST['usuarios'] : [],
+                    self::rolesFormulario()
+                );
+                $_SESSION['success_message'] = 'Membresías agregadas: ' . $resultado['agregadas']
+                    . '. Membresías que ya existían y se conservaron: ' . $resultado['existentes'] . '.';
                 return true;
             }
             if ($accion === 'guardar_membresia') {
