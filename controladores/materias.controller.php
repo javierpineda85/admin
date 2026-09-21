@@ -1,5 +1,6 @@
 <?php
 require_once('modelos/materias.modelo.php');
+require_once __DIR__ . '/seguridad-archivos.php';
 
 
 class ControladorMaterias
@@ -29,24 +30,14 @@ class ControladorMaterias
 
     private static function subirBannerSeccion(array $archivo)
     {
-        $directorio = __DIR__ . '/../img/secciones/';
-
-        if (!is_dir($directorio) && !mkdir($directorio, 0775, true) && !is_dir($directorio)) {
-            return '';
-        }
-
-        $nombreOriginal = (string) ($archivo['name'] ?? '');
-        $extension = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
-        $extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-
-        if ($extension === '' || !in_array($extension, $extensionesPermitidas, true)) {
-            return '';
-        }
-
-        $nombreSeguro = 'banner_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
-        $rutaDestino = $directorio . $nombreSeguro;
-
-        if (!move_uploaded_file($archivo['tmp_name'], $rutaDestino)) {
+        try {
+            $nombreSeguro = SeguridadArchivos::guardarImagenSubida(
+                $archivo,
+                __DIR__ . '/../img/secciones',
+                'banner_'
+            );
+        } catch (InvalidArgumentException | RuntimeException $e) {
+            $_SESSION['error_message'] = $e->getMessage();
             return '';
         }
 

@@ -1,8 +1,6 @@
 <?php
 ControladorAuth::crtRecuperarPassword();
 $forgotError = $_SESSION['forgot_error'] ?? '';
-$forgotSuccess = $_SESSION['forgot_success'] ?? '';
-$forgotTempPassword = $_SESSION['forgot_temp_password'] ?? '';
 unset($_SESSION['forgot_error'], $_SESSION['forgot_success'], $_SESSION['forgot_temp_password']);
 ?>
 <!DOCTYPE html>
@@ -41,30 +39,12 @@ unset($_SESSION['forgot_error'], $_SESSION['forgot_success'], $_SESSION['forgot_
       </div>
       <div class="mb-4">
         <h1 class="login-card-title mb-2">Recuperar contraseña</h1>
-        <p class="login-card-subtitle mb-0">Ingresá tu correo y te generaremos una contraseña temporal para volver a entrar.</p>
+        <p class="login-card-subtitle mb-0">La recuperación automática está temporalmente deshabilitada por seguridad.</p>
       </div>
 
-      <form action="index.php?r=forgot" method="post" autocomplete="off">
-        <div class="input-group mb-3">
-          <input type="email" class="form-control" name="forgot_email" placeholder="Correo electrónico" required>
-          <div class="input-group-append">
-            <div class="input-group-text">
-              <span class="fas fa-envelope"></span>
-            </div>
-          </div>
-        </div>
-        <button type="submit" class="btn auth-cta text-white btn-block">Generar contraseña temporal</button>
-      </form>
-
-      <?php if ($forgotSuccess !== '' && $forgotTempPassword !== ''): ?>
-        <div class="mt-4 p-3 rounded-lg border bg-light">
-          <h2 class="h6 mb-2">Contraseña temporal</h2>
-          <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: .75rem;">
-            <code class="badge badge-dark px-3 py-2"><?php echo htmlspecialchars($forgotTempPassword, ENT_QUOTES, 'UTF-8'); ?></code>
-            <small class="text-muted">Usala para ingresar y luego actualizala desde tu perfil.</small>
-          </div>
-        </div>
-      <?php endif; ?>
+      <div class="alert alert-warning" role="alert">
+        Para recuperar el acceso, contactá al soporte de tu institución. No se generan ni se muestran contraseñas temporales desde esta página.
+      </div>
 
       <p class="mt-3 mb-1">
         <a href="index.php?r=login">Volver al inicio de sesión</a>
@@ -88,22 +68,6 @@ unset($_SESSION['forgot_error'], $_SESSION['forgot_success'], $_SESSION['forgot_
         position: "right",
         style: {
           background: "linear-gradient(135deg, #dc2626, #ef4444)"
-        }
-      }).showToast();
-    });
-  </script>
-<?php endif; ?>
-<?php if ($forgotSuccess !== ''): ?>
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      Toastify({
-        text: <?php echo json_encode($forgotSuccess, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-        duration: 4500,
-        close: true,
-        gravity: "top",
-        position: "right",
-        style: {
-          background: "linear-gradient(135deg, #16a34a, #22c55e)"
         }
       }).showToast();
     });

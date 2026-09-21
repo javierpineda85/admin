@@ -44,10 +44,10 @@ jobs:
 
           while IFS= read -r -d '' file; do
             case "${file}" in
-              .github/*|docs/*|README*|.gitignore|config.local.php|logs/*|img/secciones/*|img/usuarios/*)
-                continue
+              uploads/lecciones/.htaccess|uploads/mensajes/.htaccess|img/secciones/.htaccess|img/usuarios/.htaccess|img/instituciones/.htaccess)
                 ;;
-              uploads/lecciones/.htaccess|uploads/mensajes/.htaccess)
+              .github/*|docs/*|sql/*|tests/*|tmp/*|README*|ROADMAP.md|"TO DO.txt"|*.sql|.gitignore|config.local.php|logs/*|img/secciones/*|img/usuarios/*|img/instituciones/*)
+                continue
                 ;;
               uploads/*)
                 continue

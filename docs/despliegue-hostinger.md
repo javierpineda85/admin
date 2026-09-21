@@ -14,12 +14,15 @@ El flujo nunca despliega estas rutas:
 
 - `config.local.php`
 - `logs/`
+- `docs/`, `sql/`, `tests/` y `tmp/`
+- volcados `*.sql` y documentación interna de la raíz
 - `img/secciones/`
 - `img/usuarios/`
+- `img/instituciones/`
 - `uploads/`
 
-Las reglas `.htaccess` de los directorios de adjuntos son la unica excepcion
-dentro de `uploads/`.
+Las reglas `.htaccess` de los directorios de adjuntos e imágenes son la única
+excepción dentro de esas carpetas.
 
 ## Configuracion inicial
 

@@ -2,7 +2,6 @@
 
 require_once 'modelos/usuarios.modelo.php';
 require_once __DIR__ . '/institucion.controller.php';
-require_once __DIR__ . '/../modelos/correo.php';
 
 class ControladorAuth
 {
@@ -33,13 +32,6 @@ class ControladorAuth
         if ($resultado === false) {
             @file_put_contents(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'campus-auth-debug.log', $linea . PHP_EOL, FILE_APPEND);
         }
-    }
-
-    private static function generarClaveTemporal($longitud = 10)
-    {
-        $longitud = max(8, (int) $longitud);
-        $bytes = bin2hex(random_bytes((int) ceil($longitud / 2)));
-        return strtoupper(substr($bytes, 0, $longitud));
     }
 
     private static function obtenerModoAuth()
@@ -415,48 +407,11 @@ class ControladorAuth
             return null;
         }
 
-        if (self::obtenerModoAuth() === 'WORDPRESS') {
-            $_SESSION['forgot_error'] = 'La recuperacion de contrasena se gestiona desde mentemotion.com.';
-            return false;
-        }
-
-        $email = trim((string) $_POST['forgot_email']);
-        if ($email === '') {
-            $_SESSION['forgot_error'] = 'Completa tu correo electronico.';
-            return false;
-        }
-
-        $usuario = ModeloUsuarios::mdlObtenerUsuarioPorEmail($email);
-        if (!$usuario || (int) ($usuario['activo'] ?? 0) !== 1) {
-            $_SESSION['forgot_error'] = 'No encontramos una cuenta activa con ese correo.';
-            return false;
-        }
-
-        $claveTemporal = self::generarClaveTemporal(10) . '!';
-        $respuesta = ModeloUsuarios::mdlActualizarPassword(
-            (int) $usuario['idUsuario'],
-            password_hash($claveTemporal, PASSWORD_DEFAULT)
-        );
-
-        if ($respuesta !== 'ok') {
-            $_SESSION['forgot_error'] = 'No se pudo generar la nueva contrasena.';
-            return false;
-        }
-
-        $asunto = '=?UTF-8?B?' . base64_encode(MAIL_FROM_NAME . ' - Tu contraseña temporal') . '?=';
-        $mensaje = "Hola " . trim((string) $usuario['nombreUsuario']) . ",\n\n"
-            . "Se genero una contrasena temporal para tu cuenta:\n\n"
-            . $claveTemporal . "\n\n"
-            . 'Ingresá en ' . APP_BASE_URL . "/index.php?r=login y luego actualizala desde tu perfil.\n";
-        $cabeceras = implode("\r\n", [
-            'MIME-Version: 1.0',
-            'Content-type: text/plain; charset=UTF-8',
-            'From: ' . CorreoCampus::remitente(),
-        ]);
-        @mail((string) $usuario['email'], $asunto, $mensaje, $cabeceras);
-
-        $_SESSION['forgot_success'] = 'Generamos una contrasena temporal para tu cuenta.';
-        $_SESSION['forgot_temp_password'] = $claveTemporal;
-        return $claveTemporal;
+        // Contención de seguridad: el flujo anterior cambiaba la contraseña sin
+        // acreditar el control del correo. La fase siguiente incorporará tokens
+        // de un solo uso antes de volver a habilitar la recuperación automática.
+        unset($_SESSION['forgot_success'], $_SESSION['forgot_temp_password']);
+        $_SESSION['forgot_error'] = 'La recuperación automática está temporalmente deshabilitada. Contactá al soporte institucional.';
+        return false;
     }
 }

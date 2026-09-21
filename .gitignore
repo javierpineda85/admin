@@ -6,8 +6,10 @@ logs/*.log
 # User-generated images
 img/secciones/*
 !img/secciones/.gitkeep
+!img/secciones/.htaccess
 img/usuarios/*
 !img/usuarios/.gitkeep
+!img/usuarios/.htaccess
 
 # User uploads. Keep directory placeholders and access rules in Git.
 uploads/*
@@ -21,3 +23,4 @@ uploads/mensajes/*
 !uploads/mensajes/.htaccess
 img/instituciones/*
 !img/instituciones/.gitkeep
+!img/instituciones/.htaccess

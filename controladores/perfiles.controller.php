@@ -1,6 +1,7 @@
 <?php
 require_once('modelos/perfiles.modelo.php');
 require_once('modelos/usuarios.modelo.php');
+require_once __DIR__ . '/seguridad-archivos.php';
 
 class ControladorPerfiles
 {
@@ -126,18 +127,14 @@ class ControladorPerfiles
             return false;
         }
 
-        $carpeta = __DIR__ . '/../img/usuarios/';
-        if (!is_dir($carpeta)) {
-            mkdir($carpeta, 0777, true);
-        }
-
-        $original = basename((string) $_FILES['imgUsuario']['name']);
-        $extension = strtolower(pathinfo($original, PATHINFO_EXTENSION));
-        $nombreArchivo = 'perfil_' . $idUsuario . '_' . uniqid('', true) . ($extension !== '' ? '.' . $extension : '');
-        $rutaCompleta = $carpeta . $nombreArchivo;
-
-        if (!move_uploaded_file($_FILES['imgUsuario']['tmp_name'], $rutaCompleta)) {
-            $_SESSION['error_message'] = 'No se pudo guardar la foto de perfil.';
+        try {
+            $nombreArchivo = SeguridadArchivos::guardarImagenSubida(
+                $_FILES['imgUsuario'],
+                __DIR__ . '/../img/usuarios',
+                'perfil_' . $idUsuario . '_'
+            );
+        } catch (InvalidArgumentException | RuntimeException $e) {
+            $_SESSION['error_message'] = $e->getMessage();
             return false;
         }
 
