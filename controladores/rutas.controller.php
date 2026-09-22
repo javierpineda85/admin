@@ -213,7 +213,17 @@ class RutasController
 
             if ($ruta === 'detalle-seccion') {
                 $idSeccion = (int) ($_GET['idSeccion'] ?? 0);
-                foreach (['id_leccion', 'idLeccion', 'id_modulo'] as $campoLeccion) {
+                $camposLeccion = ['id_leccion', 'idLeccion'];
+                // Al crear, id_modulo identifica la materia; en calificaciones
+                // de entregas identifica la leccion existente.
+                if (($_POST['accion'] ?? '') === 'crear_leccion') {
+                    if ((int) ($_POST['id_modulo'] ?? 0) !== $idSeccion) {
+                        return false;
+                    }
+                } else {
+                    $camposLeccion[] = 'id_modulo';
+                }
+                foreach ($camposLeccion as $campoLeccion) {
                     if ((int) ($_POST[$campoLeccion] ?? 0) <= 0) {
                         continue;
                     }
