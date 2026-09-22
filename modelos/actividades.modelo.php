@@ -973,14 +973,15 @@ class ModeloActividades
                 AVG(CASE WHEN r.idRespuesta IS NOT NULL THEN r.puntajeObtenido ELSE NULL END) AS promedioPuntaje
             FROM actividades_preguntas p
             LEFT JOIN actividades_respuestas r ON r.id_pregunta = p.idPregunta
-            LEFT JOIN actividades_intentos i ON i.idIntento = r.id_intento AND i.id_actividad = :idActividad
-            WHERE p.id_actividad = :idActividad AND " . ModeloTenant::preguntasActividad('p') . "
+            LEFT JOIN actividades_intentos i ON i.idIntento = r.id_intento AND i.id_actividad = :idActividadIntento
+            WHERE p.id_actividad = :idActividadPregunta AND " . ModeloTenant::preguntasActividad('p') . "
             GROUP BY
                 p.idPregunta, p.textoPregunta, p.tipoPregunta, p.codigoBase, p.lenguajeCodigo,
                 p.variantesCodigo, p.respuestaCorrecta, p.puntaje, p.orden
             ORDER BY p.orden ASC, p.idPregunta ASC
         ");
-        $stmt->bindValue(':idActividad', (int) $idActividad, PDO::PARAM_INT);
+        $stmt->bindValue(':idActividadIntento', (int) $idActividad, PDO::PARAM_INT);
+        $stmt->bindValue(':idActividadPregunta', (int) $idActividad, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

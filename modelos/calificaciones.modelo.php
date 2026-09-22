@@ -273,7 +273,10 @@ class ModeloCalificaciones
         $tarea=[ModeloTenant::calificaciones('c')];
         $evaluacion=[ModeloTenant::evaluaciones('e'),ModeloTenant::calificacionesEvaluacion('ec')];
         if((int)$idEstudiante>0){$tarea[]='c.id_estudiante = :idEstudiante';$evaluacion[]='ec.id_estudiante = :idEstudiante';}
-        elseif((int)$idDocente>0){$tarea[]='(s.docente = :idDocente OR s.tutor = :idDocente OR curso.responsable = :idDocente)';$evaluacion[]='(s.docente = :idDocente OR s.tutor = :idDocente OR curso.responsable = :idDocente)';}
+        elseif((int)$idDocente>0){
+            $tarea[]='(s.docente = :idDocenteTareaTitular OR s.tutor = :idDocenteTareaTutor OR curso.responsable = :idDocenteTareaResponsable)';
+            $evaluacion[]='(s.docente = :idDocenteEvaluacionTitular OR s.tutor = :idDocenteEvaluacionTutor OR curso.responsable = :idDocenteEvaluacionResponsable)';
+        }
         $filtroTarea=' WHERE '.implode(' AND ',$tarea);
         $filtroEvaluacion=' WHERE '.implode(' AND ',$evaluacion);
 
@@ -295,7 +298,9 @@ class ModeloCalificaciones
         if ((int) $idEstudiante > 0) {
             $stmtTareas->bindValue(':idEstudiante', (int) $idEstudiante, PDO::PARAM_INT);
         } elseif ((int) $idDocente > 0) {
-            $stmtTareas->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+            $stmtTareas->bindValue(':idDocenteTareaTitular', (int) $idDocente, PDO::PARAM_INT);
+            $stmtTareas->bindValue(':idDocenteTareaTutor', (int) $idDocente, PDO::PARAM_INT);
+            $stmtTareas->bindValue(':idDocenteTareaResponsable', (int) $idDocente, PDO::PARAM_INT);
         }
         $stmtTareas->execute();
         $calificaciones = $stmtTareas->fetchAll(PDO::FETCH_ASSOC);
@@ -318,14 +323,16 @@ class ModeloCalificaciones
         if ((int) $idEstudiante > 0) {
             $stmtEvaluaciones->bindValue(':idEstudiante', (int) $idEstudiante, PDO::PARAM_INT);
         } elseif ((int) $idDocente > 0) {
-            $stmtEvaluaciones->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+            $stmtEvaluaciones->bindValue(':idDocenteEvaluacionTitular', (int) $idDocente, PDO::PARAM_INT);
+            $stmtEvaluaciones->bindValue(':idDocenteEvaluacionTutor', (int) $idDocente, PDO::PARAM_INT);
+            $stmtEvaluaciones->bindValue(':idDocenteEvaluacionResponsable', (int) $idDocente, PDO::PARAM_INT);
         }
         $stmtEvaluaciones->execute();
         $calificaciones = array_merge($calificaciones, $stmtEvaluaciones->fetchAll(PDO::FETCH_ASSOC));
 
         $cierre=[ModeloTenant::cierresPeriodo('cp')];
         if((int)$idEstudiante>0){$cierre[]='cp.id_estudiante = :idEstudiante';}
-        elseif((int)$idDocente>0){$cierre[]='(s.docente = :idDocente OR s.tutor = :idDocente OR curso.responsable = :idDocente)';}
+        elseif((int)$idDocente>0){$cierre[]='(s.docente = :idDocenteCierreTitular OR s.tutor = :idDocenteCierreTutor OR curso.responsable = :idDocenteCierreResponsable)';}
         $filtroCierre=' WHERE '.implode(' AND ',$cierre);
         $stmtCierres = $pdo->prepare("
             SELECT cp.fechaActualizacion AS fecha, curso.nombreCurso AS curso, s.tituloSeccion AS materia,
@@ -343,7 +350,9 @@ class ModeloCalificaciones
         if ((int) $idEstudiante > 0) {
             $stmtCierres->bindValue(':idEstudiante', (int) $idEstudiante, PDO::PARAM_INT);
         } elseif ((int) $idDocente > 0) {
-            $stmtCierres->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+            $stmtCierres->bindValue(':idDocenteCierreTitular', (int) $idDocente, PDO::PARAM_INT);
+            $stmtCierres->bindValue(':idDocenteCierreTutor', (int) $idDocente, PDO::PARAM_INT);
+            $stmtCierres->bindValue(':idDocenteCierreResponsable', (int) $idDocente, PDO::PARAM_INT);
         }
         $stmtCierres->execute();
         $calificaciones = array_merge($calificaciones, $stmtCierres->fetchAll(PDO::FETCH_ASSOC));
@@ -371,7 +380,7 @@ class ModeloCalificaciones
         if((int)$idDocente>0){ModeloTenant::exigirUsuario($idDocente,['DOCENTE','ADMINISTRADOR']);}
         $filtros = [ModeloTenant::cierresPeriodo('cp')];
         if ((int) $idEstudiante > 0) { $filtros[] = 'cp.id_estudiante = :idEstudiante'; }
-        if ((int) $idDocente > 0) { $filtros[] = '(s.docente = :idDocente OR s.tutor = :idDocente OR c.responsable = :idDocente)'; }
+        if ((int) $idDocente > 0) { $filtros[] = '(s.docente = :idDocenteTitular OR s.tutor = :idDocenteTutor OR c.responsable = :idDocenteResponsable)'; }
         $sql = 'SELECT cp.id_estudiante,cp.id_seccion,cp.calificacionCierre,cp.promedioCalculado,cp.confirmada,
                        cp.fechaActualizacion,p.idPeriodo,p.nombre AS periodo,p.tipo AS tipoPeriodo,p.orden AS ordenPeriodo,
                        cl.idCicloLectivo,cl.nombre AS ciclo,cl.anio,c.idCurso,c.nombreCurso AS curso,
@@ -388,7 +397,11 @@ class ModeloCalificaciones
                 . ' ORDER BY cl.anio DESC,c.nombreCurso,s.tituloSeccion,u.apellidoUsuario,u.nombreUsuario,p.orden';
         $stmt=Conexion::conectar()->prepare($sql);
         if ((int)$idEstudiante>0) { $stmt->bindValue(':idEstudiante',(int)$idEstudiante,PDO::PARAM_INT); }
-        if ((int)$idDocente>0) { $stmt->bindValue(':idDocente',(int)$idDocente,PDO::PARAM_INT); }
+        if ((int)$idDocente>0) {
+            $stmt->bindValue(':idDocenteTitular',(int)$idDocente,PDO::PARAM_INT);
+            $stmt->bindValue(':idDocenteTutor',(int)$idDocente,PDO::PARAM_INT);
+            $stmt->bindValue(':idDocenteResponsable',(int)$idDocente,PDO::PARAM_INT);
+        }
         $stmt->execute(); return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -397,7 +410,7 @@ class ModeloCalificaciones
         self::prepararTablasEvaluaciones();
         if((int)$idDocente>0){ModeloTenant::exigirUsuario($idDocente,['DOCENTE','ADMINISTRADOR']);}
         $condiciones=[ModeloTenant::secciones('s')];
-        if((int)$idDocente>0){$condiciones[]='(s.docente=:idDocente OR s.tutor=:idDocente OR c.responsable=:idDocente)';}
+        if((int)$idDocente>0){$condiciones[]='(s.docente=:idDocenteTitular OR s.tutor=:idDocenteTutor OR c.responsable=:idDocenteResponsable)';}
         $filtro=' WHERE '.implode(' AND ',$condiciones);
         $stmt=Conexion::conectar()->prepare('SELECT s.idSeccion,s.tituloSeccion AS materia,c.idCurso,c.nombreCurso AS curso,
                     cl.anio,CONCAT(d.nombreUsuario," ",d.apellidoUsuario) AS docente,
@@ -409,7 +422,11 @@ class ModeloCalificaciones
                 LEFT JOIN cierres_periodo_calificaciones cp ON cp.id_seccion=s.idSeccion AND '.ModeloTenant::cierresPeriodo('cp')
                 .$filtro.' GROUP BY s.idSeccion,s.tituloSeccion,c.idCurso,c.nombreCurso,cl.anio,d.nombreUsuario,d.apellidoUsuario
                 HAVING evaluaciones>0 OR cierres>0 ORDER BY c.nombreCurso,s.tituloSeccion');
-        if((int)$idDocente>0){$stmt->bindValue(':idDocente',(int)$idDocente,PDO::PARAM_INT);}
+        if((int)$idDocente>0){
+            $stmt->bindValue(':idDocenteTitular',(int)$idDocente,PDO::PARAM_INT);
+            $stmt->bindValue(':idDocenteTutor',(int)$idDocente,PDO::PARAM_INT);
+            $stmt->bindValue(':idDocenteResponsable',(int)$idDocente,PDO::PARAM_INT);
+        }
         $stmt->execute(); return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

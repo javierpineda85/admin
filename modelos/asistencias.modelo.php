@@ -23,7 +23,9 @@ class ModeloAsistencias
     {
         self::prepararTablas();
         $condiciones = [ModeloTenant::secciones('s')];
-        if ((int)$idDocente > 0) { $condiciones[] = '(s.docente=:docente OR s.tutor=:docente OR c.responsable=:docente)'; }
+        if ((int)$idDocente > 0) {
+            $condiciones[] = '(s.docente=:docenteTitular OR s.tutor=:docenteTutor OR c.responsable=:docenteResponsable)';
+        }
         $sql = "SELECT s.idSeccion,s.tituloSeccion materia,c.idCurso,c.nombreCurso curso,
                 CONCAT(u.nombreUsuario,' ',u.apellidoUsuario) docente,COUNT(DISTINCT ac.idClase) clases
             FROM secciones s INNER JOIN cursos c ON c.idCurso=s.id_curso
@@ -32,7 +34,11 @@ class ModeloAsistencias
             WHERE ' . implode(' AND ', $condiciones) . '
             GROUP BY s.idSeccion ORDER BY c.nombreCurso,s.tituloSeccion';
         $stmt = Conexion::conectar()->prepare($sql);
-        if ((int)$idDocente > 0) { $stmt->bindValue(':docente', (int)$idDocente, PDO::PARAM_INT); }
+        if ((int)$idDocente > 0) {
+            $stmt->bindValue(':docenteTitular', (int)$idDocente, PDO::PARAM_INT);
+            $stmt->bindValue(':docenteTutor', (int)$idDocente, PDO::PARAM_INT);
+            $stmt->bindValue(':docenteResponsable', (int)$idDocente, PDO::PARAM_INT);
+        }
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

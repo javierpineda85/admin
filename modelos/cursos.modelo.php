@@ -300,15 +300,17 @@ class ModeloCursos
             FROM cursos c
             LEFT JOIN secciones s ON c.idCurso = s.id_curso
             LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
-            WHERE (c.responsable = :idDocente
-               OR s.docente = :idDocente
-               OR s.tutor = :idDocente)
+            WHERE (c.responsable = :idDocenteResponsable
+               OR s.docente = :idDocenteTitular
+               OR s.tutor = :idDocenteTutor)
               AND " . ModeloTenant::cursos() . "
               AND c.activo = 1
             GROUP BY c.idCurso, c.nombreCurso, c.contenidoCurso, c.estado, c.fechaInicioCurso, c.fechaFinCurso, c.horarioCurso, c.creadoPor, c.responsable
             ORDER BY c.nombreCurso ASC
         ");
-        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteResponsable', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteTitular', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteTutor', (int) $idDocente, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -344,10 +346,12 @@ class ModeloCursos
             WHERE c.idCurso = :idCurso
               AND " . ModeloTenant::cursos() . "
               AND c.activo = 1
-              AND (c.responsable = :idDocente OR s.docente = :idDocente OR s.tutor = :idDocente)
+              AND (c.responsable = :idDocenteResponsable OR s.docente = :idDocenteTitular OR s.tutor = :idDocenteTutor)
         ");
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
-        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteResponsable', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteTitular', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteTutor', (int) $idDocente, PDO::PARAM_INT);
         $stmt->execute();
 
         return (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0) > 0;
@@ -417,14 +421,15 @@ class ModeloCursos
             LEFT JOIN lecciones l ON l.id_modulo = s.idSeccion
             WHERE s.id_curso = :idCurso
               AND " . ModeloTenant::cursos() . "
-              AND (s.docente = :idDocente OR s.tutor = :idDocente)
+              AND (s.docente = :idDocenteTitular OR s.tutor = :idDocenteTutor)
               AND s.activo = 1
             GROUP BY s.idSeccion, s.tituloSeccion, s.contenidoSeccion, s.id_curso, s.docente, s.tutor,
                      c.nombreCurso, u.nombreUsuario, u.apellidoUsuario
             ORDER BY s.tituloSeccion ASC
         ");
         $stmt->bindValue(':idCurso', (int) $idCurso, PDO::PARAM_INT);
-        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteTitular', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteTutor', (int) $idDocente, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

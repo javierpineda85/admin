@@ -478,6 +478,15 @@ ControladorInstitucion::seleccionar($mm,ControladorInstitucion::csrf(),Controlad
 $panelMM=ModeloPanel::mdlResumenDashboard($ids['A'],'DOCENTE');
 $tarjetasMM=array_column($panelMM['tarjetas'],'value','label');
 verificar((int)$tarjetasMM['Secciones a cargo']===1&&(int)$tarjetasMM['Lecciones']===0, 'Panel docente se recalcula al cambiar a MenteMotion');
+verificar(count(ModeloPanel::mdlIndicadoresCabecera($ids['A'],'DOCENTE'))===4,
+    'Cabecera docente carga sin reutilizar parámetros SQL nombrados');
+verificar(array_column(ModeloMaterias::mdlListarMateriasGestion($ids['A']),'idSeccion')===[$materiaMM]
+    && array_column(ModeloMensajes::mdlSeccionesParaMensajes($ids['A'],'DOCENTE'),'idSeccion')===[$materiaMM]
+    && array_column(ModeloAsistencias::mdlSecciones($ids['A']),'idSeccion')===[$materiaMM],
+    'Aulas, mensajes y asistencia cargan para el docente titular');
+verificar(ModeloCalificaciones::mdlCalificacionesGenerales(0,$ids['A'])!==false
+    && ModeloCalificaciones::mdlResumenCierresGenerales(0,$ids['A'])!==false,
+    'Consultas generales de calificaciones cargan para el docente');
 verificar(ModeloMaterias::mdlBuscarMateriaPorId($materiaDemo)===false, 'Docente no puede leer materia ajena por ID');
 verificar(array_column(ModeloMaterias::mdlListarMateriasGestion(),'idSeccion')===[$materiaMM], 'Listado de materias conserva solo las de la institución activa');
 denegado(function() use($leccionDemo) { ModeloLecciones::mdlBuscarLeccionPorId($leccionDemo); }, 'Lección ajena denegada por ID');

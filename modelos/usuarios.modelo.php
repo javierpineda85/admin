@@ -443,14 +443,15 @@ class ModeloUsuarios
                        'DOCENTE' AS origen
                 FROM secciones s
                 INNER JOIN cursos c ON c.idCurso = s.id_curso
-                WHERE (s.docente = :idDocente
-                   OR s.tutor = :idDocente)
+                WHERE (s.docente = :idDocenteTitular
+                   OR s.tutor = :idDocenteTutor)
                    {$filtroSeccion}
             ) AS relaciones
             ORDER BY nombreCurso ASC, tituloSeccion ASC
         ");
         $stmt->bindParam(":idEstudiante", $idUsuario, PDO::PARAM_INT);
-        $stmt->bindParam(":idDocente", $idUsuario, PDO::PARAM_INT);
+        $stmt->bindParam(":idDocenteTitular", $idUsuario, PDO::PARAM_INT);
+        $stmt->bindParam(":idDocenteTutor", $idUsuario, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -712,11 +713,12 @@ class ModeloUsuarios
             INNER JOIN secciones s ON s.id_curso = a.id_seccion
             WHERE a.id_estudiante = :idEstudiante
               AND a.estadoInscripcion='ACTIVA'
-              AND (s.docente = :idDocente OR s.tutor = :idDocente)
+              AND (s.docente = :idDocenteTitular OR s.tutor = :idDocenteTutor)
               AND " . (defined('INSTITUCIONES_CONTEXTO_ACTIVO') && INSTITUCIONES_CONTEXTO_ACTIVO === true ? ModeloTenant::secciones('s') : '1=1') . "
         ");
         $stmt->bindParam(":idEstudiante", $idEstudiante, PDO::PARAM_INT);
-        $stmt->bindParam(":idDocente", $idDocente, PDO::PARAM_INT);
+        $stmt->bindParam(":idDocenteTitular", $idDocente, PDO::PARAM_INT);
+        $stmt->bindParam(":idDocenteTutor", $idDocente, PDO::PARAM_INT);
         $stmt->execute();
 
         $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1089,7 +1091,7 @@ class ModeloUsuarios
                 INNER JOIN usuarios objetivo_u ON objetivo_u.idUsuario=objetivo_ui.id_usuario
                 WHERE objetivo_ui.id_usuario=:id_usuario_objetivo
                   AND objetivo_ui.id_institucion=:id_institucion_objetivo
-                  AND :id_usuario_accion=:id_actor_sesion
+                  AND :id_usuario_accion_validacion=:id_actor_sesion
                   AND " . ModeloTenant::sesionActiva() . '
                 LIMIT 1');
             $stmt->execute([
@@ -1097,6 +1099,7 @@ class ModeloUsuarios
                 ':detalle'=>(string)$datos['detalle'],':id_usuario_accion'=>(int)$datos['id_usuario_accion'],
                 ':fechaEvento'=>(string)$datos['fechaEvento'],':id_institucion'=>ModeloTenant::id(),
                 ':id_usuario_objetivo'=>(int)$datos['id_usuario'],':id_institucion_objetivo'=>ModeloTenant::id(),
+                ':id_usuario_accion_validacion'=>(int)$datos['id_usuario_accion'],
                 ':id_actor_sesion'=>(int)($_SESSION['usuario']['id'] ?? 0),
             ]);
             return $stmt->rowCount() === 1 ? 'ok' : 'error';

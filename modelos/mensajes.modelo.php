@@ -69,11 +69,12 @@ class ModeloMensajes
                 SELECT s.idSeccion, s.tituloSeccion, c.nombreCurso
                 FROM secciones s
                 INNER JOIN cursos c ON c.idCurso = s.id_curso
-                WHERE (s.docente = :idUsuario OR s.tutor = :idUsuario)
+                WHERE (s.docente = :idUsuarioDocente OR s.tutor = :idUsuarioTutor)
                   AND ' . ModeloTenant::cursos('c') . '
                 ORDER BY c.nombreCurso ASC, s.tituloSeccion ASC
             ');
-            $stmt->bindValue(':idUsuario', (int) $idUsuarioActual, PDO::PARAM_INT);
+            $stmt->bindValue(':idUsuarioDocente', (int) $idUsuarioActual, PDO::PARAM_INT);
+            $stmt->bindValue(':idUsuarioTutor', (int) $idUsuarioActual, PDO::PARAM_INT);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }

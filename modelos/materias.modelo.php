@@ -124,7 +124,7 @@ class ModeloMaterias
     static public function mdlListarMateriasGestion($idDocente = 0)
     {
         $filtroDocente = (int) $idDocente > 0
-            ? ' WHERE (s.docente = :idDocente OR s.tutor = :idDocente) AND s.activo = 1 AND c.activo = 1'
+            ? ' WHERE (s.docente = :idDocenteTitular OR s.tutor = :idDocenteTutor) AND s.activo = 1 AND c.activo = 1'
             : ' WHERE 1=1';
         $filtroDocente .= ' AND ' . ModeloTenant::cursos();
 
@@ -150,7 +150,8 @@ class ModeloMaterias
         ");
 
         if ((int) $idDocente > 0) {
-            $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+            $stmt->bindValue(':idDocenteTitular', (int) $idDocente, PDO::PARAM_INT);
+            $stmt->bindValue(':idDocenteTutor', (int) $idDocente, PDO::PARAM_INT);
         }
 
         $stmt->execute();

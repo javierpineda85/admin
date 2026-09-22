@@ -123,10 +123,11 @@ class ModeloLecciones
             'SELECT COUNT(*) AS total
              FROM secciones
              WHERE idSeccion = :idSeccion
-               AND (docente = :idDocente OR tutor = :idDocente) AND ' . ModeloTenant::secciones('secciones')
+               AND (docente = :idDocenteTitular OR tutor = :idDocenteTutor) AND ' . ModeloTenant::secciones('secciones')
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
-        $stmt->bindValue(':idDocente', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteTitular', (int) $idDocente, PDO::PARAM_INT);
+        $stmt->bindValue(':idDocenteTutor', (int) $idDocente, PDO::PARAM_INT);
         $stmt->execute();
         return (int) (($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0)) > 0;
     }
