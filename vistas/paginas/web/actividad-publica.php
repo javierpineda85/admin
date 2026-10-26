@@ -93,6 +93,62 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
     .activity-code__token--tag { color:#7fdbca; }
     .activity-code__token--attr { color:#c3e88d; }
     .activity-code__token--string { color:#ecc48d; }
+    :root { --brand:#59249b; --accent:#ff914d; --brand-soft:rgba(89,36,155,.09); }
+    body { background:radial-gradient(circle at top left, rgba(89,36,155,.12), transparent 28%), linear-gradient(180deg,#f8f7fc 0%,#f1f3f8 100%); }
+    .top { border-bottom:0; background:linear-gradient(115deg,#1e1b4b 0%,#59249b 65%,#6d28d9 100%); box-shadow:0 5px 18px rgba(31,24,78,.14); }
+    .brand { color:#fff; }
+    .top .btn.secondary { border-color:rgba(255,255,255,.35); color:#fff; background:rgba(255,255,255,.1); }
+    .top .btn.secondary:hover { background:rgba(255,255,255,.18); }
+    .hero { padding:34px 0 20px; }
+    .hero .kicker { color:var(--brand); }
+    .card { border-color:rgba(15,23,42,.08); border-radius:18px; box-shadow:0 12px 28px rgba(15,23,42,.07); }
+    .btn { min-height:42px; border-radius:12px; background:var(--brand); border-color:var(--brand); }
+    .btn:hover { background:#6f33c5; border-color:#6f33c5; }
+    .public-activity-flow { padding:0; overflow:visible; }
+    .public-activity-flow__visitor { padding:20px 22px 4px; }
+    .public-activity-flow__visitor h2 { margin:0 0 6px; font-size:17px; }
+    .public-activity-flow__visitor-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
+    .public-activity-flow__layout { display:grid; grid-template-columns:minmax(190px,230px) minmax(0,1fr); gap:18px; padding:22px; }
+    .public-activity-flow__rail { position:sticky; top:16px; padding:16px; border:1px solid rgba(89,36,155,.12); border-radius:16px; background:linear-gradient(160deg,var(--brand-soft),#fff 38%); align-self:start; }
+    .public-activity-flow__eyebrow { color:var(--brand); font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+    .public-activity-flow__rail h2 { margin:4px 0 0; font-size:16px; }
+    .public-activity-flow__progress { height:7px; margin:14px 0 7px; overflow:hidden; border-radius:999px; background:#e5e8f0; }
+    .public-activity-flow__progress span { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--brand),#8b5cf6); transition:width .2s ease; }
+    .public-activity-flow__progress-label { color:var(--muted); font-size:12px; }
+    .public-activity-flow__nav { display:grid; gap:5px; margin-top:15px; }
+    .public-activity-flow__nav a { display:flex; align-items:center; gap:9px; padding:9px; border:1px solid transparent; border-radius:11px; color:var(--muted); font-size:13px; font-weight:700; text-decoration:none; }
+    .public-activity-flow__nav a:hover { color:var(--brand); background:var(--brand-soft); }
+    .public-activity-flow__nav-number { display:grid; width:25px; height:25px; place-items:center; border-radius:8px; color:var(--brand); background:var(--brand-soft); font-size:11px; }
+    .public-activity-flow__nav a.is-active { color:var(--brand); border-color:rgba(89,36,155,.16); background:#fff; box-shadow:0 8px 17px rgba(89,36,155,.08); }
+    .public-activity-flow__nav a.is-answered .public-activity-flow__nav-number { color:#fff; background:#198754; }
+    .public-activity-flow__question { margin:0; padding:0; border:0; box-shadow:none; }
+    .public-activity-flow__question h3 { margin:7px 0; font-size:21px; line-height:1.35; }
+    .public-activity-flow__hint { display:flex; gap:8px; margin:15px 0; padding:11px 13px; border-radius:12px; color:#75450b; background:#fff5e9; font-size:14px; }
+    .public-activity-flow__options { display:grid; gap:9px; margin-top:18px; }
+    .public-activity-flow__option { display:flex; align-items:center; gap:11px; min-height:57px; margin:0; padding:10px 14px; border:1px solid var(--line); border-radius:14px; color:var(--ink); background:#fff; font-weight:700; cursor:pointer; transition:border-color .18s ease,background .18s ease,box-shadow .18s ease; }
+    .public-activity-flow__option.is-selected, .public-activity-flow__option:has(input:checked) { border-color:var(--brand); color:var(--brand); background:var(--brand-soft); box-shadow:0 8px 17px rgba(89,36,155,.08); }
+    .public-activity-flow__option input { width:17px; height:17px; margin:0; accent-color:var(--brand); }
+    .public-activity-flow__letter { display:grid; width:29px; height:29px; flex:0 0 29px; place-items:center; border-radius:9px; color:var(--brand); background:var(--brand-soft); font-size:12px; }
+    .public-activity-flow__option.is-selected .public-activity-flow__letter, .public-activity-flow__option:has(input:checked) .public-activity-flow__letter { color:#fff; background:var(--brand); }
+    .public-activity-flow__answer { margin-top:18px; }
+    .public-activity-flow__answer textarea, .public-activity-flow__answer input { border-radius:12px; }
+    .public-activity-flow__actions { display:none; align-items:center; justify-content:space-between; gap:12px; margin-top:21px; padding-top:16px; border-top:1px solid #edf0f5; }
+    .public-activity-flow__actions .btn + .btn { margin-left:8px; }
+    .public-activity-flow__actions .btn.secondary { color:var(--brand); border-color:rgba(89,36,155,.18); background:#fff; }
+    .public-activity-flow__validation { margin-top:14px; color:#b42318; font-size:13px; font-weight:700; }
+    .public-activity-flow__submit-fallback { margin-top:18px; }
+    .public-activity-flow.is-ready .public-activity-flow__question { display:none; }
+    .public-activity-flow.is-ready .public-activity-flow__question.is-active { display:block; }
+    .public-activity-flow.is-ready .public-activity-flow__question.is-active .public-activity-flow__actions { display:flex; }
+    .public-activity-flow.is-ready .public-activity-flow__submit-fallback { display:none; }
+    @media (max-width:720px) {
+      .public-activity-flow__visitor-fields, .public-activity-flow__layout { grid-template-columns:1fr; }
+      .public-activity-flow__layout { padding:16px; }
+      .public-activity-flow__rail { position:static; }
+      .public-activity-flow__nav { display:flex; flex-wrap:wrap; }
+      .public-activity-flow__nav a { width:38px; height:38px; justify-content:center; padding:0; }
+      .public-activity-flow__nav a > span:last-child { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+    }
   </style>
 </head>
 <body>
@@ -204,63 +260,197 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
             <p class="muted">Ya usaste los intentos permitidos para esta actividad.</p>
           </article>
         <?php else: ?>
-        <form method="post" class="card">
+        <?php $totalPreguntas = count($preguntas); ?>
+        <form method="post" class="card public-activity-flow" data-public-activity-flow>
           <input type="hidden" name="accion_actividad" value="responder_actividad">
           <input type="hidden" name="idActividad" value="<?php echo (int) $actividad['idActividad']; ?>">
           <?php if (empty($_SESSION['logueado'])): ?>
-            <div class="question">
+            <div class="public-activity-flow__visitor">
               <h3>Tus datos</h3>
+              <p class="muted">Podés completarlos para identificar tu intento.</p>
+              <div class="public-activity-flow__visitor-fields">
               <label>Nombre
                 <input type="text" name="nombreVisitante" placeholder="Opcional">
               </label>
               <label>Email
                 <input type="email" name="emailVisitante" placeholder="Opcional">
               </label>
+              </div>
             </div>
           <?php endif; ?>
 
+          <div class="public-activity-flow__layout">
+            <aside class="public-activity-flow__rail" aria-label="Preguntas de la actividad">
+              <div class="public-activity-flow__eyebrow">Tu recorrido</div>
+              <h2>Resolver actividad</h2>
+              <div class="public-activity-flow__progress" role="progressbar" aria-label="Progreso de preguntas" aria-valuemin="0" aria-valuemax="<?php echo (int) $totalPreguntas; ?>" aria-valuenow="0"><span data-public-activity-progress></span></div>
+              <div class="public-activity-flow__progress-label" data-public-activity-progress-label>Pregunta 1 de <?php echo (int) $totalPreguntas; ?></div>
+              <nav class="public-activity-flow__nav" aria-label="Ir a una pregunta">
+                <?php foreach ($preguntas as $indiceNavegacion => $preguntaNavegacion): ?>
+                  <a class="<?php echo $indiceNavegacion === 0 ? 'is-active' : ''; ?>" href="#public-activity-question-<?php echo (int) $preguntaNavegacion['idPregunta']; ?>" data-public-activity-nav="<?php echo (int) $indiceNavegacion; ?>"><span class="public-activity-flow__nav-number"><?php echo (int) ($indiceNavegacion + 1); ?></span><span>Pregunta <?php echo (int) ($indiceNavegacion + 1); ?></span></a>
+                <?php endforeach; ?>
+              </nav>
+            </aside>
+            <div class="public-activity-flow__questions">
           <?php foreach ($preguntas as $index => $pregunta): ?>
-            <div class="question">
-              <h3><?php echo (int) ($index + 1); ?>. <?php echo $e($pregunta['textoPregunta']); ?></h3>
-              <?php if (!empty($pregunta['pista'])): ?><p class="muted">Pista: <?php echo $e($pregunta['pista']); ?></p><?php endif; ?>
+            <section id="public-activity-question-<?php echo (int) $pregunta['idPregunta']; ?>" class="question public-activity-flow__question<?php echo $index === 0 ? ' is-active' : ''; ?>" data-public-activity-question="<?php echo (int) $index; ?>">
+              <div class="public-activity-flow__eyebrow">Pregunta <?php echo (int) ($index + 1); ?> de <?php echo (int) $totalPreguntas; ?></div>
+              <h3><?php echo $e($pregunta['textoPregunta']); ?></h3>
+              <?php if (!empty($pregunta['pista'])): ?><div class="public-activity-flow__hint"><span>✦</span><span><strong>Pista:</strong> <?php echo $e($pregunta['pista']); ?></span></div><?php endif; ?>
               <?php if (($pregunta['tipoPregunta'] ?? '') === 'codigo' && !empty($pregunta['codigoBase'])): ?>
                 <?php echo $renderCodigo($pregunta['codigoBase'], (string) ($pregunta['lenguajeCodigo'] ?? 'plaintext')); ?>
               <?php endif; ?>
               <?php if (($pregunta['tipoPregunta'] ?? '') === 'multiple_choice'): ?>
-                <?php foreach ($pregunta['opciones'] as $opcion): ?>
-                  <label>
+                <div class="public-activity-flow__options">
+                <?php foreach ($pregunta['opciones'] as $indiceOpcion => $opcion): ?>
+                  <label class="public-activity-flow__option">
                     <input type="radio" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" value="<?php echo (int) $opcion['idOpcion']; ?>" required>
-                    <?php echo $e($opcion['textoOpcion']); ?>
+                    <span class="public-activity-flow__letter"><?php echo chr(65 + $indiceOpcion); ?></span><span><?php echo $e($opcion['textoOpcion']); ?></span>
                   </label>
                 <?php endforeach; ?>
+                </div>
               <?php elseif (($pregunta['tipoPregunta'] ?? '') === 'completar' && !empty($pregunta['opciones'])): ?>
                 <?php
                   $opcionesCompletar = $pregunta['opciones'];
                   shuffle($opcionesCompletar);
                 ?>
-                <p class="muted">Elegi la palabra que completa el espacio.</p>
-                <?php foreach ($opcionesCompletar as $opcion): ?>
-                  <label>
+                <div class="public-activity-flow__hint"><span>✦</span><span>Elegi la palabra que completa el espacio.</span></div>
+                <div class="public-activity-flow__options">
+                <?php foreach ($opcionesCompletar as $indiceOpcion => $opcion): ?>
+                  <label class="public-activity-flow__option">
                     <input type="radio" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" value="<?php echo (int) $opcion['idOpcion']; ?>" required>
-                    <?php echo $e($opcion['textoOpcion']); ?>
+                    <span class="public-activity-flow__letter"><?php echo chr(65 + $indiceOpcion); ?></span><span><?php echo $e($opcion['textoOpcion']); ?></span>
                   </label>
                 <?php endforeach; ?>
+                </div>
               <?php elseif (($pregunta['tipoPregunta'] ?? '') === 'verdadero_falso'): ?>
-                <label><input type="radio" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" value="verdadero" required> Verdadero</label>
-                <label><input type="radio" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" value="falso" required> Falso</label>
+                <div class="public-activity-flow__options">
+                  <label class="public-activity-flow__option"><input type="radio" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" value="verdadero" required><span class="public-activity-flow__letter">V</span><span>Verdadero</span></label>
+                  <label class="public-activity-flow__option"><input type="radio" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" value="falso" required><span class="public-activity-flow__letter">F</span><span>Falso</span></label>
+                </div>
               <?php elseif (($pregunta['tipoPregunta'] ?? '') === 'codigo'): ?>
-                <textarea name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" rows="3" placeholder="Describe el error o escribe la correccion esperada." required></textarea>
+                <div class="public-activity-flow__answer"><textarea name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" rows="3" placeholder="Describe el error o escribe la correccion esperada." required></textarea></div>
               <?php else: ?>
-                <input type="text" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" required>
+                <div class="public-activity-flow__answer"><input type="text" name="respuesta[<?php echo (int) $pregunta['idPregunta']; ?>]" required></div>
               <?php endif; ?>
-            </div>
+              <div class="public-activity-flow__validation" data-public-activity-validation role="alert" hidden>Respondé esta pregunta antes de entregar la actividad.</div>
+              <div class="public-activity-flow__actions">
+                <button class="btn secondary" type="button" data-public-activity-previous>← Anterior</button>
+                <div><button class="btn" type="button" data-public-activity-next>Siguiente →</button><button class="btn" type="submit" data-public-activity-submit>Entregar actividad</button></div>
+              </div>
+            </section>
           <?php endforeach; ?>
-
-          <button class="btn" type="submit">Entregar actividad</button>
+            <div class="public-activity-flow__submit-fallback"><button class="btn" type="submit">Entregar actividad</button></div>
+            </div>
+          </div>
         </form>
         <?php endif; ?>
       <?php endif; ?>
     <?php endif; ?>
   </main>
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var flow = document.querySelector('[data-public-activity-flow]');
+    if (!flow) {
+      return;
+    }
+
+    var questions = Array.prototype.slice.call(flow.querySelectorAll('[data-public-activity-question]'));
+    var navigation = Array.prototype.slice.call(flow.querySelectorAll('[data-public-activity-nav]'));
+    var progress = flow.querySelector('[data-public-activity-progress]');
+    var progressLabel = flow.querySelector('[data-public-activity-progress-label]');
+    var progressContainer = flow.querySelector('.public-activity-flow__progress');
+    var total = questions.length;
+    var activeIndex = 0;
+    if (total === 0) {
+      return;
+    }
+
+    flow.classList.add('is-ready');
+    flow.noValidate = true;
+
+    function questionHasAnswer(question) {
+      if (question.querySelector('input[type="radio"]:checked')) {
+        return true;
+      }
+      var field = question.querySelector('textarea[name^="respuesta["] , input[type="text"][name^="respuesta["]');
+      return !!field && field.value.trim() !== '';
+    }
+
+    function updateAnsweredState() {
+      questions.forEach(function (question, index) {
+        question.querySelectorAll('.public-activity-flow__option').forEach(function (option) {
+          option.classList.toggle('is-selected', option.querySelector('input').checked);
+        });
+        if (navigation[index]) {
+          navigation[index].classList.toggle('is-answered', questionHasAnswer(question));
+        }
+      });
+    }
+
+    function showQuestion(index) {
+      activeIndex = Math.max(0, Math.min(index, total - 1));
+      questions.forEach(function (question, questionIndex) {
+        question.classList.toggle('is-active', questionIndex === activeIndex);
+        var validation = question.querySelector('[data-public-activity-validation]');
+        if (validation) {
+          validation.hidden = true;
+        }
+      });
+      navigation.forEach(function (item, navigationIndex) {
+        item.classList.toggle('is-active', navigationIndex === activeIndex);
+        item.setAttribute('aria-current', navigationIndex === activeIndex ? 'step' : 'false');
+      });
+
+      var current = questions[activeIndex];
+      current.querySelector('[data-public-activity-previous]').hidden = activeIndex === 0;
+      current.querySelector('[data-public-activity-next]').hidden = activeIndex === total - 1;
+      current.querySelector('[data-public-activity-submit]').hidden = activeIndex !== total - 1;
+
+      var completed = activeIndex + 1;
+      progress.style.width = ((completed / total) * 100) + '%';
+      progressLabel.textContent = 'Pregunta ' + completed + ' de ' + total;
+      progressContainer.setAttribute('aria-valuenow', String(completed));
+    }
+
+    navigation.forEach(function (item) {
+      item.addEventListener('click', function (event) {
+        event.preventDefault();
+        showQuestion(Number(item.getAttribute('data-public-activity-nav')));
+      });
+    });
+
+    questions.forEach(function (question, index) {
+      question.querySelector('[data-public-activity-previous]').addEventListener('click', function () {
+        showQuestion(index - 1);
+      });
+      question.querySelector('[data-public-activity-next]').addEventListener('click', function () {
+        showQuestion(index + 1);
+      });
+      question.querySelectorAll('input, textarea').forEach(function (field) {
+        field.addEventListener('input', updateAnsweredState);
+        field.addEventListener('change', updateAnsweredState);
+      });
+    });
+
+    flow.addEventListener('submit', function (event) {
+      var unansweredIndex = questions.findIndex(function (question) {
+        return !questionHasAnswer(question);
+      });
+      if (unansweredIndex === -1) {
+        return;
+      }
+      event.preventDefault();
+      showQuestion(unansweredIndex);
+      var validation = questions[unansweredIndex].querySelector('[data-public-activity-validation]');
+      if (validation) {
+        validation.hidden = false;
+      }
+    });
+
+    updateAnsweredState();
+    showQuestion(0);
+  });
+  </script>
 </body>
 </html>
