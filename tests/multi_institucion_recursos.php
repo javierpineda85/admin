@@ -418,11 +418,13 @@ try {
     ModeloLecciones::mdlGuardarRecursoLeccion('recursoslecciones',['id_leccion'=>$leccionDemo,'tipoRecurso'=>'ARCHIVO',
         'tituloRecurso'=>$marca,'urlRecurso'=>$rutaArchivo,'creadoPor'=>$ids['B']]);
     $copiaArchivo=ModeloCursos::mdlDuplicarCurso($cursoDemo,['idUsuario'=>$ids['B'],'nombreCurso'=>'Copia con archivo','fechaInicioCurso'=>'2026-01-01','fechaFinCurso'=>'2026-12-31']);
-    $consulta=$pdo->prepare('SELECT r.urlRecurso FROM recursoslecciones r INNER JOIN lecciones l ON l.idLeccion=r.id_leccion
+    $consulta=$pdo->prepare('SELECT r.idRecursoLeccion, r.urlRecurso FROM recursoslecciones r INNER JOIN lecciones l ON l.idLeccion=r.id_leccion
         INNER JOIN secciones s ON s.idSeccion=l.id_modulo WHERE s.id_curso=? AND r.tituloRecurso=?');
     $consulta->execute([$copiaArchivo,$marca]);
-    $rutaCopia=(string)$consulta->fetchColumn();
+    $recursoCopia=$consulta->fetch(PDO::FETCH_ASSOC);
+    $rutaCopia=(string)($recursoCopia['urlRecurso'] ?? '');
     verificar((bool)preg_match('~^uploads/lecciones/copia_[a-zA-Z0-9_]+\.txt$~D',$rutaCopia), 'Duplicación crea un archivo independiente dentro del directorio permitido');
+    verificar(ControladorDescargas::crtResolverArchivo('recurso',(int)($recursoCopia['idRecursoLeccion'] ?? 0))['nombre']===$marca.'.txt', 'Duplicación conserva la extensión al descargar un recurso copiado');
     $copiasFisicas[]=dirname(__DIR__) . '/' . $rutaCopia;
     verificar(hash_file('sha256',$archivoAbsoluto)===hash_file('sha256',$copiasFisicas[0]), 'Duplicación preserva contenido del archivo');
     $tablasDuplicacion=['cursos','secciones','lecciones','recursoslecciones','archivoslecciones','actividades','actividades_preguntas','actividades_opciones'];
@@ -459,7 +461,7 @@ $pdo->prepare('INSERT INTO recursoslecciones(id_leccion,tipoRecurso,tituloRecurs
 $recursoLocal=(int)$pdo->lastInsertId();
 verificar(ControladorDescargas::crtResolverArchivo('recurso',$recursoLocal)['ruta']===$absolutosDescarga[1], 'Administrador descarga un recurso local del tenant activo');
 sesionPara($ids['A']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
-verificar(ControladorDescargas::crtResolverArchivo('recurso',$recursoLocal)['nombre']==='Material protegido', 'Estudiante inscripto descarga un recurso local de su curso');
+verificar(ControladorDescargas::crtResolverArchivo('recurso',$recursoLocal)['nombre']==='Material protegido.txt', 'Estudiante inscripto descarga un recurso local con su extensión');
 sesionPara($ids['B']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
 $panelDemo=ModeloPanel::mdlResumenDashboard($ids['B'],'ADMINISTRADOR');
 $tarjetasDemo=array_column($panelDemo['tarjetas'],'value','label');

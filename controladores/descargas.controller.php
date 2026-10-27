@@ -88,6 +88,10 @@ class ControladorDescargas
         }
         $nombre = trim((string) ($registro['nombreOriginal'] ?? ''));
         if ($nombre === '') { $nombre = basename($ruta); }
+        $extension = pathinfo($ruta, PATHINFO_EXTENSION);
+        if ($extension !== '' && !str_ends_with(strtolower($nombre), '.' . strtolower($extension))) {
+            $nombre .= '.' . $extension;
+        }
         return [
             'ruta' => $ruta,
             'nombre' => basename(str_replace(["\r", "\n"], '', $nombre)),
