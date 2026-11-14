@@ -2,16 +2,18 @@
 require_once('modelos/actividades.modelo.php');
 require_once('controladores/notificaciones.controller.php');
 require_once __DIR__ . '/seguridad-html.php';
+require_once __DIR__ . '/seguridad-archivos.php';
 
 class ControladorActividades
 {
     public static function tiposDisponibles()
     {
         return [
-            'multiple_choice' => 'Multiple choice',
-            'verdadero_falso' => 'Verdadero / falso',
-            'completar' => 'Completar espacios',
-            'codigo' => 'Detectar error en codigo',
+            'multiple_choice' => 'Multiple choice / Verdadero o falso',
+            'arrastrar_completar' => 'Completar los espacios',
+            'codigo' => 'Detectar error en código',
+            'arrastrar_pares' => 'Buscar pares',
+            'arrastrar_orden' => 'Ordenar la secuencia',
             'externa' => 'Recurso externo',
         ];
     }
@@ -397,14 +399,14 @@ class ControladorActividades
             return 'denied';
         }
 
-        $tipo = self::valorPermitido($_POST['tipoActividad'] ?? '', array_keys(self::tiposDisponibles()), 'multiple_choice');
+        $tiposPermitidos = array_merge(array_keys(self::tiposDisponibles()), ['verdadero_falso', 'completar']);
+        $tipo = self::valorPermitido($_POST['tipoActividad'] ?? '', $tiposPermitidos, 'multiple_choice');
         $visibilidad = self::valorPermitido($_POST['visibilidad'] ?? '', array_keys(self::visibilidadesDisponibles()), 'privada');
         $estado = self::valorPermitido($_POST['estadoActividad'] ?? '', array_keys(self::estadosDisponibles()), 'BORRADOR');
         $titulo = trim((string) ($_POST['tituloActividad'] ?? ''));
 
         if ($titulo === '') {
-            $_SESSION['error_message'] = 'Completa el titulo de la actividad.';
-            return 'error';
+            return self::fallarFormularioActividad('Completá el título de la actividad.');
         }
 
         $idSeccion = (int) ($_POST['id_seccion'] ?? 0);
@@ -412,8 +414,7 @@ class ControladorActividades
         $idCurso = $seccion ? (int) ($seccion['id_curso'] ?? 0) : 0;
 
         if ($visibilidad === 'privada' && (!$seccion || $idCurso <= 0)) {
-            $_SESSION['error_message'] = 'Las actividades privadas deben estar asociadas a una materia.';
-            return 'error';
+            return self::fallarFormularioActividad('Las actividades privadas deben estar asociadas a una materia.');
         }
 
         if ($seccion && !ControladorPermisos::esAdministrador()) {
@@ -424,10 +425,14 @@ class ControladorActividades
             }
         }
 
-        $preguntas = self::normalizarPreguntas($tipo);
+        try {
+            $preguntas = self::normalizarPreguntas($tipo);
+            self::procesarMediosArrastre($preguntas);
+        } catch (Throwable $e) {
+            return self::fallarFormularioActividad($e->getMessage());
+        }
         if ($tipo !== 'externa' && empty($preguntas)) {
-            $_SESSION['error_message'] = 'Agrega al menos una pregunta.';
-            return 'error';
+            return self::fallarFormularioActividad('Agregá al menos una pregunta.');
         }
 
         $puntajeMaximo = 0;
@@ -461,10 +466,10 @@ class ControladorActividades
             : ModeloActividades::mdlGuardarActividad($datos, $preguntas);
 
         if ($respuesta === 'error') {
-            $_SESSION['error_message'] = 'No se pudo guardar la actividad.';
-            return 'error';
+            return self::fallarFormularioActividad('No se pudo guardar la actividad.');
         }
 
+        unset($_SESSION['actividad_form_borrador']);
         $_SESSION['success_message'] = 'Actividad guardada correctamente.';
         $idDestino = $idActividad > 0 ? $idActividad : (int) $respuesta;
         $estadoAnterior = strtoupper((string) ($actividadActual['estadoActividad'] ?? ''));
@@ -475,6 +480,88 @@ class ControladorActividades
             }
         }
         self::redirigir('index.php?r=editar-actividad&idActividad=' . $idDestino);
+    }
+
+    private static function fallarFormularioActividad($mensaje)
+    {
+        self::guardarBorradorFormularioActividad();
+        $_SESSION['error_message'] = (string) $mensaje;
+        return 'error';
+    }
+
+    private static function guardarBorradorFormularioActividad()
+    {
+        $campos = [
+            'tituloActividad', 'descripcionActividad', 'tipoActividad', 'visibilidad', 'estadoActividad',
+            'id_seccion', 'intentosPermitidos', 'recursoExternoUrl', 'recursoExternoEmbed', 'preguntasPayload'
+        ];
+        $actividad = [];
+        foreach ($campos as $campo) {
+            if ($campo !== 'preguntasPayload') { $actividad[$campo] = (string) ($_POST[$campo] ?? ''); }
+        }
+        $actividad['permiteVisitantes'] = isset($_POST['permiteVisitantes']) ? 1 : 0;
+        $_SESSION['actividad_form_borrador'] = [
+            'idActividad' => (int) ($_POST['idActividad'] ?? 0),
+            'actividad' => $actividad,
+            'preguntasPayload' => (string) ($_POST['preguntasPayload'] ?? ''),
+            'requiereAdjuntos' => self::hayArchivosFormularioActividad(),
+        ];
+    }
+
+    private static function hayArchivosFormularioActividad()
+    {
+        foreach (['arrastreImagen', 'arrastreAudio'] as $campo) {
+            foreach ((array) ($_FILES[$campo]['error'] ?? []) as $pregunta) {
+                foreach ((array) $pregunta as $error) {
+                    if ((int) $error !== UPLOAD_ERR_NO_FILE) { return true; }
+                }
+            }
+        }
+        return false;
+    }
+
+    public static function crtConsumirBorradorFormulario($idActividad)
+    {
+        $borrador = $_SESSION['actividad_form_borrador'] ?? null;
+        if (!is_array($borrador) || (int) ($borrador['idActividad'] ?? 0) !== (int) $idActividad) { return null; }
+        unset($_SESSION['actividad_form_borrador']);
+        $preguntas = [];
+        $payload = json_decode((string) ($borrador['preguntasPayload'] ?? ''), true);
+        if (is_array($payload)) {
+            foreach ($payload as $pregunta) {
+                if (!is_array($pregunta)) { continue; }
+                $opciones = [];
+                foreach ((array) ($pregunta['tarjetasArrastre'] ?? []) as $orden => $tarjeta) {
+                    if (!is_array($tarjeta)) { continue; }
+                    $lado = (string) ($tarjeta['lado'] ?? '');
+                    $opciones[] = [
+                        'textoOpcion' => (string) ($tarjeta['texto'] ?? ''),
+                        'esCorrecta' => !empty($tarjeta['correcta']) ? 1 : 0,
+                        'tipoArrastre' => $lado,
+                        'claveArrastre' => (int) ($tarjeta['clave'] ?? ($orden + 1)),
+                        'imagenOpcion' => (string) ($tarjeta['imagen'] ?? ''),
+                        'audioOpcion' => (string) ($tarjeta['audio'] ?? ''),
+                    ];
+                }
+                if (!$opciones) {
+                    foreach ((array) ($pregunta['opciones'] ?? []) as $orden => $opcion) {
+                        $opciones[] = ['textoOpcion' => (string) $opcion, 'esCorrecta' => (int) ($pregunta['opcionCorrecta'] ?? 0) === (int) $orden ? 1 : 0];
+                    }
+                }
+                $preguntas[] = [
+                    'textoPregunta' => (string) ($pregunta['textoPregunta'] ?? ''),
+                    'respuestaCorrecta' => (string) ($pregunta['respuestaCorrecta'] ?? ''),
+                    'codigoBase' => (string) ($pregunta['codigoBase'] ?? ''),
+                    'lenguajeCodigo' => (string) ($pregunta['lenguajeCodigo'] ?? 'plaintext'),
+                    'variantesCodigo' => (string) ($pregunta['variantesCodigo'] ?? ''),
+                    'puntaje' => (float) ($pregunta['puntaje'] ?? 1),
+                    'pista' => (string) ($pregunta['pista'] ?? ''),
+                    'explicacionError' => (string) ($pregunta['explicacionError'] ?? ''),
+                    'opciones' => $opciones,
+                ];
+            }
+        }
+        return ['actividad' => (array) ($borrador['actividad'] ?? []), 'preguntas' => $preguntas, 'requiereAdjuntos' => !empty($borrador['requiereAdjuntos'])];
     }
 
     private static function duplicarActividad($comoPlantilla)
@@ -643,7 +730,7 @@ class ControladorActividades
         }
 
         if (($actividad['tipoActividad'] ?? '') === 'externa') {
-            $_SESSION['error_message'] = 'Esta actividad externa no registra correccion automatica.';
+            $_SESSION['error_message'] = 'Esta actividad externa no registra corrección automática.';
             return 'error';
         }
 
@@ -671,6 +758,12 @@ class ControladorActividades
                 'pregunta' => (string) ($pregunta['textoPregunta'] ?? ''),
                 'respuesta' => (string) ($resultado['textoRespuesta'] ?? ''),
                 'correcta' => (int) ($resultado['esCorrecta'] ?? 0) === 1,
+                'aciertos' => $resultado['aciertos'] ?? null,
+                'totalItems' => $resultado['totalItems'] ?? null,
+                'errores' => isset($resultado['aciertos'], $resultado['totalItems'])
+                    ? max(0, (int) $resultado['totalItems'] - (int) $resultado['aciertos'])
+                    : null,
+                'puntajeObtenido' => (float) ($resultado['puntajeObtenido'] ?? 0),
                 'explicacionError' => (string) ($pregunta['explicacionError'] ?? ''),
             ];
         }
@@ -711,6 +804,35 @@ class ControladorActividades
         $textoRespuesta = '';
         $correcta = false;
 
+        if (in_array($tipo, ['arrastrar_pares','arrastrar_orden','arrastrar_completar'], true)) {
+            $respuestaArrastre = json_decode((string)$respuesta, true);
+            $opciones = $pregunta['opciones'] ?? [];
+            $aciertos = 0;
+            $totalItems = 0;
+            if ($tipo === 'arrastrar_pares') {
+                $origenes=[];$destinos=[];
+                foreach($opciones as $opcion){if(($opcion['tipoArrastre']??'')==='origen'){$origenes[(int)$opcion['idOpcion']]=$opcion;}elseif(($opcion['tipoArrastre']??'')==='destino'){$destinos[(int)$opcion['idOpcion']]=$opcion;}}
+                foreach((array)$respuestaArrastre as $origen=>$destino){if(isset($origenes[(int)$origen])){$totalItems++;if(isset($destinos[(int)$destino])&&(int)$origenes[(int)$origen]['claveArrastre']===(int)$destinos[(int)$destino]['claveArrastre']){$aciertos++;}}}
+                $textoRespuesta=$aciertos.' de '.count($origenes).' relaciones correctas';
+                $totalEsperado=count($origenes);
+            } elseif ($tipo === 'arrastrar_orden') {
+                $orden=array_values(is_array($respuestaArrastre)?$respuestaArrastre:[]);$totalEsperado=count($opciones);
+                foreach($orden as $posicion=>$idOpcion){foreach($opciones as $opcion){if((int)$opcion['idOpcion']===(int)$idOpcion){$totalItems++;if((int)$opcion['claveArrastre']===$posicion+1){$aciertos++;}break;}}}
+                $textoRespuesta=$aciertos.' de '.$totalEsperado.' posiciones correctas';
+            } else {
+                $correctas=[];
+                foreach($opciones as $opcion){if((int)($opcion['esCorrecta']??0)===1){$correctas[(int)($opcion['claveArrastre']??1)]=$opcion;}}
+                $totalEsperado=count($correctas);
+                if(!is_array($respuestaArrastre)){$respuestaArrastre=[1=>(int)$respuestaArrastre];}
+                foreach($respuestaArrastre as $espacio=>$idSeleccionado){$espacio=(int)$espacio;$idSeleccionado=(int)$idSeleccionado;if(isset($correctas[$espacio])){$totalItems++;if((int)$correctas[$espacio]['idOpcion']===$idSeleccionado){$aciertos++;}}}
+                $idOpcion=(int)reset($respuestaArrastre);
+                $textoRespuesta=$aciertos.' de '.$totalEsperado.' espacios correctos';
+            }
+            $correcta=$totalEsperado>0&&$aciertos===$totalEsperado;
+            $puntajeObtenido=$totalEsperado>0?round($puntaje*($aciertos/$totalEsperado),2):0;
+            return ['id_pregunta'=>$idPregunta,'id_opcion'=>$idOpcion,'textoRespuesta'=>$textoRespuesta,'esCorrecta'=>$correcta?1:0,'puntajeObtenido'=>$puntajeObtenido,'aciertos'=>$aciertos,'totalItems'=>$totalEsperado];
+        }
+
         if ($tipo === 'multiple_choice' || ($tipo === 'completar' && !empty($pregunta['opciones']))) {
             $idOpcion = (int) $respuesta;
             foreach (($pregunta['opciones'] ?? []) as $opcion) {
@@ -738,6 +860,35 @@ class ControladorActividades
         ];
     }
 
+    private static function archivoArrastre($campo, $indicePregunta, $clave)
+    {
+        $archivo = $_FILES[$campo] ?? null;
+        if (!is_array($archivo) || !isset($archivo['error'][$indicePregunta][$clave])) { return null; }
+        if ((int)$archivo['error'][$indicePregunta][$clave] === UPLOAD_ERR_NO_FILE) { return null; }
+        return ['name'=>$archivo['name'][$indicePregunta][$clave] ?? '', 'type'=>$archivo['type'][$indicePregunta][$clave] ?? '', 'tmp_name'=>$archivo['tmp_name'][$indicePregunta][$clave] ?? '', 'error'=>$archivo['error'][$indicePregunta][$clave] ?? UPLOAD_ERR_NO_FILE, 'size'=>$archivo['size'][$indicePregunta][$clave] ?? 0];
+    }
+
+    private static function procesarMediosArrastre(array &$preguntas)
+    {
+        $directorio = __DIR__ . '/../uploads/actividades';
+        foreach ($preguntas as $indicePregunta => &$pregunta) {
+            $indiceArchivo = (int)($pregunta['indiceFormulario'] ?? $indicePregunta);
+            if (empty($pregunta['opciones']) || !is_array($pregunta['opciones'])) { continue; }
+            foreach ($pregunta['opciones'] as &$opcion) {
+                if (empty($opcion['tipoArrastre'])) { continue; }
+                $clave = (string)($opcion['mediaKey'] ?? '');
+                $imagen = self::archivoArrastre('arrastreImagen', $indiceArchivo, $clave);
+                $audio = self::archivoArrastre('arrastreAudio', $indiceArchivo, $clave);
+                if ($imagen) { $opcion['imagenOpcion'] = 'uploads/actividades/' . SeguridadArchivos::guardarImagenSubida($imagen, $directorio, 'actividad_img_', 5242880); }
+                if ($audio) { $guardado = SeguridadArchivos::guardarAdjuntoSubido($audio, $directorio, 'actividad_audio_', ['mp3','wav','ogg','webm','m4a'], 5242880); $opcion['audioOpcion'] = 'uploads/actividades/' . $guardado['nombreGuardado']; }
+                unset($opcion['mediaKey']);
+            }
+            unset($opcion);
+            unset($pregunta['indiceFormulario']);
+        }
+        unset($pregunta);
+    }
+
     private static function normalizarPreguntas($tipo)
     {
         if ($tipo === 'externa') {
@@ -756,6 +907,7 @@ class ControladorActividades
             $variantesCodigo = [];
             $opciones = [];
             $correctas = [];
+            $tarjetasArrastre = [];
 
             foreach ($payload as $indice => $item) {
                 if (!is_array($item)) {
@@ -772,6 +924,7 @@ class ControladorActividades
                 $variantesCodigo[$indice] = $item['variantesCodigo'] ?? '';
                 $opciones[$indice] = is_array($item['opciones'] ?? null) ? $item['opciones'] : [];
                 $correctas[$indice] = $item['opcionCorrecta'] ?? 0;
+                $tarjetasArrastre[$indice] = is_array($item['tarjetasArrastre'] ?? null) ? $item['tarjetasArrastre'] : [];
             }
         } else {
             $textos = $_POST['preguntaTexto'] ?? [];
@@ -784,6 +937,7 @@ class ControladorActividades
             $variantesCodigo = $_POST['variantesCodigo'] ?? [];
             $opciones = $_POST['opciones'] ?? [];
             $correctas = $_POST['opcionCorrecta'] ?? [];
+            $tarjetasArrastre = [];
         }
         $preguntas = [];
 
@@ -804,10 +958,49 @@ class ControladorActividades
                 'pista' => trim((string) ($pistas[$indice] ?? '')),
                 'explicacionError' => trim((string) ($explicaciones[$indice] ?? '')),
                 'opciones' => [],
+                'indiceFormulario' => (int) $indice,
             ];
 
             if ($tipo === 'verdadero_falso') {
                 $pregunta['respuestaCorrecta'] = self::valorPermitido($pregunta['respuestaCorrecta'], ['verdadero', 'falso'], 'verdadero');
+            }
+
+            if (in_array($tipo, ['arrastrar_pares','arrastrar_orden','arrastrar_completar'], true)) {
+                $tarjetas = array_values(array_filter((array)($tarjetasArrastre[$indice] ?? []), static function ($tarjeta) {
+                    return is_array($tarjeta) && (trim((string)($tarjeta['texto'] ?? '')) !== '' || !empty($tarjeta['imagen']) || !empty($tarjeta['audio']) || !empty($tarjeta['tieneNuevaImagen']) || !empty($tarjeta['tieneNuevoAudio']));
+                }));
+                if (count($tarjetas) < 2 || count($tarjetas) > 8) {
+                    throw new InvalidArgumentException('La pregunta ' . ((int) $indice + 1) . ' debe tener entre 2 y 8 tarjetas.');
+                }
+                $claveCompletar = 0;
+                foreach ($tarjetas as $ordenTarjeta => $tarjeta) {
+                    $esCorrecta = !empty($tarjeta['correcta']) ? 1 : 0;
+                    if ($tipo === 'arrastrar_completar' && $esCorrecta) { $claveCompletar++; }
+                    $pregunta['opciones'][] = [
+                        'textoOpcion' => trim((string)($tarjeta['texto'] ?? '')),
+                        'esCorrecta' => $esCorrecta,
+                        'tipoArrastre' => $tipo === 'arrastrar_pares' ? (string)($tarjeta['lado'] ?? '') : ($tipo === 'arrastrar_orden' ? 'orden' : 'completar'),
+                        'claveArrastre' => $tipo === 'arrastrar_pares' ? max(1,(int)($tarjeta['clave'] ?? 0)) : ($tipo === 'arrastrar_orden' ? $ordenTarjeta + 1 : ($esCorrecta ? $claveCompletar : 0)),
+                        'imagenOpcion' => trim((string)($tarjeta['imagen'] ?? '')),
+                        'audioOpcion' => trim((string)($tarjeta['audio'] ?? '')),
+                        'mediaKey' => (string)($tarjeta['clave'] ?? $ordenTarjeta + 1) . '_' . ($tarjeta['lado'] ?? ''),
+                    ];
+                }
+                if ($tipo === 'arrastrar_pares') {
+                    $origenes=array_filter($pregunta['opciones'],static function($o){return ($o['tipoArrastre']??'')==='origen';});
+                    $destinos=array_filter($pregunta['opciones'],static function($o){return ($o['tipoArrastre']??'')==='destino';});
+                    if (count($origenes)<2 || count($origenes)!==count($destinos)) {
+                        throw new InvalidArgumentException('La pregunta ' . ((int) $indice + 1) . ' debe tener la misma cantidad de orígenes y destinos.');
+                    }
+                }
+                if ($tipo === 'arrastrar_completar') {
+                    preg_match_all('/\[\[[^\]\r\n]+\]\]|_{2,}/u', $pregunta['textoPregunta'], $marcadores);
+                    $cantidadEspacios = count($marcadores[0] ?? []);
+                    $cantidadCorrectas = count(array_filter($pregunta['opciones'],static function($o){return !empty($o['esCorrecta']);}));
+                    if (($cantidadEspacios > 0 && $cantidadCorrectas !== $cantidadEspacios) || ($cantidadEspacios === 0 && $cantidadCorrectas !== 1)) {
+                        throw new InvalidArgumentException('La pregunta ' . ((int) $indice + 1) . ' necesita una tarjeta correcta por cada espacio marcado con dos o más guiones bajos, o con [[respuesta]].');
+                    }
+                }
             }
 
             if ($tipo === 'multiple_choice') {
@@ -887,6 +1080,10 @@ class ControladorActividades
                 $clon['opciones'][] = [
                     'textoOpcion' => (string) ($opcion['textoOpcion'] ?? ''),
                     'esCorrecta' => (int) ($opcion['esCorrecta'] ?? 0),
+                    'tipoArrastre' => (string) ($opcion['tipoArrastre'] ?? ''),
+                    'claveArrastre' => isset($opcion['claveArrastre']) ? (int) $opcion['claveArrastre'] : null,
+                    'imagenOpcion' => (string) ($opcion['imagenOpcion'] ?? ''),
+                    'audioOpcion' => (string) ($opcion['audioOpcion'] ?? ''),
                 ];
             }
 

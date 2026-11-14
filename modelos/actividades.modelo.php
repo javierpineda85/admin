@@ -74,6 +74,10 @@ class ModeloActividades
                 textoOpcion TEXT NOT NULL,
                 esCorrecta TINYINT(1) NOT NULL DEFAULT 0,
                 orden INT NOT NULL DEFAULT 1,
+                tipoArrastre VARCHAR(20) NULL,
+                claveArrastre INT NULL,
+                imagenOpcion VARCHAR(255) NULL,
+                audioOpcion VARCHAR(255) NULL,
                 PRIMARY KEY (idOpcion),
                 KEY idx_opciones_pregunta (id_pregunta, orden)
             ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -120,6 +124,10 @@ class ModeloActividades
         self::agregarColumnaSiFalta($pdo, 'actividades_preguntas', 'lenguajeCodigo', "ALTER TABLE actividades_preguntas ADD COLUMN lenguajeCodigo VARCHAR(30) NOT NULL DEFAULT 'plaintext' AFTER codigoBase");
         self::agregarColumnaSiFalta($pdo, 'actividades_preguntas', 'variantesCodigo', "ALTER TABLE actividades_preguntas ADD COLUMN variantesCodigo TEXT NULL AFTER lenguajeCodigo");
         self::agregarColumnaSiFalta($pdo, 'actividades_preguntas', 'explicacionError', "ALTER TABLE actividades_preguntas ADD COLUMN explicacionError TEXT NULL AFTER pista");
+        self::agregarColumnaSiFalta($pdo, 'actividades_opciones', 'tipoArrastre', "ALTER TABLE actividades_opciones ADD COLUMN tipoArrastre VARCHAR(20) NULL AFTER orden");
+        self::agregarColumnaSiFalta($pdo, 'actividades_opciones', 'claveArrastre', "ALTER TABLE actividades_opciones ADD COLUMN claveArrastre INT NULL AFTER tipoArrastre");
+        self::agregarColumnaSiFalta($pdo, 'actividades_opciones', 'imagenOpcion', "ALTER TABLE actividades_opciones ADD COLUMN imagenOpcion VARCHAR(255) NULL AFTER claveArrastre");
+        self::agregarColumnaSiFalta($pdo, 'actividades_opciones', 'audioOpcion', "ALTER TABLE actividades_opciones ADD COLUMN audioOpcion VARCHAR(255) NULL AFTER imagenOpcion");
 
         self::$tablasPreparadas = true;
     }
@@ -725,13 +733,17 @@ class ModeloActividades
             $idPregunta = (int) Conexion::conectar()->lastInsertId();
             foreach (($pregunta['opciones'] ?? []) as $ordenOpcion => $opcion) {
                 $stmtOpcion = Conexion::conectar()->prepare("
-                    INSERT INTO actividades_opciones (id_pregunta, textoOpcion, esCorrecta, orden)
-                    VALUES (:id_pregunta, :textoOpcion, :esCorrecta, :orden)
+                    INSERT INTO actividades_opciones (id_pregunta, textoOpcion, esCorrecta, orden, tipoArrastre, claveArrastre, imagenOpcion, audioOpcion)
+                    VALUES (:id_pregunta, :textoOpcion, :esCorrecta, :orden, :tipoArrastre, :claveArrastre, :imagenOpcion, :audioOpcion)
                 ");
                 $stmtOpcion->bindValue(':id_pregunta', $idPregunta, PDO::PARAM_INT);
                 $stmtOpcion->bindValue(':textoOpcion', $opcion['textoOpcion'], PDO::PARAM_STR);
                 $stmtOpcion->bindValue(':esCorrecta', (int) $opcion['esCorrecta'], PDO::PARAM_INT);
                 $stmtOpcion->bindValue(':orden', (int) ($ordenOpcion + 1), PDO::PARAM_INT);
+                $stmtOpcion->bindValue(':tipoArrastre', $opcion['tipoArrastre'] ?? null, !empty($opcion['tipoArrastre']) ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtOpcion->bindValue(':claveArrastre', isset($opcion['claveArrastre']) ? (int) $opcion['claveArrastre'] : null, isset($opcion['claveArrastre']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                $stmtOpcion->bindValue(':imagenOpcion', $opcion['imagenOpcion'] ?? null, !empty($opcion['imagenOpcion']) ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtOpcion->bindValue(':audioOpcion', $opcion['audioOpcion'] ?? null, !empty($opcion['audioOpcion']) ? PDO::PARAM_STR : PDO::PARAM_NULL);
                 $stmtOpcion->execute();
             }
         }

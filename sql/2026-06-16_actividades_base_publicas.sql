@@ -42,6 +42,10 @@ CREATE TABLE IF NOT EXISTS actividades_opciones (
   textoOpcion TEXT NOT NULL,
   esCorrecta TINYINT(1) NOT NULL DEFAULT 0,
   orden INT NOT NULL DEFAULT 1,
+  tipoArrastre VARCHAR(20) NULL,
+  claveArrastre INT NULL,
+  imagenOpcion VARCHAR(255) NULL,
+  audioOpcion VARCHAR(255) NULL,
   PRIMARY KEY (idOpcion),
   KEY idx_opciones_pregunta (id_pregunta, orden)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

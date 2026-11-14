@@ -17,6 +17,10 @@ include __DIR__ . '/_formulario-actividad-config.php';
   .code-editor-shell__header small { color: #94a3b8; margin: 0; }
   .code-editor-textarea { border: 0; border-radius: 0; min-height: 220px; resize: vertical; background: transparent; color: #e2e8f0; font-family: Consolas, Monaco, monospace; line-height: 1.55; tab-size: 2; cursor: text !important; }
   .code-editor-textarea:focus { background: #0f172a; color: #f8fafc; box-shadow: none; }
+  .dnd-upload { margin-bottom: .75rem; }
+  .dnd-file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .dnd-file-button { margin: 0 .5rem 0 0; border-radius: 8px; font-weight: 600; }
+  .dnd-file-name { display: inline-block; max-width: 100%; color: #64748b; font-size: .82rem; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; white-space: nowrap; }
 </style>
 
 <section class="content page-fade">
@@ -31,15 +35,19 @@ include __DIR__ . '/_formulario-actividad-config.php';
 
     <div class="card glass-card">
       <div class="card-body">
-        <form method="post" data-actividad-form>
+        <form method="post" enctype="multipart/form-data" data-actividad-form>
           <input type="hidden" name="accion_actividad" value="guardar_actividad">
           <input type="hidden" name="idActividad" value="<?php echo (int) ($actividad['idActividad'] ?? 0); ?>">
           <input type="hidden" name="preguntasPayload" id="preguntasPayload" value="">
 
+          <?php if (!empty($borradorFormulario['requiereAdjuntos'])): ?>
+            <div class="alert alert-warning"><i class="fas fa-paperclip mr-1"></i>Se recuperó el formulario. Por seguridad del navegador, volvé a adjuntar los archivos que habías seleccionado.</div>
+          <?php endif; ?>
+
           <div class="row">
             <div class="col-lg-8">
               <div class="form-group">
-                <label>Titulo</label>
+                <label>Título</label>
                 <input type="text" name="tituloActividad" class="form-control" required value="<?php echo $e($actividad['tituloActividad'] ?? ''); ?>">
               </div>
             </div>
@@ -56,7 +64,7 @@ include __DIR__ . '/_formulario-actividad-config.php';
           </div>
 
           <div class="form-group">
-            <label>Descripcion</label>
+            <label>Descripción</label>
             <textarea name="descripcionActividad" class="form-control" rows="3"><?php echo $e($actividad['descripcionActividad'] ?? ''); ?></textarea>
           </div>
 

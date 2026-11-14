@@ -203,8 +203,8 @@ class ModeloCursos
                             $opciones = $pdo->prepare('SELECT * FROM actividades_opciones WHERE id_pregunta = :id ORDER BY orden, idOpcion');
                             $opciones->execute([':id' => (int) $pregunta['idPregunta']]);
                             foreach ($opciones->fetchAll(PDO::FETCH_ASSOC) as $opcion) {
-                                $pdo->prepare('INSERT INTO actividades_opciones (id_pregunta, textoOpcion, esCorrecta, orden) VALUES (?, ?, ?, ?)')
-                                    ->execute([$idPreguntaNueva, $opcion['textoOpcion'], $opcion['esCorrecta'], $opcion['orden']]);
+                                $pdo->prepare('INSERT INTO actividades_opciones (id_pregunta, textoOpcion, esCorrecta, orden, tipoArrastre, claveArrastre, imagenOpcion, audioOpcion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                                    ->execute([$idPreguntaNueva, $opcion['textoOpcion'], $opcion['esCorrecta'], $opcion['orden'], $opcion['tipoArrastre'] ?? null, $opcion['claveArrastre'] ?? null, $opcion['imagenOpcion'] ?? null, $opcion['audioOpcion'] ?? null]);
                             }
                         }
                     }

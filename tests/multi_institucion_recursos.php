@@ -13,6 +13,7 @@ require_once __DIR__ . '/../modelos/mensajes.modelo.php';
 require_once __DIR__ . '/../modelos/notificaciones.modelo.php';
 require_once __DIR__ . '/../modelos/panel.modelo.php';
 require_once __DIR__ . '/../controladores/descargas.controller.php';
+require_once __DIR__ . '/../controladores/actividades.controller.php';
 require_once __DIR__ . '/../controladores/usuarios.controller.php';
 require_once __DIR__ . '/../controladores/perfiles.controller.php';
 foreach (['secciones', 'lecciones', 'asignacioncursos', 'recursoslecciones', 'entregaslecciones', 'posteos','usuarios_historial',
@@ -28,6 +29,7 @@ ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_03_catal
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_03_catalogos_calificacion.sql');
 verificar((int)$pdo->query("SELECT COUNT(*) FROM campus_migraciones WHERE codigo='multi_institucion_03_catalogos_calificacion'")->fetchColumn()===1, 'Migración de catálogos de calificación es reanudable e idempotente');
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-11-16_notas_trabajos_por_periodo.sql');
+ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-11-16_actividades_arrastrar_soltar.sql');
 verificar((int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='lecciones' AND column_name='id_periodo'")->fetchColumn()===1
     && (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='calificaciones' AND column_name='id_periodo'")->fetchColumn()===1,
     'Migración de notas de trabajos agrega los períodos requeridos');
@@ -319,6 +321,59 @@ $preguntasActividad=[['tipoPregunta'=>'multiple_choice','textoPregunta'=>'Pregun
     'explicacionError'=>'','opciones'=>[['textoOpcion'=>'Sí','esCorrecta'=>1]]]];
 $actividadModelo=ModeloActividades::mdlGuardarActividad($datosActividad,$preguntasActividad);
 verificar($actividadModelo>0&&(int)ModeloActividades::mdlBuscarPorId($actividadModelo)['id_institucion']===$demo, 'Alta de actividad obtiene institución exclusivamente desde la sesión');
+$datosArrastre=array_merge($datosActividad,['tituloActividad'=>'Relacionar pares','slug'=>'relacionar-pares-demo','tipoActividad'=>'arrastrar_pares']);
+$preguntasArrastre=[['tipoPregunta'=>'arrastrar_pares','textoPregunta'=>'Relacioná cada idioma','codigoBase'=>null,'lenguajeCodigo'=>'plaintext','variantesCodigo'=>null,'respuestaCorrecta'=>'','puntaje'=>4,'pista'=>'','explicacionError'=>'Revisá las parejas.','opciones'=>[
+    ['textoOpcion'=>'Hola','esCorrecta'=>0,'tipoArrastre'=>'origen','claveArrastre'=>1,'imagenOpcion'=>'uploads/actividades/prueba-imagen.png','audioOpcion'=>''],['textoOpcion'=>'Hello','esCorrecta'=>0,'tipoArrastre'=>'destino','claveArrastre'=>1,'imagenOpcion'=>'','audioOpcion'=>'uploads/actividades/prueba-audio.mp3'],
+    ['textoOpcion'=>'Adiós','esCorrecta'=>0,'tipoArrastre'=>'origen','claveArrastre'=>2,'imagenOpcion'=>'','audioOpcion'=>''],['textoOpcion'=>'Goodbye','esCorrecta'=>0,'tipoArrastre'=>'destino','claveArrastre'=>2,'imagenOpcion'=>'','audioOpcion'=>'']
+]]];
+$actividadArrastre=ModeloActividades::mdlGuardarActividad($datosArrastre,$preguntasArrastre);
+$preguntaArrastre=ModeloActividades::mdlPreguntasConOpciones($actividadArrastre)[0]??[];
+verificar($actividadArrastre>0&&count($preguntaArrastre['opciones']??[])===4&&(string)$preguntaArrastre['opciones'][0]['tipoArrastre']==='origen'
+    &&($preguntaArrastre['opciones'][0]['imagenOpcion']??'')==='uploads/actividades/prueba-imagen.png'
+    &&($preguntaArrastre['opciones'][1]['audioOpcion']??'')==='uploads/actividades/prueba-audio.mp3', 'Actividad de arrastrar y soltar conserva pares y metadatos multimedia');
+$corregirArrastre=Closure::bind(static function(array $pregunta, $respuesta) { return ControladorActividades::corregirPregunta($pregunta, $respuesta); }, null, ControladorActividades::class);
+$origenesArrastre=[];$destinosArrastre=[];
+foreach($preguntaArrastre['opciones'] as $opcionArrastre){if(($opcionArrastre['tipoArrastre']??'')==='origen'){$origenesArrastre[(int)$opcionArrastre['claveArrastre']]=(int)$opcionArrastre['idOpcion'];}else{$destinosArrastre[(int)$opcionArrastre['claveArrastre']]=(int)$opcionArrastre['idOpcion'];}}
+$resultadoParcial=$corregirArrastre($preguntaArrastre,json_encode([$origenesArrastre[1]=>$destinosArrastre[1],$origenesArrastre[2]=>$destinosArrastre[1]]));
+$preguntaOrden=['idPregunta'=>901,'tipoPregunta'=>'arrastrar_orden','puntaje'=>6,'opciones'=>[
+    ['idOpcion'=>11,'claveArrastre'=>1],['idOpcion'=>12,'claveArrastre'=>2],['idOpcion'=>13,'claveArrastre'=>3]
+]];
+$resultadoOrden=$corregirArrastre($preguntaOrden,json_encode([11,13,12]));
+$preguntaCompletar=['idPregunta'=>902,'tipoPregunta'=>'arrastrar_completar','puntaje'=>2,'opciones'=>[
+    ['idOpcion'=>21,'textoOpcion'=>'Correcta','esCorrecta'=>1],['idOpcion'=>22,'textoOpcion'=>'Distractor','esCorrecta'=>0]
+]];
+$resultadoCompletar=$corregirArrastre($preguntaCompletar,json_encode(21));
+$preguntaCompletarMultiple=['idPregunta'=>903,'tipoPregunta'=>'arrastrar_completar','puntaje'=>4,'opciones'=>[
+    ['idOpcion'=>31,'textoOpcion'=>'COMMIT','esCorrecta'=>1,'claveArrastre'=>1],['idOpcion'=>32,'textoOpcion'=>'ROLLBACK','esCorrecta'=>1,'claveArrastre'=>2],['idOpcion'=>33,'textoOpcion'=>'SELECT','esCorrecta'=>0,'claveArrastre'=>0]
+]];
+$resultadoCompletarMultiple=$corregirArrastre($preguntaCompletarMultiple,json_encode([1=>31,2=>33]));
+verificar($resultadoParcial['aciertos']===1&&(float)$resultadoParcial['puntajeObtenido']===2.0
+    &&$resultadoOrden['aciertos']===1&&(float)$resultadoOrden['puntajeObtenido']===2.0
+    &&$resultadoCompletar['esCorrecta']===1&&(float)$resultadoCompletar['puntajeObtenido']===2.0
+    &&$resultadoCompletarMultiple['aciertos']===1&&(float)$resultadoCompletarMultiple['puntajeObtenido']===2.0,
+    'Arrastrar asigna puntaje parcial en pares, orden y múltiples espacios');
+$postAnterior=$_POST;
+$_POST=['preguntasPayload'=>json_encode([['textoPregunta'=>"BEGIN __ ;\n__ WORK;",'puntaje'=>4,'pista'=>'','explicacionError'=>'','tarjetasArrastre'=>[
+    ['texto'=>'TRANSACTION','lado'=>'completar','clave'=>1,'correcta'=>true],['texto'=>'COMMIT','lado'=>'completar','clave'=>2,'correcta'=>true],['texto'=>'ROLLBACK','lado'=>'completar','clave'=>3,'correcta'=>false]
+]]])];
+$normalizarArrastre=Closure::bind(static function($tipo) { return ControladorActividades::normalizarPreguntas($tipo); }, null, ControladorActividades::class);
+$preguntasMultilinea=$normalizarArrastre('arrastrar_completar');
+$_POST=$postAnterior;
+verificar(count($preguntasMultilinea)===1&&str_contains($preguntasMultilinea[0]['textoPregunta'],"\n")
+    &&array_column(array_filter($preguntasMultilinea[0]['opciones'],static function($opcion){return !empty($opcion['esCorrecta']);}),'claveArrastre')===[1,2],
+    'Cloze conserva saltos de línea y asigna un destino a cada espacio marcado');
+$sesionAntesBorrador=$_SESSION;
+$_SESSION['actividad_form_borrador']=['idActividad'=>0,'actividad'=>['tituloActividad'=>'Borrador recuperado','tipoActividad'=>'arrastrar_completar','visibilidad'=>'privada'],'preguntasPayload'=>json_encode([['textoPregunta'=>'Uno __ dos __','puntaje'=>3,'pista'=>'Pista','explicacionError'=>'Explicación','tarjetasArrastre'=>[
+    ['texto'=>'uno','lado'=>'completar','clave'=>1,'correcta'=>true],['texto'=>'dos','lado'=>'completar','clave'=>2,'correcta'=>true],['texto'=>'tres','lado'=>'completar','clave'=>3,'correcta'=>false]
+]]]),'requiereAdjuntos'=>true];
+$borradorRecuperado=ControladorActividades::crtConsumirBorradorFormulario(0);
+$borradorConsumido=!isset($_SESSION['actividad_form_borrador']);
+$_SESSION=$sesionAntesBorrador;
+verificar(($borradorRecuperado['actividad']['tituloActividad']??'')==='Borrador recuperado'
+    &&count($borradorRecuperado['preguntas']??[])===1
+    &&($borradorRecuperado['preguntas'][0]['opciones'][1]['textoOpcion']??'')==='dos'
+    &&$borradorConsumido,
+    'Formulario de actividad recupera el borrador textual después de una validación fallida');
 $datosActividad['tituloActividad']='Actividad actualizada';
 verificar(ModeloActividades::mdlActualizarActividad($actividadModelo,$datosActividad,$preguntasActividad)==='ok'
     && ModeloActividades::mdlBuscarPorId($actividadModelo)['tituloActividad']==='Actividad actualizada', 'Edición de actividad revalida tenant y relaciones');
@@ -420,8 +475,8 @@ verificar(ModeloCursos::mdlInscripcionesCurso($copia)===[], 'Duplicación no cop
 $materiaMovida=$datosMateria; $materiaMovida['idSeccion']=$materiaDemo; $materiaMovida['id_curso']=$copia;
 denegado(function() use($materiaMovida) { ModeloMaterias::mdlModificarMateria('secciones',$materiaMovida); }, 'Cambio de curso de una materia no rompe referencias de entregas');
 $consulta=$pdo->prepare('SELECT * FROM actividades WHERE id_curso=?'); $consulta->execute([$copia]); $actividadesCopia=$consulta->fetchAll(PDO::FETCH_ASSOC);
-verificar(count($actividadesCopia)===3
-    && count(array_filter($actividadesCopia,static function($actividad) use($demo){return (int)$actividad['id_institucion']===$demo&&$actividad['estadoActividad']==='BORRADOR';}))===3,
+verificar(count($actividadesCopia)===4
+    && count(array_filter($actividadesCopia,static function($actividad) use($demo){return (int)$actividad['id_institucion']===$demo&&$actividad['estadoActividad']==='BORRADOR';}))===4,
     'Duplicación conserva solo actividades coherentes en borrador e institución actual');
 $consulta=$pdo->prepare('SELECT COUNT(*) FROM actividades_opciones o INNER JOIN actividades_preguntas p ON p.idPregunta=o.id_pregunta WHERE p.id_actividad=?');
 $consulta->execute([$actividadesCopia[0]['idActividad']]);

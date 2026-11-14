@@ -42,7 +42,7 @@ $rutaRetorno = $_SERVER['REQUEST_URI'] ?? ($esBanco ? 'index.php?r=banco-activid
       <?php endif; ?>
     </div>
 
-    <p class="text-muted mb-2"><?php echo $e($actividad['descripcionActividad'] ?? 'Sin descripcion cargada.'); ?></p>
+    <p class="text-muted mb-2"><?php echo $e($actividad['descripcionActividad'] ?? 'Sin descripción cargada.'); ?></p>
 
     <div class="d-flex justify-content-between align-items-center">
       <div>

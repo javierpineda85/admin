@@ -31,6 +31,10 @@ class SeguridadArchivos
         'rar' => ['application/vnd.rar', 'application/x-rar', 'application/x-rar-compressed'],
         '7z' => ['application/x-7z-compressed'],
         'mp3' => ['audio/mpeg', 'audio/mp3'],
+        'wav' => ['audio/wav', 'audio/x-wav', 'audio/wave'],
+        'ogg' => ['audio/ogg', 'application/ogg'],
+        'webm' => ['audio/webm', 'video/webm'],
+        'm4a' => ['audio/mp4', 'audio/x-m4a'],
         'mp4' => ['video/mp4', 'application/mp4'],
     ];
 
@@ -54,8 +58,9 @@ class SeguridadArchivos
 
     public static function guardarImagenSubida(array $archivo, $directorio, $prefijo, $maximoBytes = 5242880)
     {
-        if ((int) ($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            throw new InvalidArgumentException('No se pudo recibir la imagen.');
+        $error = (int) ($archivo['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($error !== UPLOAD_ERR_OK) {
+            throw new InvalidArgumentException(self::mensajeErrorCarga($error, 'imagen'));
         }
 
         $temporal = (string) ($archivo['tmp_name'] ?? '');
@@ -119,8 +124,9 @@ class SeguridadArchivos
 
     public static function guardarAdjuntoSubido(array $archivo, $directorio, $prefijo, array $extensionesPermitidas, $maximoBytes = 10485760)
     {
-        if ((int) ($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            throw new InvalidArgumentException('No se pudo recibir el archivo.');
+        $error = (int) ($archivo['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($error !== UPLOAD_ERR_OK) {
+            throw new InvalidArgumentException(self::mensajeErrorCarga($error, 'archivo'));
         }
         $temporal = (string) ($archivo['tmp_name'] ?? '');
         if ($temporal === '' || !is_uploaded_file($temporal)) {
@@ -145,5 +151,19 @@ class SeguridadArchivos
         }
         $datos['nombreGuardado'] = $nombre;
         return $datos;
+    }
+
+    private static function mensajeErrorCarga($error, $tipo)
+    {
+        if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
+            return 'El ' . $tipo . ' supera el tamaño permitido.';
+        }
+        if ($error === UPLOAD_ERR_PARTIAL) {
+            return 'La carga del ' . $tipo . ' quedó incompleta. Intentá nuevamente.';
+        }
+        if ($error === UPLOAD_ERR_NO_TMP_DIR || $error === UPLOAD_ERR_CANT_WRITE || $error === UPLOAD_ERR_EXTENSION) {
+            return 'El servidor no pudo procesar el ' . $tipo . '. Verificá la configuración de cargas.';
+        }
+        return 'No se pudo recibir el ' . $tipo . '.';
     }
 }

@@ -39,6 +39,23 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
   );
   return '<div class="code-box"><div class="code-box__header"><span>Codigo para revisar</span><span class="code-pill">' . $e($lenguajesCodigo[$lenguaje] ?? 'Texto plano') . '</span></div><div class="code-box__body">' . $contenido . '</div></div>';
 };
+$esArrastre = static function ($tipo) { return in_array((string)$tipo, ['arrastrar_pares','arrastrar_orden','arrastrar_completar'], true); };
+$renderTarjetaArrastre = static function ($opcion) use ($e) {
+  $html='<strong>' . $e($opcion['textoOpcion'] ?? '') . '</strong>';
+  if (strpos((string)($opcion['imagenOpcion']??''),'uploads/actividades/')===0) { $html.='<img src="'.$e($opcion['imagenOpcion']).'" alt="">'; }
+  if (strpos((string)($opcion['audioOpcion']??''),'uploads/actividades/')===0) { $html.='<audio controls preload="metadata" src="'.$e($opcion['audioOpcion']).'"></audio>'; }
+  return $html;
+};
+$renderEnunciadoCompletar = static function ($texto) use ($e) {
+  $partes = preg_split('/\[\[[^\]\r\n]+\]\]|_{2,}/u', (string) $texto);
+  if (count($partes) < 2) { return nl2br($e($texto)); }
+  $html = ''; $espacio = 0;
+  foreach ($partes as $indice => $parte) {
+    $html .= nl2br($e($parte));
+    if ($indice < count($partes) - 1) { $espacio++; $html .= '<span class="public-dnd-zone public-dnd-zone--inline" data-dnd-zone data-dnd-blank="' . $espacio . '"></span>'; }
+  }
+  return $html;
+};
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -131,6 +148,7 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
     .public-activity-flow__letter { display:grid; width:29px; height:29px; flex:0 0 29px; place-items:center; border-radius:9px; color:var(--brand); background:var(--brand-soft); font-size:12px; }
     .public-activity-flow__option.is-selected .public-activity-flow__letter, .public-activity-flow__option:has(input:checked) .public-activity-flow__letter { color:#fff; background:var(--brand); }
     .public-activity-flow__answer { margin-top:18px; }
+    .public-dnd { display:grid; gap:12px; margin-top:16px; } .public-dnd__cards { display:grid; gap:8px; } .public-dnd__cards[data-dnd-palette] { justify-items:start; } .public-dnd__cards--horizontal { display:flex; flex-wrap:wrap; align-items:flex-start; } .public-dnd__pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:center; } .public-dnd__order-slots { display:grid; gap:8px; } .public-dnd__order-slot { display:grid; grid-template-columns:36px 1fr; gap:8px; align-items:center; } .public-dnd__order-number { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:#eee8fb; color:var(--brand); font-weight:800; } .public-dnd-card { display:inline-grid; width:fit-content; max-width:100%; gap:8px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#fff; cursor:grab; touch-action:none; } .public-dnd-card img { width:100%; max-height:130px; object-fit:cover; border-radius:8px; } .public-dnd-card audio { width:100%; } .public-dnd-zone { min-height:68px; padding:8px; border:2px dashed #b6a4d5; border-radius:12px; background:#fbf9ff; } .public-dnd-zone--inline { display:inline-flex; min-width:120px; min-height:42px; margin:0 4px; vertical-align:middle; align-items:center; justify-content:center; } .public-dnd__cloze { font-size:1.22rem; line-height:2.45; } .public-dnd-card.is-dragging { opacity:.45; }
     .public-activity-flow__answer textarea, .public-activity-flow__answer input { border-radius:12px; }
     .public-activity-flow__actions { display:none; align-items:center; justify-content:space-between; gap:12px; margin-top:21px; padding-top:16px; border-top:1px solid #edf0f5; }
     .public-activity-flow__actions .btn + .btn { margin-left:8px; }
@@ -245,9 +263,12 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
                   <span class="badge ok">Correcta</span>
                 <?php else: ?>
                   <span class="badge err">Incorrecta</span>
-                  <?php if (!empty($itemResultado['explicacionError'])): ?>
-                    <p class="muted"><?php echo $e($itemResultado['explicacionError']); ?></p>
-                  <?php endif; ?>
+                <?php endif; ?>
+                <?php if (isset($itemResultado['aciertos']) && $itemResultado['aciertos'] !== null): ?>
+                  <p class="muted"><?php echo (int) $itemResultado['aciertos']; ?> de <?php echo (int) ($itemResultado['totalItems'] ?? 0); ?> coincidencias correctas · <?php echo (int) ($itemResultado['errores'] ?? 0); ?> por revisar · Puntaje: <?php echo (float) ($itemResultado['puntajeObtenido'] ?? 0); ?></p>
+                <?php endif; ?>
+                <?php if (!empty($itemResultado['explicacionError'])): ?>
+                  <p class="muted"><?php echo $e($itemResultado['explicacionError']); ?></p>
                 <?php endif; ?>
               </div>
             <?php endforeach; ?>
@@ -295,12 +316,22 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
           <?php foreach ($preguntas as $index => $pregunta): ?>
             <section id="public-activity-question-<?php echo (int) $pregunta['idPregunta']; ?>" class="question public-activity-flow__question<?php echo $index === 0 ? ' is-active' : ''; ?>" data-public-activity-question="<?php echo (int) $index; ?>">
               <div class="public-activity-flow__eyebrow">Pregunta <?php echo (int) ($index + 1); ?> de <?php echo (int) $totalPreguntas; ?></div>
-              <h3><?php echo $e($pregunta['textoPregunta']); ?></h3>
+              <?php if (($pregunta['tipoPregunta'] ?? '') !== 'arrastrar_completar'): ?><h3><?php echo $e($pregunta['textoPregunta']); ?></h3><?php endif; ?>
               <?php if (!empty($pregunta['pista'])): ?><div class="public-activity-flow__hint"><span>✦</span><span><strong>Pista:</strong> <?php echo $e($pregunta['pista']); ?></span></div><?php endif; ?>
               <?php if (($pregunta['tipoPregunta'] ?? '') === 'codigo' && !empty($pregunta['codigoBase'])): ?>
                 <?php echo $renderCodigo($pregunta['codigoBase'], (string) ($pregunta['lenguajeCodigo'] ?? 'plaintext')); ?>
               <?php endif; ?>
-              <?php if (($pregunta['tipoPregunta'] ?? '') === 'multiple_choice'): ?>
+              <?php if ($esArrastre($pregunta['tipoPregunta'] ?? '')): ?>
+                <?php $tipoArrastre=(string)$pregunta['tipoPregunta'];$opcionesArrastre=$pregunta['opciones']??[]; ?>
+                <div class="public-dnd" data-dnd-board data-dnd-mode="<?php echo $e($tipoArrastre); ?>"><input type="hidden" name="respuesta[<?php echo (int)$pregunta['idPregunta']; ?>]" data-dnd-answer>
+                <?php if($tipoArrastre==='arrastrar_pares'): ?>
+                  <?php $origenes=array_values(array_filter($opcionesArrastre,static function($o){return ($o['tipoArrastre']??'')==='origen';}));$destinos=array_values(array_filter($opcionesArrastre,static function($o){return ($o['tipoArrastre']??'')==='destino';}));shuffle($origenes); ?><p class="muted">Arrastrá cada tarjeta a su par.</p><div class="public-dnd__cards" data-dnd-palette><?php foreach($origenes as $o):?><div class="public-dnd-card" data-dnd-card data-dnd-id="<?php echo (int)$o['idOpcion'];?>"><?php echo $renderTarjetaArrastre($o);?></div><?php endforeach;?></div><div class="public-dnd__cards"><?php foreach($destinos as $d):?><div class="public-dnd__pair"><div class="public-dnd-zone" data-dnd-zone data-dnd-target="<?php echo (int)$d['idOpcion'];?>"></div><div class="public-dnd-card"><?php echo $renderTarjetaArrastre($d);?></div></div><?php endforeach;?></div>
+                <?php elseif($tipoArrastre==='arrastrar_orden'): ?>
+                  <?php $barajadasOrden=$opcionesArrastre;shuffle($barajadasOrden); ?><p class="muted">Arrastrá cada tarjeta a la posición correcta.</p><div class="public-dnd__cards public-dnd__cards--horizontal" data-dnd-palette><?php foreach($barajadasOrden as $o):?><div class="public-dnd-card" data-dnd-card data-dnd-id="<?php echo (int)$o['idOpcion'];?>"><?php echo $renderTarjetaArrastre($o);?></div><?php endforeach;?></div><div class="public-dnd__order-slots"><?php foreach($opcionesArrastre as $posicion=>$o):?><div class="public-dnd__order-slot"><span class="public-dnd__order-number"><?php echo (int)($posicion+1);?></span><div class="public-dnd-zone" data-dnd-zone data-dnd-order-slot><span class="muted">Soltá el paso <?php echo (int)($posicion+1);?> aquí</span></div></div><?php endforeach;?></div>
+                <?php else: ?>
+                  <?php shuffle($opcionesArrastre);$tieneEspacios=preg_match('/\[\[[^\]\r\n]+\]\]|_{2,}/u',(string)$pregunta['textoPregunta']); ?><p class="muted">Arrastrá cada respuesta al espacio que le corresponde.</p><div class="public-dnd__cards" data-dnd-palette><?php foreach($opcionesArrastre as $o):?><div class="public-dnd-card" data-dnd-card data-dnd-id="<?php echo (int)$o['idOpcion'];?>"><?php echo $renderTarjetaArrastre($o);?></div><?php endforeach;?></div><div class="public-dnd__cloze"><?php echo $renderEnunciadoCompletar($pregunta['textoPregunta']); ?></div><?php if(!$tieneEspacios): ?><div class="public-dnd-zone" data-dnd-zone data-dnd-single></div><?php endif; ?>
+                <?php endif;?></div>
+              <?php elseif (($pregunta['tipoPregunta'] ?? '') === 'multiple_choice'): ?>
                 <div class="public-activity-flow__options">
                 <?php foreach ($pregunta['opciones'] as $indiceOpcion => $opcion): ?>
                   <label class="public-activity-flow__option">
@@ -370,12 +401,21 @@ $renderCodigo = static function ($codigo, $lenguaje) use ($e, $lenguajesCodigo) 
     flow.noValidate = true;
 
     function questionHasAnswer(question) {
+      var dnd = question.querySelector('[data-dnd-answer]');
+      if (dnd) { return dnd.value.trim() !== ''; }
       if (question.querySelector('input[type="radio"]:checked')) {
         return true;
       }
       var field = question.querySelector('textarea[name^="respuesta["] , input[type="text"][name^="respuesta["]');
       return !!field && field.value.trim() !== '';
     }
+
+    flow.querySelectorAll('[data-dnd-board]').forEach(function (board) {
+      var dragged = null;
+      function actualizar() { var answer=board.querySelector('[data-dnd-answer]');var mode=board.getAttribute('data-dnd-mode');if(mode==='arrastrar_pares'){var pares={};board.querySelectorAll('[data-dnd-zone][data-dnd-target]').forEach(function(z){var c=z.querySelector('[data-dnd-card]');if(c){pares[c.getAttribute('data-dnd-id')]=z.getAttribute('data-dnd-target');}});answer.value=Object.keys(pares).length?JSON.stringify(pares):'';}else if(mode==='arrastrar_orden'){var slots=board.querySelectorAll('[data-dnd-order-slot]');if(slots.length){var orden=[];var completo=false;slots.forEach(function(z){var c=z.querySelector('[data-dnd-card]');orden.push(c?c.getAttribute('data-dnd-id'):0);completo=completo||!!c;});answer.value=completo?JSON.stringify(orden):'';}else{var orden=Array.prototype.map.call(board.querySelectorAll('[data-dnd-order] [data-dnd-card]'),function(c){return c.getAttribute('data-dnd-id');});answer.value=orden.length?JSON.stringify(orden):'';}}else{var espacios={};board.querySelectorAll('[data-dnd-blank]').forEach(function(z){var c=z.querySelector('[data-dnd-card]');if(c){espacios[z.getAttribute('data-dnd-blank')]=c.getAttribute('data-dnd-id');}});if(Object.keys(espacios).length){answer.value=JSON.stringify(espacios);}else{var c=board.querySelector('[data-dnd-single] [data-dnd-card]');answer.value=c?JSON.stringify(c.getAttribute('data-dnd-id')):'';}}answer.dispatchEvent(new Event('change',{bubbles:true})); }
+      board.addEventListener('pointerdown',function(event){var card=event.target.closest('[data-dnd-card]');if(!card||event.target.closest('audio')){return;}dragged=card;card.classList.add('is-dragging');event.preventDefault();});
+      document.addEventListener('pointerup',function(event){if(!dragged||!board.contains(dragged)){return;}var target=document.elementFromPoint(event.clientX,event.clientY);var zone=target&&target.closest('[data-dnd-zone]');if(zone&&board.contains(zone)){var mode=board.getAttribute('data-dnd-mode');if(mode==='arrastrar_pares'||mode==='arrastrar_completar'||(mode==='arrastrar_orden'&&zone.hasAttribute('data-dnd-order-slot'))){var old=zone.querySelector('[data-dnd-card]');if(old&&old!==dragged){var palette=board.querySelector('[data-dnd-palette]');if(palette){palette.appendChild(old);}}zone.appendChild(dragged);}else{var ref=target.closest('[data-dnd-card]');if(ref&&ref!==dragged){zone.insertBefore(dragged,ref);}else{zone.appendChild(dragged);}}actualizar();}dragged.classList.remove('is-dragging');dragged=null;});
+    });
 
     function updateAnsweredState() {
       questions.forEach(function (question, index) {

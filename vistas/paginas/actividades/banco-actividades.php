@@ -64,7 +64,7 @@ $esBanco = true;
           <div class="row align-items-end">
             <div class="col-lg-3">
               <label for="q">Buscar plantilla</label>
-              <input type="text" id="q" name="q" class="form-control" value="<?php echo $e($busquedaActual); ?>" placeholder="Titulo, descripcion, curso o materia">
+              <input type="text" id="q" name="q" class="form-control" value="<?php echo $e($busquedaActual); ?>" placeholder="Título, descripción, curso o materia">
             </div>
             <div class="col-lg-2">
               <label for="tipo">Tipo</label>

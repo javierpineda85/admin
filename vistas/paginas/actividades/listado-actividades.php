@@ -68,7 +68,7 @@ $visibilidadLabels = ControladorActividades::visibilidadesDisponibles();
           <div class="row align-items-end">
             <div class="col-lg-3">
               <label for="q">Buscar actividad</label>
-              <input type="text" id="q" name="q" class="form-control" value="<?php echo $e($busquedaActual); ?>" placeholder="Titulo, descripcion, curso, materia o slug">
+              <input type="text" id="q" name="q" class="form-control" value="<?php echo $e($busquedaActual); ?>" placeholder="Título, descripción, curso, materia o slug">
             </div>
             <div class="col-lg-2">
               <label for="tipo">Tipo</label>
