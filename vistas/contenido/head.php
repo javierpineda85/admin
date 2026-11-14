@@ -32,7 +32,7 @@
   <script src="https://kit.fontawesome.com/7907a05fb3.js"></script>
   <!-- Theme style -->
   <link rel="stylesheet" href="./css/adminlte.min.css">
-  <link rel="stylesheet" href="./css/classroom-theme.css?v=20260914-grade-views">
+  <link rel="stylesheet" href="./css/classroom-theme.css?v=20261114-dashboard-hero">
 
   <!-- Bootstrap4 Duallistbox -->
   <link rel="stylesheet" href="./plugins/bootstrap4-duallistbox/bootstrap-duallistbox.min.css">

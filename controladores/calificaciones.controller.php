@@ -18,6 +18,11 @@ class ControladorCalificaciones
         return ModeloCalificaciones::mdlSeccionesParaCalificaciones((int)$idDocente);
     }
 
+    public static function crtCalificacionesTrabajosPorPeriodo($idSeccion,$idPeriodo)
+    {
+        return ModeloCalificaciones::mdlCalificacionesTrabajosPorPeriodo((int)$idSeccion,(int)$idPeriodo);
+    }
+
     public static function crtEstudiantesIntensificacion($idCurso,$idSeccion)
     {
         return ModeloCalificaciones::mdlEstudiantesIntensificacion((int)$idCurso,(int)$idSeccion);
@@ -306,6 +311,13 @@ class ControladorCalificaciones
             return 'denied';
         }
 
+        $idPeriodo = (int) ($leccion['id_periodo'] ?? 0);
+        $periodo = $idPeriodo > 0 ? ModeloCalificaciones::mdlPeriodoPorId($idPeriodo,$idSeccion) : null;
+        if (!$periodo || strtoupper((string)($periodo['estado'] ?? '')) !== 'ABIERTO') {
+            $_SESSION['error_message'] = 'La tarea debe tener un período abierto asignado antes de cargar sus notas.';
+            return 'error';
+        }
+
         $notas = (array) ($_POST['calificaciones'] ?? []);
         $devoluciones = (array) ($_POST['devoluciones'] ?? []);
         $entregas = ControladorLecciones::crtBuscarEntregasPorLeccion($idLeccion);
@@ -345,6 +357,7 @@ class ControladorCalificaciones
                 'id_seccion' => $idSeccion,
                 'id_modulo' => $idLeccion,
                 'id_curso' => $idCurso,
+                'id_periodo' => $idPeriodo,
                 'calificacion' => $notaNumerica,
                 'devolucion' => trim((string) ($devoluciones[$idEstudiante] ?? '')),
             ];
@@ -384,6 +397,15 @@ class ControladorCalificaciones
             return 'denied';
         }
 
+        $leccion = ControladorLecciones::crtBuscarLeccionPorId((int) $_POST['id_modulo']);
+        $idPeriodo = (int) ($leccion['id_periodo'] ?? 0);
+        $periodo = $idPeriodo > 0 ? ModeloCalificaciones::mdlPeriodoPorId($idPeriodo,(int)$_POST['id_seccion']) : null;
+        if (!$leccion || strtoupper((string)($leccion['tipoLeccion'] ?? '')) !== 'TAREA' || !$periodo
+            || strtoupper((string)($periodo['estado'] ?? '')) !== 'ABIERTO') {
+            $_SESSION['error_message'] = 'La tarea debe tener un período abierto asignado antes de cargar una nota.';
+            return 'error';
+        }
+
         $calificacion = (int) $_POST['calificacion'];
         if ($calificacion < 0 || $calificacion > 10) {
             $_SESSION['error_message'] = 'La calificacion debe estar entre 0 y 10.';
@@ -395,6 +417,7 @@ class ControladorCalificaciones
             'id_seccion' => (int) $_POST['id_seccion'],
             'id_modulo' => (int) $_POST['id_modulo'],
             'id_curso' => (int) $_POST['id_curso'],
+            'id_periodo' => $idPeriodo,
             'calificacion' => $calificacion,
             'devolucion' => trim((string) ($_POST['devolucion'] ?? '')),
         ]);

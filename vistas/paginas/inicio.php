@@ -162,7 +162,7 @@ $rutasTarjetasDashboard = [
 ?>
 
 <div class="page-fade">
-  <div class="hero-shell mb-4">
+  <div class="hero-shell dashboard-hero mb-4">
     <div class="hero-content">
       <div class="d-flex flex-wrap align-items-start justify-content-between">
         <div class="mb-3 mb-md-0">
@@ -172,7 +172,6 @@ $rutasTarjetasDashboard = [
           </div>
           <h1 class="hero-title mb-3">
             Bienvenido, <?php echo htmlspecialchars($nombreCompleto, ENT_QUOTES, 'UTF-8'); ?>.
-            <?php echo $rolActual !== '' ? htmlspecialchars(strtolower($rolActual), ENT_QUOTES, 'UTF-8') : 'Tu panel'; ?> esta listo.
           </h1>
           <p class="hero-lead mb-4">
             <?php echo htmlspecialchars($mensajeRol, ENT_QUOTES, 'UTF-8'); ?>

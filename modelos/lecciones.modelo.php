@@ -27,6 +27,11 @@ class ModeloLecciones
                 $pdo->exec("ALTER TABLE lecciones ADD COLUMN fechaPublicacionLeccion datetime NULL AFTER estadoLeccion");
             }
 
+            $stmt = $pdo->query("SHOW COLUMNS FROM lecciones LIKE 'id_periodo'");
+            if (!$stmt || !$stmt->fetch(PDO::FETCH_ASSOC)) {
+                $pdo->exec("ALTER TABLE lecciones ADD COLUMN id_periodo INT NULL AFTER fechaPublicacionLeccion");
+            }
+
             $pdo->exec('ALTER TABLE lecciones MODIFY contenidoLeccion longtext NOT NULL');
         } catch (Exception $e) {
             // Mantiene compatibilidad si la base ya fue actualizada o el usuario no tiene permisos de ALTER.
@@ -152,7 +157,7 @@ class ModeloLecciones
 
         $filtroEstado = $incluirBorradores ? '' : ' AND l.estadoLeccion = "PUBLICADA" AND (l.fechaPublicacionLeccion IS NULL OR l.fechaPublicacionLeccion <= NOW())';
         $stmt = Conexion::conectar()->prepare(
-            'SELECT l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.fechaPublicacionLeccion, l.id_modulo,
+            'SELECT l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.fechaPublicacionLeccion, l.id_periodo, l.id_modulo,
                     COUNT(DISTINCT r.idRecursoLeccion) AS totalRecursos,
                     COUNT(DISTINCT e.idEntregaLeccion) AS totalEntregas,
                     COUNT(DISTINCT p.idPosteo) AS totalPosts
@@ -162,7 +167,7 @@ class ModeloLecciones
              LEFT JOIN posteos p ON p.id_leccion = l.idLeccion AND ' . ModeloTenant::posteos() . '
              WHERE l.id_modulo = :idSeccion
              ' . $filtroEstado . ' AND ' . ModeloTenant::lecciones() . '
-             GROUP BY l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.fechaPublicacionLeccion, l.id_modulo
+             GROUP BY l.idLeccion, l.nombreLeccion, l.tipoLeccion, l.contenidoLeccion, l.estadoLeccion, l.fechaPublicacionLeccion, l.id_periodo, l.id_modulo
              ORDER BY l.idLeccion ASC'
         );
         $stmt->bindValue(':idSeccion', (int) $idSeccion, PDO::PARAM_INT);
@@ -478,17 +483,22 @@ class ModeloLecciones
     {
         if ($tabla !== 'lecciones') { throw new InvalidArgumentException('Tabla inválida.'); }
         ModeloTenant::exigirSeccion($datos['id_modulo']);
+        if ((int) ($datos['id_periodo'] ?? 0) > 0) {
+            ModeloTenant::exigirPeriodoSeccion((int) $datos['id_periodo'], (int) $datos['id_modulo']);
+        }
         self::prepararTablaLecciones();
 
         $stmt = Conexion::conectar()->prepare(
-            "INSERT INTO $tabla (nombreLeccion, tipoLeccion, contenidoLeccion, estadoLeccion, fechaPublicacionLeccion, id_modulo)
-             SELECT :nombreLeccion, :tipoLeccion, :contenidoLeccion, :estadoLeccion, :fechaPublicacionLeccion, :id_modulo WHERE " . ModeloTenant::seccionId($datos['id_modulo'])
+            "INSERT INTO $tabla (nombreLeccion, tipoLeccion, contenidoLeccion, estadoLeccion, fechaPublicacionLeccion, id_periodo, id_modulo)
+             SELECT :nombreLeccion, :tipoLeccion, :contenidoLeccion, :estadoLeccion, :fechaPublicacionLeccion, :id_periodo, :id_modulo WHERE " . ModeloTenant::seccionId($datos['id_modulo'])
         );
         $stmt->bindValue(':nombreLeccion', $datos['nombreLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':tipoLeccion', $datos['tipoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':contenidoLeccion', $datos['contenidoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':estadoLeccion', $datos['estadoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':fechaPublicacionLeccion', $datos['fechaPublicacionLeccion'] ?: null, $datos['fechaPublicacionLeccion'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $idPeriodo = (int) ($datos['id_periodo'] ?? 0);
+        $stmt->bindValue(':id_periodo', $idPeriodo ?: null, $idPeriodo ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(':id_modulo', (int) $datos['id_modulo'], PDO::PARAM_INT);
         return $stmt->execute() ? 'ok' : 'error';
     }
@@ -497,6 +507,10 @@ class ModeloLecciones
     {
         if ($tabla !== 'lecciones') { throw new InvalidArgumentException('Tabla inválida.'); }
         ModeloTenant::exigirLeccion($datos['idLeccion']);
+        if ((int) ($datos['id_periodo'] ?? 0) > 0 && ModeloTenant::activo()) {
+            $leccion = self::mdlBuscarLeccionPorId((int) $datos['idLeccion']);
+            ModeloTenant::exigirPeriodoSeccion((int) $datos['id_periodo'], (int) ($leccion['id_modulo'] ?? 0));
+        }
         self::prepararTablaLecciones();
 
         $stmt = Conexion::conectar()->prepare(
@@ -505,7 +519,8 @@ class ModeloLecciones
                  tipoLeccion = :tipoLeccion,
                  contenidoLeccion = :contenidoLeccion,
                  estadoLeccion = :estadoLeccion,
-                 fechaPublicacionLeccion = :fechaPublicacionLeccion
+                 fechaPublicacionLeccion = :fechaPublicacionLeccion,
+                 id_periodo = :id_periodo
              WHERE idLeccion = :idLeccion AND " . ModeloTenant::lecciones('lecciones')
         );
         $stmt->bindValue(':idLeccion', (int) $datos['idLeccion'], PDO::PARAM_INT);
@@ -514,6 +529,8 @@ class ModeloLecciones
         $stmt->bindValue(':contenidoLeccion', $datos['contenidoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':estadoLeccion', $datos['estadoLeccion'], PDO::PARAM_STR);
         $stmt->bindValue(':fechaPublicacionLeccion', $datos['fechaPublicacionLeccion'] ?: null, $datos['fechaPublicacionLeccion'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $idPeriodo = (int) ($datos['id_periodo'] ?? 0);
+        $stmt->bindValue(':id_periodo', $idPeriodo ?: null, $idPeriodo ? PDO::PARAM_INT : PDO::PARAM_NULL);
         return $stmt->execute() ? 'ok' : 'error';
     }
 

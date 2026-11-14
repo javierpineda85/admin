@@ -2272,6 +2272,29 @@ body.classroom-app .student-course-hero p {
   color: rgba(255, 255, 255, 0.82);
 }
 
+/* El inicio conserva sus accesos rápidos, pero comparte la escala compacta de los héroes de sección. */
+body.classroom-app .hero-shell.dashboard-hero .hero-content {
+  padding: 1.5rem 1.75rem;
+}
+
+body.classroom-app .hero-shell.dashboard-hero .hero-title {
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  margin-bottom: 0.65rem !important;
+}
+
+body.classroom-app .hero-shell.dashboard-hero .hero-lead {
+  margin-bottom: 1rem !important;
+}
+
+body.classroom-app .hero-shell.dashboard-hero .btn-lg {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.95rem;
+}
+
+body.classroom-app .hero-shell.dashboard-hero .text-right.mt-4 {
+  margin-top: 0 !important;
+}
+
 body.classroom-app .entity-kicker,
 body.classroom-app .profile-kicker,
 body.classroom-app .auth-pill,

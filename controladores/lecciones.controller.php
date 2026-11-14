@@ -64,6 +64,17 @@ class ControladorLecciones
         return $fechaPublicacion === '' || strtotime($fechaPublicacion) <= time();
     }
 
+    private static function periodoActividadValido($idSeccion, $tipoLeccion, $idPeriodo)
+    {
+        if ($tipoLeccion !== 'TAREA') {
+            return (int) $idPeriodo === 0;
+        }
+
+        $contexto = ControladorCalificaciones::crtContextoAcademicoSeccion((int) $idSeccion);
+        $periodos = array_fill_keys(array_map('intval', array_column($contexto['periodos'] ?? [], 'idPeriodo')), true);
+        return (int) $idPeriodo > 0 && isset($periodos[(int) $idPeriodo]);
+    }
+
     public static function crtProcesarLeccionesProgramadas($idSeccion = 0)
     {
         foreach (ModeloLecciones::mdlBuscarLeccionesProgramadasVencidas((int) $idSeccion) as $leccion) {
@@ -178,6 +189,7 @@ class ControladorLecciones
         $estadoLeccion = self::normalizarEstadoLeccion($_POST['estadoLeccion'] ?? 'PUBLICADA');
         $fechaPublicacionLeccion = self::normalizarFechaPublicacion($_POST['fechaPublicacionLeccion'] ?? '');
         $idModulo = (int) $_POST['id_modulo'];
+        $idPeriodo = (int) ($_POST['id_periodo'] ?? 0);
 
         if ($nombreLeccion === '' || $idModulo <= 0) {
             $_SESSION['error_message'] = 'Completa el nombre de la leccion y la seccion asociada.';
@@ -186,6 +198,11 @@ class ControladorLecciones
 
         if (!in_array($tipoLeccion, ['MATERIAL', 'TAREA', 'PREGUNTA'], true)) {
             $_SESSION['error_message'] = 'El tipo de leccion no es valido.';
+            return 'error';
+        }
+
+        if (!self::periodoActividadValido($idModulo, $tipoLeccion, $idPeriodo)) {
+            $_SESSION['error_message'] = 'Selecciona un período válido para la tarea. El material y las preguntas no llevan período de calificación.';
             return 'error';
         }
 
@@ -200,6 +217,7 @@ class ControladorLecciones
             'contenidoLeccion' => $contenidoLeccion,
             'estadoLeccion' => $estadoLeccion,
             'fechaPublicacionLeccion' => $fechaPublicacionLeccion,
+            'id_periodo' => $idPeriodo,
             'id_modulo' => $idModulo,
         ]);
 
@@ -246,6 +264,7 @@ class ControladorLecciones
         $fechaActual = (string) ($leccion['fechaPublicacionLeccion'] ?? '');
         $estadoLeccion = self::normalizarEstadoLeccion($_POST['estadoLeccion'] ?? $estadoActual, $estadoActual ?: 'PUBLICADA');
         $fechaPublicacionLeccion = self::normalizarFechaPublicacion($_POST['fechaPublicacionLeccion'] ?? '');
+        $idPeriodo = (int) ($_POST['id_periodo'] ?? 0);
 
         if ($idLeccion <= 0 || $nombreLeccion === '' || !$leccion) {
             $_SESSION['error_message'] = 'No se pudo actualizar la leccion.';
@@ -254,6 +273,11 @@ class ControladorLecciones
 
         if (!in_array($tipoLeccion, ['MATERIAL', 'TAREA', 'PREGUNTA'], true)) {
             $_SESSION['error_message'] = 'El tipo de leccion no es valido.';
+            return 'error';
+        }
+
+        if (!self::periodoActividadValido((int) ($leccion['id_modulo'] ?? 0), $tipoLeccion, $idPeriodo)) {
+            $_SESSION['error_message'] = 'Selecciona un período válido para la tarea. El material y las preguntas no llevan período de calificación.';
             return 'error';
         }
 
@@ -269,6 +293,7 @@ class ControladorLecciones
             'contenidoLeccion' => $contenidoLeccion,
             'estadoLeccion' => $estadoLeccion,
             'fechaPublicacionLeccion' => $fechaPublicacionLeccion,
+            'id_periodo' => $idPeriodo,
         ]);
 
         if ($respuesta === 'ok') {

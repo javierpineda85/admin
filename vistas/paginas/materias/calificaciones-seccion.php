@@ -78,6 +78,19 @@ $evaluacionesTodas = $puedeGestionar ? ControladorCalificaciones::crtEvaluacione
 $evaluaciones = array_values(array_filter($evaluacionesTodas, static function ($evaluacion) use ($idPeriodoActual) {
     return (int) ($evaluacion['id_periodo'] ?? 0) === $idPeriodoActual;
 }));
+$trabajosPeriodo = $puedeGestionar && $idPeriodoActual > 0
+    ? ControladorCalificaciones::crtCalificacionesTrabajosPorPeriodo($idSeccion,$idPeriodoActual)
+    : [];
+$trabajosPorLeccion = [];
+$notasPorTrabajo = [];
+foreach ($trabajosPeriodo as $trabajoPeriodo) {
+    $idTrabajoPeriodo = (int) ($trabajoPeriodo['id_modulo'] ?? 0);
+    if ($idTrabajoPeriodo <= 0) { continue; }
+    $trabajosPorLeccion[$idTrabajoPeriodo] = $trabajoPeriodo;
+    if ((int) ($trabajoPeriodo['id_estudiante'] ?? 0) > 0) {
+        $notasPorTrabajo[$idTrabajoPeriodo][(int) $trabajoPeriodo['id_estudiante']] = $trabajoPeriodo;
+    }
+}
 $cierresPeriodo = $puedeGestionar ? ControladorCalificaciones::crtCierresPeriodo($idPeriodoActual,$idSeccion) : [];
 $cierresPorEstudiante = [];
 foreach($cierresPeriodo as $cierreIndice){$cierresPorEstudiante[(int)$cierreIndice['id_estudiante']]=$cierreIndice;}
@@ -197,17 +210,23 @@ if (!empty($seccion['bannerSeccion'])) {
           <label class="management-search mb-0"><span class="sr-only">Buscar estudiante</span><i class="fas fa-search"></i><input type="search" class="form-control form-control-sm" placeholder="Buscar estudiante..." data-gradebook-search></label>
         </div>
         <div class="card-body p-0">
-          <?php if (empty($evaluaciones) || empty($estudiantesEvaluacion)): ?>
-            <div class="empty-state py-4"><i class="fas fa-table"></i><p class="mb-0">La planilla aparecerá cuando existan evaluaciones y estudiantes.</p></div>
+          <?php if ((empty($evaluaciones) && empty($trabajosPorLeccion)) || empty($estudiantesEvaluacion)): ?>
+            <div class="empty-state py-4"><i class="fas fa-table"></i><p class="mb-0">La planilla aparecerá cuando existan tareas o evaluaciones con estudiantes.</p></div>
           <?php else: ?>
             <div class="table-responsive" style="max-height: 65vh;">
-              <table class="table table-bordered table-sm mb-0" data-gradebook-table>
+              <table class="table table-bordered table-sm mb-0 grade-export-table" data-gradebook-table data-export-title="planilla_<?php echo $e($seccion['nombreCurso'] ?? 'curso'); ?>_<?php echo $e($seccion['tituloSeccion'] ?? 'materia'); ?>_<?php echo $e($periodoActual['nombre'] ?? 'periodo'); ?>">
                 <thead class="thead-light"><tr>
                   <th style="position:sticky;left:0;top:0;z-index:4;min-width:230px;background:#f4f6f9;">Estudiante</th>
                   <?php foreach($evaluaciones as $evaluacionColumna): ?>
                     <th class="text-center" style="top:0;position:sticky;z-index:3;min-width:125px;background:#f4f6f9;" title="<?php echo $e($evaluacionColumna['temaEvaluacion']); ?>">
                       <a href="#evaluacion-<?php echo (int)$evaluacionColumna['idEvaluacion']; ?>" class="text-dark d-block"><?php echo $e(mb_strimwidth((string)$evaluacionColumna['temaEvaluacion'],0,20,'…','UTF-8')); ?></a>
                       <small class="text-muted"><?php echo $e(date('d/m',strtotime($evaluacionColumna['fechaEvaluacion']))); ?></small>
+                    </th>
+                  <?php endforeach; ?>
+                  <?php foreach($trabajosPorLeccion as $trabajoColumna): ?>
+                    <th class="text-center" style="top:0;position:sticky;z-index:3;min-width:125px;background:#f4f6f9;" title="<?php echo $e($trabajoColumna['nombreLeccion']); ?>">
+                      <span class="text-dark d-block"><i class="fas fa-tasks mr-1"></i><?php echo $e(mb_strimwidth((string)$trabajoColumna['nombreLeccion'],0,20,'…','UTF-8')); ?></span>
+                      <small class="text-muted">Trabajo</small>
                     </th>
                   <?php endforeach; ?>
                   <th class="text-center gradebook-closing-header" style="top:0;position:sticky;z-index:3;min-width:150px;"><i class="fas fa-flag-checkered mr-1"></i>Nota de cierre<br><small><?php echo $e($periodoActual['nombre'] ?? 'Período'); ?></small></th>
@@ -218,7 +237,24 @@ if (!empty($seccion['bannerSeccion'])) {
                       <th style="position:sticky;left:0;z-index:2;background:#fff;"><?php echo $e($nombreFila); ?></th>
                       <?php foreach($evaluaciones as $evaluacionColumna): $notaCelda=$notasPorEvaluacion[(int)$evaluacionColumna['idEvaluacion']][$idEstudianteFila]??null; ?>
                         <td class="text-center align-middle <?php echo $notaCelda && ($notaCelda['estadoAsistencia']??'')!=='AUSENTE' ? ((float)$notaCelda['calificacion']>=7?'table-success':'table-danger') : ''; ?>">
-                          <?php if(($notaCelda['estadoAsistencia']??'')==='AUSENTE'): ?><span class="badge badge-warning">Ausente</span><?php elseif($notaCelda && $notaCelda['calificacion']!==''): ?><strong><?php echo $e(number_format((float)$notaCelda['calificacion'],2,',','.')); ?></strong><?php else: ?><span class="text-muted">-</span><?php endif; ?>
+                          <?php if(($notaCelda['estadoAsistencia']??'')==='AUSENTE'): ?>
+                            <span class="badge badge-warning">Ausente</span>
+                          <?php elseif($notaCelda && $notaCelda['calificacion']!==''): ?>
+                            <strong><?php echo $e(number_format((float)$notaCelda['calificacion'],2,',','.')); ?></strong>
+                            <?php if(trim((string)($notaCelda['devolucion']??''))!==''): ?>
+                              <button type="button" class="btn btn-link btn-sm p-0 ml-1 text-primary" data-toggle="modal" data-target="#devolucionNotaModal" data-estudiante="<?php echo $e($nombreFila); ?>" data-actividad="<?php echo $e($evaluacionColumna['temaEvaluacion']); ?>" data-nota="<?php echo $e(number_format((float)$notaCelda['calificacion'],2,',','.')); ?>" data-devolucion="<?php echo $e($notaCelda['devolucion']); ?>" aria-label="Ver devolución de <?php echo $e($evaluacionColumna['temaEvaluacion']); ?>" title="Ver devolución"><i class="fas fa-comment-dots"></i></button>
+                            <?php endif; ?>
+                          <?php else: ?><span class="text-muted">-</span><?php endif; ?>
+                        </td>
+                      <?php endforeach; ?>
+                      <?php foreach($trabajosPorLeccion as $idTrabajoColumna=>$trabajoColumna): $notaTrabajo=$notasPorTrabajo[(int)$idTrabajoColumna][$idEstudianteFila]??null; ?>
+                        <td class="text-center align-middle <?php echo $notaTrabajo ? ((float)$notaTrabajo['calificacion']>=7?'table-success':'table-danger') : ''; ?>">
+                          <?php if($notaTrabajo && $notaTrabajo['calificacion']!==''): ?>
+                            <strong><?php echo $e(number_format((float)$notaTrabajo['calificacion'],2,',','.')); ?></strong>
+                            <?php if(trim((string)($notaTrabajo['devolucion']??''))!==''): ?>
+                              <button type="button" class="btn btn-link btn-sm p-0 ml-1 text-primary" data-toggle="modal" data-target="#devolucionNotaModal" data-estudiante="<?php echo $e($nombreFila); ?>" data-actividad="<?php echo $e($trabajoColumna['nombreLeccion']); ?>" data-nota="<?php echo $e(number_format((float)$notaTrabajo['calificacion'],2,',','.')); ?>" data-devolucion="<?php echo $e($notaTrabajo['devolucion']); ?>" aria-label="Ver devolución de <?php echo $e($trabajoColumna['nombreLeccion']); ?>" title="Ver devolución"><i class="fas fa-comment-dots"></i></button>
+                            <?php endif; ?>
+                          <?php else: ?><span class="text-muted">-</span><?php endif; ?>
                         </td>
                       <?php endforeach; ?>
                       <?php
@@ -232,6 +268,7 @@ if (!empty($seccion['bannerSeccion'])) {
                   <?php endforeach; ?>
                 </tbody>
               </table>
+              <div class="p-2 border-top bg-white" data-grade-export-actions></div>
             </div>
           <?php endif; ?>
         </div>
@@ -441,7 +478,7 @@ if (!empty($seccion['bannerSeccion'])) {
                     <?php endif; ?>
                     <td><?php echo $e($calificacion['nombreLeccion'] ?? 'Actividad'); ?></td>
                     <td><?php echo $e($calificacion['tipoLeccion'] ?? ''); ?></td>
-                    <td><strong><?php echo (int) ($calificacion['calificacion'] ?? 0); ?></strong></td>
+                    <td><strong><?php echo $e(number_format((float) ($calificacion['calificacion'] ?? 0),2,',','.')); ?></strong></td>
                     <td><?php echo $e($calificacion['devolucion'] ?: 'Sin devolucion'); ?></td>
                   </tr>
                 <?php endforeach; ?>
@@ -453,6 +490,26 @@ if (!empty($seccion['bannerSeccion'])) {
     </div>
   </div>
 </section>
+
+<div class="modal fade" id="devolucionNotaModal" tabindex="-1" role="dialog" aria-labelledby="devolucionNotaTitulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="devolucionNotaTitulo"><i class="fas fa-comment-dots mr-2"></i>Devolución</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <dl class="row mb-3">
+          <dt class="col-sm-4">Estudiante</dt><dd class="col-sm-8 mb-1" data-feedback-student></dd>
+          <dt class="col-sm-4">Actividad</dt><dd class="col-sm-8 mb-1" data-feedback-activity></dd>
+          <dt class="col-sm-4">Nota</dt><dd class="col-sm-8 mb-0"><strong data-feedback-grade></strong></dd>
+        </dl>
+        <div class="border rounded p-3 bg-light" style="white-space:pre-wrap" data-feedback-comment></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-light border" data-dismiss="modal">Cerrar</button></div>
+    </div>
+  </div>
+</div>
 
 <?php if ($puedeGestionar): ?>
   <div class="modal fade" id="nuevaEvaluacionModal" tabindex="-1" role="dialog" aria-labelledby="nuevaEvaluacionTitulo" aria-hidden="true">
@@ -503,11 +560,43 @@ if (!empty($seccion['bannerSeccion'])) {
     if (buscadorPlanilla) {
       buscadorPlanilla.addEventListener('input', function () {
         var termino = this.value.toLocaleLowerCase().trim();
+        var tablaPlanilla = document.querySelector('[data-gradebook-table]');
+        if (tablaPlanilla && window.jQuery && jQuery.fn.DataTable && jQuery.fn.DataTable.isDataTable(tablaPlanilla)) {
+          jQuery(tablaPlanilla).DataTable().search(termino).draw();
+        }
         document.querySelectorAll('[data-gradebook-row]').forEach(function (fila) {
           fila.style.display = (fila.getAttribute('data-student') || '').toLocaleLowerCase().indexOf(termino) !== -1 ? '' : 'none';
         });
       });
     }
+
+    document.querySelectorAll('.grade-export-table').forEach(function(table) {
+      if (!window.jQuery || !jQuery.fn.DataTable || jQuery.fn.DataTable.isDataTable(table)) {
+        return;
+      }
+      var $table = jQuery(table);
+      var title = table.getAttribute('data-export-title') || 'planilla_calificaciones';
+      var instance = $table.DataTable({
+        paging: true,
+        pageLength: 25,
+        order: [],
+        dom: 'Bfrtip',
+        buttons: [
+          { extend: 'csvHtml5', text: 'CSV', title: title },
+          { extend: 'excelHtml5', text: 'Excel', title: title },
+          { extend: 'pdfHtml5', text: 'PDF', title: title, orientation: 'landscape', pageSize: 'A4' }
+        ],
+        language: {
+          search: 'Buscar:', zeroRecords: 'No se encontraron resultados',
+          info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
+          paginate: { next: 'Siguiente', previous: 'Anterior' }
+        }
+      });
+      var target = $table.closest('.table-responsive').find('[data-grade-export-actions]').first();
+      if (target.length) {
+        instance.buttons().container().appendTo(target);
+      }
+    });
 
     document.addEventListener('click', function(event) {
       var trigger = event.target.closest('[data-target="#eliminarEvaluacionModal"]');
@@ -530,3 +619,16 @@ if (!empty($seccion['bannerSeccion'])) {
     });
   </script>
 <?php endif; ?>
+
+<script>
+  if (window.jQuery) {
+    jQuery('#devolucionNotaModal').on('show.bs.modal', function(event) {
+      var trigger = jQuery(event.relatedTarget);
+      var modal = jQuery(this);
+      modal.find('[data-feedback-student]').text(trigger.data('estudiante') || '');
+      modal.find('[data-feedback-activity]').text(trigger.data('actividad') || '');
+      modal.find('[data-feedback-grade]').text(trigger.data('nota') || '');
+      modal.find('[data-feedback-comment]').text(trigger.data('devolucion') || 'Sin devolución.');
+    });
+  }
+</script>

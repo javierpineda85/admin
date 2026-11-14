@@ -50,6 +50,8 @@ $leccionesGestion = $puedeGestionar
 $resumen = $idSeccion > 0 ? ControladorLecciones::crtResumenSeccion($idSeccion) : [];
 $estudiantesCurso = $seccion ? ControladorLecciones::crtBuscarEstudiantesCurso((int) $seccion['id_curso']) : [];
 $calificacionesSeccion = $idSeccion > 0 ? ControladorCalificaciones::crtCalificacionesPorSeccion($idSeccion) : [];
+$contextoAcademicoLecciones = $idSeccion > 0 ? ControladorCalificaciones::crtContextoAcademicoSeccion($idSeccion) : ['periodos' => []];
+$periodosCalificacionLecciones = $contextoAcademicoLecciones['periodos'] ?? [];
 $seguimientoPersonal = ControladorPermisos::esEstudiante() && $idSeccion > 0 && $idEstudianteContexto > 0
   ? ControladorLecciones::crtResumenEstudianteSeccion($idSeccion, $idEstudianteContexto)
   : [];
@@ -566,11 +568,21 @@ if (ControladorPermisos::esEstudiante()) {
                   </div>
 	                  <div class="form-group col-sm-12 col-md-3">
 	                    <label class="small text-muted">Tipo</label>
-	                    <select name="tipoLeccion" class="form-control form-control-sm" required>
+	                    <select name="tipoLeccion" class="form-control form-control-sm" required data-lesson-type>
 	                      <option value="MATERIAL">Material</option>
 	                      <option value="TAREA">Tarea</option>
 	                      <option value="PREGUNTA">Pregunta</option>
 	                    </select>
+	                  </div>
+	                  <div class="form-group col-sm-12 col-md-5" data-lesson-period-wrap hidden>
+	                    <label class="small text-muted">Período de calificación</label>
+	                    <select name="id_periodo" class="form-control form-control-sm" data-lesson-period disabled>
+	                      <option value="">Seleccionar período...</option>
+	                      <?php foreach ($periodosCalificacionLecciones as $periodoLeccion): ?>
+	                        <option value="<?php echo (int) $periodoLeccion['idPeriodo']; ?>"><?php echo htmlspecialchars((string) $periodoLeccion['nombre'], ENT_QUOTES, 'UTF-8'); ?></option>
+	                      <?php endforeach; ?>
+	                    </select>
+	                    <small class="form-text text-muted">Obligatorio para las tareas calificables.</small>
 	                  </div>
 	                  <div class="form-group col-sm-12 col-md-4">
 	                    <label class="small text-muted">Programar publicacion</label>
@@ -723,12 +735,21 @@ if (ControladorPermisos::esEstudiante()) {
                           </div>
                           <div class="form-group col-md-4">
                             <label class="small text-muted">Tipo</label>
-                            <select name="tipoLeccion" class="form-control form-control-sm" required>
+	                            <select name="tipoLeccion" class="form-control form-control-sm" required data-lesson-type>
                               <option value="MATERIAL" <?php echo $tipoLeccion === 'MATERIAL' ? 'selected' : ''; ?>>Material</option>
                               <option value="TAREA" <?php echo $tipoLeccion === 'TAREA' ? 'selected' : ''; ?>>Tarea</option>
                               <option value="PREGUNTA" <?php echo $tipoLeccion === 'PREGUNTA' ? 'selected' : ''; ?>>Pregunta</option>
                             </select>
                           </div>
+	                          <div class="form-group col-md-4" data-lesson-period-wrap <?php echo $tipoLeccion === 'TAREA' ? '' : 'hidden'; ?>>
+	                            <label class="small text-muted">Período de calificación</label>
+	                            <select name="id_periodo" class="form-control form-control-sm" data-lesson-period <?php echo $tipoLeccion === 'TAREA' ? '' : 'disabled'; ?>>
+	                              <option value="">Seleccionar período...</option>
+	                              <?php foreach ($periodosCalificacionLecciones as $periodoLeccion): ?>
+	                                <option value="<?php echo (int) $periodoLeccion['idPeriodo']; ?>" <?php echo (int) ($leccion['id_periodo'] ?? 0) === (int) $periodoLeccion['idPeriodo'] ? 'selected' : ''; ?>><?php echo htmlspecialchars((string) $periodoLeccion['nombre'], ENT_QUOTES, 'UTF-8'); ?></option>
+	                              <?php endforeach; ?>
+	                            </select>
+	                          </div>
 	                          <div class="form-group col-md-4">
 	                            <label class="small text-muted">Estado</label>
 	                            <div>
@@ -1459,5 +1480,21 @@ if (ControladorPermisos::esEstudiante()) {
     $(this).closest('.lesson-item-card').find('[data-toggle="collapse"] i').first()
       .removeClass('fa-chevron-down')
       .addClass('fa-chevron-right');
+  });
+
+  document.querySelectorAll('form').forEach(function(form) {
+    var type = form.querySelector('[data-lesson-type]');
+    var periodWrap = form.querySelector('[data-lesson-period-wrap]');
+    var period = form.querySelector('[data-lesson-period]');
+    if (!type || !periodWrap || !period) { return; }
+    var syncPeriod = function() {
+      var isTask = type.value === 'TAREA';
+      periodWrap.hidden = !isTask;
+      period.disabled = !isTask;
+      period.required = isTask;
+      if (!isTask) { period.value = ''; }
+    };
+    type.addEventListener('change', syncPeriod);
+    syncPeriod();
   });
 </script>

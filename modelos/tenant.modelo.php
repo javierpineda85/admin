@@ -136,7 +136,10 @@ class ModeloTenant
             : 'EXISTS (SELECT 1 FROM secciones nota_es INNER JOIN cursos nota_ec ON nota_ec.idCurso=nota_es.id_curso
                 WHERE nota_es.idSeccion=' . (int)$datos['id_seccion'] . ' AND nota_ec.idCurso=' . (int)$datos['id_curso'] . '
                 AND ' . self::cursos('nota_ec') . ')';
-        return $relacion . ' AND EXISTS (SELECT 1 FROM asignacioncursos nota_a
+        $periodo = (int)($datos['id_periodo'] ?? 0) > 0
+            ? ' AND ' . self::periodoSeccionId((int)$datos['id_periodo'], (int)$datos['id_seccion'])
+            : '';
+        return $relacion . $periodo . ' AND EXISTS (SELECT 1 FROM asignacioncursos nota_a
             INNER JOIN usuarios nota_u ON nota_u.idUsuario=nota_a.id_estudiante
             WHERE nota_a.id_estudiante=' . (int)$datos['id_estudiante'] . '
             AND nota_a.id_seccion=' . (int)$datos['id_curso'] . " AND nota_a.estadoInscripcion='ACTIVA'

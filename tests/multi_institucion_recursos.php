@@ -27,6 +27,10 @@ ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_01_expan
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_03_catalogos_calificacion.sql');
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_03_catalogos_calificacion.sql');
 verificar((int)$pdo->query("SELECT COUNT(*) FROM campus_migraciones WHERE codigo='multi_institucion_03_catalogos_calificacion'")->fetchColumn()===1, 'Migración de catálogos de calificación es reanudable e idempotente');
+ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-11-16_notas_trabajos_por_periodo.sql');
+verificar((int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='lecciones' AND column_name='id_periodo'")->fetchColumn()===1
+    && (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='calificaciones' AND column_name='id_periodo'")->fetchColumn()===1,
+    'Migración de notas de trabajos agrega los períodos requeridos');
 function denegado(callable $operacion, $mensaje) {
     try { $operacion(); } catch (RuntimeException $e) {
         verificar(strpos($e->getMessage(), 'institucional') !== false, $mensaje);
@@ -176,12 +180,25 @@ verificar($evaluacionDemo>0 && ModeloCalificaciones::mdlEvaluacionPorId($evaluac
 verificar(ModeloCalificaciones::mdlGuardarCalificacionesEvaluacion($evaluacionDemo,[['id_estudiante'=>$ids['A'],'calificacion'=>9,'estadoAsistencia'=>'PRESENTE','devolucion'=>'Muy bien']])==='ok', 'Calificación de evaluación valida inscripción y tenant');
 verificar(count(ModeloCalificaciones::mdlCalificacionesEvaluacion($evaluacionDemo))===1, 'Planilla de evaluación propia devuelve su calificación');
 $periodoDemo=(int)$contextoDemo['periodos'][0]['idPeriodo'];
-verificar(ModeloCalificaciones::mdlCalcularCierresPeriodo($periodoDemo,$materiaDemo,$ids['B'])===1, 'Cierre calcula promedios solo para estudiantes válidos del tenant');
+$trabajoPeriodo=['nombreLeccion'=>'Trabajo del período','tipoLeccion'=>'TAREA','contenidoLeccion'=>'Consigna',
+    'estadoLeccion'=>'PUBLICADA','fechaPublicacionLeccion'=>null,'id_periodo'=>$periodoDemo,'id_modulo'=>$materiaDemo];
+verificar(ModeloLecciones::mdlGuardarLeccion('lecciones',$trabajoPeriodo)==='ok', 'Tarea nueva queda asociada a su período');
+$trabajoPeriodoId=(int)$pdo->lastInsertId();
+verificar(ModeloCalificaciones::mdlGuardarCalificacion(['id_estudiante'=>$ids['A'],'id_seccion'=>$materiaDemo,
+    'id_modulo'=>$trabajoPeriodoId,'id_curso'=>$cursoDemo,'id_periodo'=>$periodoDemo,'calificacion'=>7,'devolucion'=>'Entregado'])==='ok',
+    'Nota de trabajo conserva el período asignado');
+verificar(count(ModeloCalificaciones::mdlCalificacionesTrabajosPorPeriodo($materiaDemo,$periodoDemo))===1,
+    'Planilla del período incluye las notas de trabajos');
+verificar(ModeloCalificaciones::mdlCalcularCierresPeriodo($periodoDemo,$materiaDemo,$ids['B'])===1
+    && (float)ModeloCalificaciones::mdlCierresPeriodo($periodoDemo,$materiaDemo)[0]['promedioCalculado']===8.0,
+    'Cierre promedia evaluación y trabajo del mismo período');
 $cierresDemo=ModeloCalificaciones::mdlCierresPeriodo($periodoDemo,$materiaDemo);
 verificar(count($cierresDemo)===1&&(int)$cierresDemo[0]['id_estudiante']===$ids['A'], 'Listado de cierres conserva únicamente estudiantes institucionales');
 verificar(ModeloCalificaciones::mdlGuardarCierresPeriodo($periodoDemo,$materiaDemo,[$ids['A']=>9],$ids['B'])==='ok', 'Cierre institucional puede confirmarse');
 verificar(ModeloCalificaciones::mdlCambiarEstadoPeriodo($periodoDemo,$materiaDemo,'CERRADO',$ids['B'])==='ok'
     && ModeloCalificaciones::mdlPeriodoPorId($periodoDemo,$materiaDemo)['estado']==='CERRADO', 'Estado del período se guarda por materia e institución');
+$pdo->prepare('DELETE FROM calificaciones WHERE id_modulo=?')->execute([$trabajoPeriodoId]);
+$pdo->prepare('DELETE FROM lecciones WHERE idLeccion=?')->execute([$trabajoPeriodoId]);
 verificar(count(ModeloCalificaciones::mdlResumenCierresGenerales())===1, 'Resumen general de cierres queda limitado al tenant activo');
 verificar(count(ModeloCalificaciones::mdlCalificacionesGenerales())===2, 'Historial general combina solo nota de evaluación y cierre propios antes de las tareas');
 verificar(array_column(ModeloCalificaciones::mdlSeccionesParaCalificaciones(),'idSeccion')===[$materiaDemo], 'Tarjetas de calificaciones muestran solo materias del tenant activo');
@@ -848,8 +865,17 @@ try {
     verificar($respuestaHttp['codigo']===403,
         'HTTP asistencia: una clase ajena oculta en la planilla propia se rechaza antes de escribir');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones-seccion&idSeccion='.$materiaDemo);
-    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Materia Demo'),
+    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Materia Demo')
+        && str_contains($respuestaHttp['body'],'devolucionNotaModal'),
         'HTTP calificaciones: planilla propia renderiza dentro del tenant');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones&vista=curso');
+    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Ver boletín del curso')
+        && str_contains($respuestaHttp['body'],'Curso Demo'),
+        'HTTP calificaciones: la vista por curso ofrece el boletín');
+    $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones&vista=curso&idCurso='.$cursoDemo);
+    verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Boletín de calificaciones')
+        && str_contains($respuestaHttp['body'],'A Ensayo'),
+        'HTTP calificaciones: el boletín propio muestra estudiantes y cierres del curso');
     $temaEvaluacionHttp='Evaluación HTTP '.bin2hex(random_bytes(3));
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones-seccion&idSeccion='.$materiaDemo,[
         'accion'=>'crear_evaluacion',
