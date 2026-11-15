@@ -52,6 +52,30 @@ class ControladorNotificaciones
         ], $idCurso);
     }
 
+    public static function crtNotificarCalificacion(array $estudiante, array $datos)
+    {
+        $idUsuario = (int) ($estudiante['idUsuario'] ?? 0);
+        if ($idUsuario <= 0) {
+            return 'error';
+        }
+
+        $respuesta = ModeloNotificaciones::mdlRegistrarNotificacion([
+            'id_usuario' => $idUsuario,
+            'tipoNotificacion' => (string) ($datos['tipoNotificacion'] ?? 'CALIFICACION_ACTUALIZADA'),
+            'referenciaTipo' => (string) ($datos['referenciaTipo'] ?? ''),
+            'referenciaId' => (int) ($datos['referenciaId'] ?? 0),
+            'tituloNotificacion' => (string) ($datos['tituloNotificacion'] ?? 'Nueva calificación disponible'),
+            'detalleNotificacion' => (string) ($datos['detalleNotificacion'] ?? ''),
+            'urlNotificacion' => (string) ($datos['urlNotificacion'] ?? ''),
+        ]);
+
+        if (in_array($respuesta, ['ok', 'actualizada'], true)) {
+            self::enviarEmailCalificacion($estudiante, $datos);
+        }
+
+        return $respuesta;
+    }
+
     private static function notificarPublicacion(array $datos, $idCurso)
     {
         $estudiantes = ModeloNotificaciones::mdlBuscarEstudiantesPorCurso((int) $idCurso);
@@ -102,6 +126,31 @@ class ControladorNotificaciones
             'Content-type: text/html; charset=UTF-8',
             'From: ' . $remitente,
         ]);
+
+        return @mail($email, '=?UTF-8?B?' . base64_encode($asunto) . '?=', $mensaje, $cabeceras);
+    }
+
+    private static function enviarEmailCalificacion(array $estudiante, array $datos)
+    {
+        $email = trim((string) ($estudiante['email'] ?? ''));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        try {
+            $mensaje = CorreoCampus::calificacionHtml($estudiante, $datos);
+            $remitente = CorreoCampus::remitente();
+        } catch (InvalidArgumentException $e) {
+            error_log('No se envió el aviso de calificación: ' . $e->getMessage());
+            return false;
+        }
+
+        $cabeceras = implode("\r\n", [
+            'MIME-Version: 1.0',
+            'Content-type: text/html; charset=UTF-8',
+            'From: ' . $remitente,
+        ]);
+        $asunto = (string) ($datos['asuntoEmail'] ?? 'Nueva calificación disponible en el Campus');
 
         return @mail($email, '=?UTF-8?B?' . base64_encode($asunto) . '?=', $mensaje, $cabeceras);
     }

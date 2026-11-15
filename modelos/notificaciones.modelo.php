@@ -68,17 +68,24 @@ class ModeloNotificaciones
             $tipo=strtoupper((string)($datos['referenciaTipo']??''));
             if($tipo==='LECCION'){ModeloTenant::exigirLeccion((int)$datos['referenciaId']);}
             elseif($tipo==='ACTIVIDAD'){ModeloTenant::exigirActividad((int)$datos['referenciaId']);}
+            elseif($tipo==='EVALUACION'){ModeloTenant::exigirEvaluacion((int)$datos['referenciaId']);}
+            elseif($tipo==='CIERRE_PERIODO'){ModeloTenant::exigirCierrePeriodo((int)$datos['referenciaId']);}
             else{throw new RuntimeException('Referencia institucional no válida.');}
         }
 
         try {
             $institucional=ModeloTenant::activo();
             $stmt = Conexion::conectar()->prepare(
-                'INSERT IGNORE INTO notificaciones
+                'INSERT INTO notificaciones
                     (id_usuario, tipoNotificacion, referenciaTipo, referenciaId, tituloNotificacion, detalleNotificacion, urlNotificacion'.($institucional?', id_institucion':'').')
                  '.($institucional?'SELECT':'VALUES (').'
                     :id_usuario, :tipoNotificacion, :referenciaTipo, :referenciaId, :tituloNotificacion, :detalleNotificacion, :urlNotificacion'.($institucional?', :id_institucion':'').'
-                 '.($institucional?'WHERE '.ModeloTenant::sesionActiva():')')
+                 '.($institucional?'WHERE '.ModeloTenant::sesionActiva():')') . '
+                 ON DUPLICATE KEY UPDATE
+                    tituloNotificacion=VALUES(tituloNotificacion),
+                    detalleNotificacion=VALUES(detalleNotificacion),
+                    urlNotificacion=VALUES(urlNotificacion),
+                    fechaNotificacion=NOW()'
             );
             $stmt->bindValue(':id_usuario', (int) $datos['id_usuario'], PDO::PARAM_INT);
             $stmt->bindValue(':tipoNotificacion', (string) $datos['tipoNotificacion'], PDO::PARAM_STR);
@@ -92,7 +99,7 @@ class ModeloNotificaciones
                 return 'error';
             }
 
-            return $stmt->rowCount() > 0 ? 'ok' : 'duplicada';
+            return $stmt->rowCount() === 1 ? 'ok' : ($stmt->rowCount() > 1 ? 'actualizada' : 'duplicada');
         } catch (Exception $e) {
             return 'error';
         }

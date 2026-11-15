@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../modelos/calificaciones.modelo.php';
+require_once __DIR__ . '/notificaciones.controller.php';
 
 class ControladorCalificaciones
 {
@@ -71,6 +72,48 @@ class ControladorCalificaciones
 
         return ControladorPermisos::esDocente()
             && ControladorLecciones::crtSeccionAsignadaDocente((int) $idSeccion, (int) ($_SESSION['usuario']['id'] ?? 0));
+    }
+
+    private static function cambioCalificacion($anterior, $calificacion, $devolucion, $estadoAsistencia = 'PRESENTE')
+    {
+        if (!$anterior) {
+            return true;
+        }
+
+        $anteriorAusente = strtoupper((string) ($anterior['estadoAsistencia'] ?? 'PRESENTE')) === 'AUSENTE';
+        $nuevoAusente = strtoupper((string) $estadoAsistencia) === 'AUSENTE';
+        if ($anteriorAusente !== $nuevoAusente) {
+            return true;
+        }
+
+        $notaAnterior = $anteriorAusente || !isset($anterior['calificacion']) ? null : round((float) $anterior['calificacion'], 2);
+        $notaNueva = $nuevoAusente || $calificacion === null ? null : round((float) $calificacion, 2);
+        return $notaAnterior !== $notaNueva
+            || trim((string) ($anterior['devolucion'] ?? '')) !== trim((string) $devolucion);
+    }
+
+    private static function notificarCalificacionesActualizadas(array $estudiantes, array $idsEstudiantes, array $datos, array $referenciasPorEstudiante = [])
+    {
+        $estudiantesPorId = [];
+        foreach ($estudiantes as $estudiante) {
+            $estudiantesPorId[(int) ($estudiante['idUsuario'] ?? 0)] = $estudiante;
+        }
+
+        $notificados = 0;
+        foreach (array_unique(array_map('intval', $idsEstudiantes)) as $idEstudiante) {
+            if ($idEstudiante <= 0 || empty($estudiantesPorId[$idEstudiante])) {
+                continue;
+            }
+            $datosEstudiante = $datos;
+            if (isset($referenciasPorEstudiante[$idEstudiante])) {
+                $datosEstudiante['referenciaId'] = (int) $referenciasPorEstudiante[$idEstudiante];
+            }
+            if (in_array(ControladorNotificaciones::crtNotificarCalificacion($estudiantesPorId[$idEstudiante], $datosEstudiante), ['ok', 'actualizada'], true)) {
+                $notificados++;
+            }
+        }
+
+        return $notificados;
     }
 
     public static function crtCrearEvaluacion()
@@ -195,7 +238,12 @@ class ControladorCalificaciones
         $ausentes = array_fill_keys(array_map('intval', (array) ($_POST['ausentes'] ?? [])), true);
         $estudiantes = ModeloCalificaciones::mdlEstudiantesPorCurso((int) $evaluacion['id_curso']);
         $permitidos = array_fill_keys(array_map('intval', array_column($estudiantes, 'idUsuario')), true);
+        $calificacionesPrevias = [];
+        foreach (ModeloCalificaciones::mdlCalificacionesEvaluacion($idEvaluacion) as $calificacionPrevia) {
+            $calificacionesPrevias[(int) $calificacionPrevia['id_estudiante']] = $calificacionPrevia;
+        }
         $calificaciones = [];
+        $estudiantesANotificar = [];
 
         foreach ($notas as $idEstudiante => $nota) {
             $idEstudiante = (int) $idEstudiante;
@@ -224,6 +272,9 @@ class ControladorCalificaciones
                 'estadoAsistencia' => $esAusente ? 'AUSENTE' : 'PRESENTE',
                 'devolucion' => trim((string) ($devoluciones[$idEstudiante] ?? '')),
             ];
+            if (self::cambioCalificacion($calificacionesPrevias[$idEstudiante] ?? null, $notaNumerica, (string) ($devoluciones[$idEstudiante] ?? ''), $esAusente ? 'AUSENTE' : 'PRESENTE')) {
+                $estudiantesANotificar[] = $idEstudiante;
+            }
         }
 
         if (empty($calificaciones)) {
@@ -233,6 +284,18 @@ class ControladorCalificaciones
 
         $respuesta = ModeloCalificaciones::mdlGuardarCalificacionesEvaluacion($idEvaluacion, $calificaciones);
         if ($respuesta === 'ok') {
+            self::notificarCalificacionesActualizadas($estudiantes, $estudiantesANotificar, [
+                'tipoNotificacion' => 'CALIFICACION_ACTUALIZADA',
+                'referenciaTipo' => 'EVALUACION',
+                'referenciaId' => $idEvaluacion,
+                'tituloNotificacion' => 'Nueva calificación disponible',
+                'detalleNotificacion' => (string) $evaluacion['temaEvaluacion'] . ' · ' . (string) $evaluacion['tituloSeccion'],
+                'urlNotificacion' => 'index.php?r=calificaciones-seccion&idSeccion=' . (int) $evaluacion['id_seccion'] . '&idPeriodo=' . (int) $evaluacion['id_periodo'],
+                'asuntoEmail' => 'Nueva calificación disponible en el Campus',
+                'tituloEmail' => (string) $evaluacion['temaEvaluacion'],
+                'contextoEmail' => (string) $evaluacion['nombreCurso'] . ' - ' . (string) $evaluacion['tituloSeccion'],
+                'urlEmail' => APP_BASE_URL . '/index.php?r=calificaciones-seccion&idSeccion=' . (int) $evaluacion['id_seccion'] . '&idPeriodo=' . (int) $evaluacion['id_periodo'],
+            ]);
             $_SESSION['success_message'] = 'Calificaciones guardadas correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudieron guardar las calificaciones.';
@@ -280,15 +343,23 @@ class ControladorCalificaciones
 
     public static function crtGuardarCierrePeriodo()
     {
-        $idPeriodo=(int)($_POST['id_periodo']??0); $idSeccion=(int)($_POST['id_seccion']??0); $periodo=ModeloCalificaciones::mdlPeriodoPorId($idPeriodo,$idSeccion);
-        if(!$periodo || strtoupper((string)$periodo['estado'])!=='ABIERTO' || !self::puedeGestionarSeccion($idSeccion)){
+        $idPeriodo=(int)($_POST['id_periodo']??0); $idSeccion=(int)($_POST['id_seccion']??0); $periodo=ModeloCalificaciones::mdlPeriodoPorId($idPeriodo,$idSeccion); $seccion=ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
+        if(!$periodo || !$seccion || strtoupper((string)$periodo['estado'])!=='ABIERTO' || !self::puedeGestionarSeccion($idSeccion)){
             $_SESSION['error_message']='El período está cerrado o no tenés permisos.'; return 'denied';
         }
-        $permitidos=array_fill_keys(array_map('intval',array_column(ModeloCalificaciones::mdlCierresPeriodo($idPeriodo,$idSeccion),'id_estudiante')),true); $notas=[];
-        foreach((array)($_POST['cierres']??[]) as $idEstudiante=>$valor){$normalizada=str_replace(',','.',trim((string)$valor));$idEstudiante=(int)$idEstudiante;if(!isset($permitidos[$idEstudiante])||!is_numeric($normalizada)||(float)$normalizada<0||(float)$normalizada>10){$_SESSION['error_message']='Revisá las notas de cierre. Deben estar entre 0 y 10.';return 'error';}$notas[$idEstudiante]=(float)$normalizada;}
+        $cierresPrevios=ModeloCalificaciones::mdlCierresPeriodo($idPeriodo,$idSeccion); $permitidos=array_fill_keys(array_map('intval',array_column($cierresPrevios,'id_estudiante')),true); $cierresPorEstudiante=[]; foreach($cierresPrevios as $cierre){$cierresPorEstudiante[(int)$cierre['id_estudiante']]=$cierre;} $notas=[]; $estudiantesANotificar=[]; $referencias=[];
+        foreach((array)($_POST['cierres']??[]) as $idEstudiante=>$valor){$normalizada=str_replace(',','.',trim((string)$valor));$idEstudiante=(int)$idEstudiante;if(!isset($permitidos[$idEstudiante])||!is_numeric($normalizada)||(float)$normalizada<0||(float)$normalizada>10){$_SESSION['error_message']='Revisá las notas de cierre. Deben estar entre 0 y 10.';return 'error';}$notas[$idEstudiante]=(float)$normalizada;$anterior=$cierresPorEstudiante[$idEstudiante]??null;if(!$anterior || (int)($anterior['confirmada']??0)!==1 || round((float)($anterior['calificacionCierre']??-1),2)!==round((float)$notas[$idEstudiante],2)){$estudiantesANotificar[]=$idEstudiante;$referencias[$idEstudiante]=(int)($anterior['idCierrePeriodo']??0);}}
         if(!$notas){$_SESSION['error_message']='No hay notas de cierre para guardar.';return 'error';}
         $respuesta=ModeloCalificaciones::mdlGuardarCierresPeriodo($idPeriodo,$idSeccion,$notas,(int)($_SESSION['usuario']['id']??0));
-        $_SESSION[$respuesta==='ok'?'success_message':'error_message']=$respuesta==='ok'?'Calificaciones de cierre confirmadas.':'No se pudieron guardar los cierres.'; return $respuesta;
+        if($respuesta==='ok'){
+            $cierresActuales=ModeloCalificaciones::mdlCierresPeriodo($idPeriodo,$idSeccion);
+            foreach($cierresActuales as $cierreActual){if(in_array((int)$cierreActual['id_estudiante'],$estudiantesANotificar,true)){$referencias[(int)$cierreActual['id_estudiante']]=(int)$cierreActual['idCierrePeriodo'];}}
+            self::notificarCalificacionesActualizadas(ModeloCalificaciones::mdlEstudiantesPorCurso((int)$seccion['id_curso']),$estudiantesANotificar,[
+                'tipoNotificacion'=>'CIERRE_PERIODO_ACTUALIZADO','referenciaTipo'=>'CIERRE_PERIODO','tituloNotificacion'=>'Calificación de cierre disponible','detalleNotificacion'=>(string)$periodo['nombre'].' · '.(string)$seccion['tituloSeccion'],'urlNotificacion'=>'index.php?r=calificaciones-seccion&idSeccion='.$idSeccion.'&idPeriodo='.$idPeriodo,'asuntoEmail'=>'Nueva calificación disponible en el Campus','tituloEmail'=>'Cierre: '.(string)$periodo['nombre'],'contextoEmail'=>(string)$seccion['nombreCurso'].' - '.(string)$seccion['tituloSeccion'],'urlEmail'=>APP_BASE_URL.'/index.php?r=calificaciones-seccion&idSeccion='.$idSeccion.'&idPeriodo='.$idPeriodo,
+            ],$referencias);
+            $_SESSION['success_message']='Calificaciones de cierre confirmadas.';
+        } else { $_SESSION['error_message']='No se pudieron guardar los cierres.'; }
+        return $respuesta;
     }
 
     public static function crtGuardarCalificacionesEntregas()
@@ -333,6 +404,7 @@ class ControladorCalificaciones
         }
 
         $calificaciones = [];
+        $estudiantesANotificar = [];
         foreach ($notas as $idEstudiante => $nota) {
             $idEstudiante = (int) $idEstudiante;
             $nota = trim((string) $nota);
@@ -361,6 +433,10 @@ class ControladorCalificaciones
                 'calificacion' => $notaNumerica,
                 'devolucion' => trim((string) ($devoluciones[$idEstudiante] ?? '')),
             ];
+            $calificacionPrevia = ModeloCalificaciones::mdlCalificacionPorLeccionYEstudiante($idSeccion, $idLeccion, $idEstudiante);
+            if (self::cambioCalificacion($calificacionPrevia, $notaNumerica, (string) ($devoluciones[$idEstudiante] ?? ''))) {
+                $estudiantesANotificar[] = $idEstudiante;
+            }
         }
 
         if (empty($calificaciones)) {
@@ -370,6 +446,18 @@ class ControladorCalificaciones
 
         $respuesta = ModeloCalificaciones::mdlGuardarCalificaciones($calificaciones);
         if ($respuesta === 'ok') {
+            self::notificarCalificacionesActualizadas(ModeloCalificaciones::mdlEstudiantesPorCurso($idCurso), $estudiantesANotificar, [
+                'tipoNotificacion' => 'CALIFICACION_ACTUALIZADA',
+                'referenciaTipo' => 'LECCION',
+                'referenciaId' => $idLeccion,
+                'tituloNotificacion' => 'Nueva calificación disponible',
+                'detalleNotificacion' => (string) ($leccion['nombreLeccion'] ?? 'Trabajo') . ' · ' . (string) ($seccion['tituloSeccion'] ?? ''),
+                'urlNotificacion' => 'index.php?r=calificaciones-seccion&idSeccion=' . $idSeccion . '&idPeriodo=' . $idPeriodo,
+                'asuntoEmail' => 'Nueva calificación disponible en el Campus',
+                'tituloEmail' => (string) ($leccion['nombreLeccion'] ?? 'Trabajo'),
+                'contextoEmail' => (string) ($seccion['nombreCurso'] ?? 'Curso') . ' - ' . (string) ($seccion['tituloSeccion'] ?? 'Materia'),
+                'urlEmail' => APP_BASE_URL . '/index.php?r=calificaciones-seccion&idSeccion=' . $idSeccion . '&idPeriodo=' . $idPeriodo,
+            ]);
             $cantidad = count($calificaciones);
             $_SESSION['success_message'] = $cantidad === 1
                 ? 'La correccion se guardo correctamente.'
@@ -412,17 +500,38 @@ class ControladorCalificaciones
             return 'error';
         }
 
+        $idEstudiante = (int) $_POST['id_estudiante'];
+        $idSeccion = (int) $_POST['id_seccion'];
+        $idCurso = (int) $_POST['id_curso'];
+        $devolucion = trim((string) ($_POST['devolucion'] ?? ''));
+        $calificacionPrevia = ModeloCalificaciones::mdlCalificacionPorLeccionYEstudiante($idSeccion, (int) $_POST['id_modulo'], $idEstudiante);
+
         $respuesta = ModeloCalificaciones::mdlGuardarCalificacion([
-            'id_estudiante' => (int) $_POST['id_estudiante'],
-            'id_seccion' => (int) $_POST['id_seccion'],
+            'id_estudiante' => $idEstudiante,
+            'id_seccion' => $idSeccion,
             'id_modulo' => (int) $_POST['id_modulo'],
-            'id_curso' => (int) $_POST['id_curso'],
+            'id_curso' => $idCurso,
             'id_periodo' => $idPeriodo,
             'calificacion' => $calificacion,
-            'devolucion' => trim((string) ($_POST['devolucion'] ?? '')),
+            'devolucion' => $devolucion,
         ]);
 
         if ($respuesta === 'ok') {
+            if (self::cambioCalificacion($calificacionPrevia, $calificacion, $devolucion)) {
+                $seccion = ControladorLecciones::crtBuscarSeccionPorId($idSeccion);
+                self::notificarCalificacionesActualizadas(ModeloCalificaciones::mdlEstudiantesPorCurso($idCurso), [$idEstudiante], [
+                    'tipoNotificacion' => 'CALIFICACION_ACTUALIZADA',
+                    'referenciaTipo' => 'LECCION',
+                    'referenciaId' => (int) $_POST['id_modulo'],
+                    'tituloNotificacion' => 'Nueva calificación disponible',
+                    'detalleNotificacion' => (string) ($leccion['nombreLeccion'] ?? 'Trabajo') . ' · ' . (string) ($seccion['tituloSeccion'] ?? ''),
+                    'urlNotificacion' => 'index.php?r=calificaciones-seccion&idSeccion=' . $idSeccion . '&idPeriodo=' . $idPeriodo,
+                    'asuntoEmail' => 'Nueva calificación disponible en el Campus',
+                    'tituloEmail' => (string) ($leccion['nombreLeccion'] ?? 'Trabajo'),
+                    'contextoEmail' => (string) ($seccion['nombreCurso'] ?? 'Curso') . ' - ' . (string) ($seccion['tituloSeccion'] ?? 'Materia'),
+                    'urlEmail' => APP_BASE_URL . '/index.php?r=calificaciones-seccion&idSeccion=' . $idSeccion . '&idPeriodo=' . $idPeriodo,
+                ]);
+            }
             $_SESSION['success_message'] = 'Calificacion guardada correctamente.';
         } else {
             $_SESSION['error_message'] = 'No se pudo guardar la calificacion.';

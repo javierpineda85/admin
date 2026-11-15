@@ -453,6 +453,19 @@ $notificacionDemo=ModeloNotificaciones::mdlRegistrarNotificacion([
     'urlNotificacion'=>'index.php?r=ver-actividad&idActividad='.$actividadPublica
 ]);
 verificar($notificacionDemo==='ok'&&(int)$pdo->query('SELECT id_institucion FROM notificaciones ORDER BY idNotificacion DESC LIMIT 1')->fetchColumn()===$demo, 'Notificación obtiene institución desde el contexto y valida su recurso');
+$notificacionEvaluacion=ModeloNotificaciones::mdlRegistrarNotificacion([
+    'id_usuario'=>$ids['A'],'tipoNotificacion'=>'CALIFICACION_ACTUALIZADA','referenciaTipo'=>'EVALUACION','referenciaId'=>$evaluacionDemo,
+    'tituloNotificacion'=>'Nueva calificación disponible','detalleNotificacion'=>'Evaluación Demo','urlNotificacion'=>'index.php?r=calificaciones-seccion&idSeccion='.$materiaDemo
+]);
+$notificacionEvaluacionActualizada=ModeloNotificaciones::mdlRegistrarNotificacion([
+    'id_usuario'=>$ids['A'],'tipoNotificacion'=>'CALIFICACION_ACTUALIZADA','referenciaTipo'=>'EVALUACION','referenciaId'=>$evaluacionDemo,
+    'tituloNotificacion'=>'Calificación actualizada','detalleNotificacion'=>'Evaluación Demo actualizada','urlNotificacion'=>'index.php?r=calificaciones-seccion&idSeccion='.$materiaDemo
+]);
+$notificacionCierre=ModeloNotificaciones::mdlRegistrarNotificacion([
+    'id_usuario'=>$ids['A'],'tipoNotificacion'=>'CIERRE_PERIODO_ACTUALIZADO','referenciaTipo'=>'CIERRE_PERIODO','referenciaId'=>(int)$cierresDemo[0]['idCierrePeriodo'],
+    'tituloNotificacion'=>'Calificación de cierre disponible','detalleNotificacion'=>'Primer período','urlNotificacion'=>'index.php?r=calificaciones-seccion&idSeccion='.$materiaDemo
+]);
+verificar($notificacionEvaluacion==='ok' && $notificacionEvaluacionActualizada==='actualizada' && $notificacionCierre==='ok', 'Notificaciones de calificaciones y cierres se actualizan sin duplicarse');
 denegado(function() use($ids,$actividadPublica) { ModeloNotificaciones::mdlRegistrarNotificacion([
     'id_usuario'=>$ids['C'],'tipoNotificacion'=>'ACTIVIDAD_PUBLICADA','referenciaTipo'=>'ACTIVIDAD',
     'referenciaId'=>$actividadPublica,'tituloNotificacion'=>'Cruce','detalleNotificacion'=>'','urlNotificacion'=>''
@@ -466,7 +479,7 @@ verificar(ModeloMensajes::mdlMarcarLeido($mensajeDemo,$ids['A'])==='ok'&&ModeloM
 verificar(ControladorDescargas::crtResolverArchivo('mensaje',$adjuntoMensaje)['nombre']==='mensaje.txt'
     && ControladorDescargas::crtResolverArchivo('entrega',$adjuntoEntrega)['nombre']==='entrega.txt', 'Destinatario descarga el mensaje y el estudiante sólo su propia entrega');
 $notificacionesDemo=ModeloNotificaciones::mdlListarNotificacionesUsuario($ids['A']);
-verificar(count($notificacionesDemo)===1, 'Destinatario lista únicamente notificaciones de la institución activa');
+verificar(count($notificacionesDemo)===3, 'Destinatario lista únicamente notificaciones de la institución activa');
 $claveNotificacion='notificacion:'.(int)$notificacionesDemo[0]['idNotificacion'];
 verificar(ModeloPanel::mdlMarcarNotificacionLeida($ids['A'],$claveNotificacion)==='ok'
     && (int)$pdo->query('SELECT id_institucion FROM notificaciones_lecturas ORDER BY idNotificacionLectura DESC LIMIT 1')->fetchColumn()===$demo, 'Marca de lectura se registra dentro del contexto institucional');

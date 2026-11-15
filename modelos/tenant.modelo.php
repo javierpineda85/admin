@@ -443,6 +443,14 @@ class ModeloTenant
         if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
     }
 
+    public static function exigirCierrePeriodo($idCierrePeriodo)
+    {
+        if (!self::activo()) { return; }
+        $stmt = Conexion::conectar()->prepare('SELECT 1 FROM cierres_periodo_calificaciones cp WHERE cp.idCierrePeriodo=? AND ' . self::cierresPeriodo('cp'));
+        $stmt->execute([(int) $idCierrePeriodo]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Acceso institucional denegado.'); }
+    }
+
     public static function exigirActividad($idActividad)
     {
         if (!self::activo()) { return; }
