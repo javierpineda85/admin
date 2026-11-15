@@ -29,7 +29,7 @@ if($vista==='curso'&&$cursoBoletin){
 
 <?php if($vista==='resumen'):?>
 <div class="card glass-card"><div class="card-header section-header-soft d-flex flex-wrap justify-content-between align-items-center"><div><h3 class="card-title mb-1">Resultados de cierre</h3><small class="text-muted">Una fila por estudiante y materia; sin mezclar evaluaciones parciales.</small></div><label class="management-search mb-0"><i class="fas fa-search"></i><input type="search" class="form-control form-control-sm" placeholder="Buscar estudiante, curso o materia..." data-grade-search></label></div><div class="card-body p-0">
-<?php if(!$grupos):?><div class="empty-state my-4"><i class="fas fa-flag-checkered"></i><h4>Aún no hay notas de cierre</h4><p>Los resultados aparecerán cuando el docente calcule el cierre de un período.</p></div><?php else:?><div class="table-responsive"><table class="table table-hover grade-summary-table mb-0 grade-export-table" data-export-title="cierres_por_estudiante_y_materia"><thead><tr><th>Estudiante</th><th>Curso</th><th>Materia</th><th>Profesor</th><?php foreach($periodos as $p):?><th><?php echo $e($p['nombre']);?></th><?php endforeach;?><th>Estado</th></tr></thead><tbody>
+<?php if(!$grupos):?><div class="empty-state my-4"><i class="fas fa-flag-checkered"></i><h4>Aún no hay notas de cierre</h4><p>Los resultados aparecerán cuando el docente calcule el cierre de un período.</p></div><?php else:?><div class="table-responsive"><table class="table table-hover grade-summary-table mb-0 grade-export-table" data-export-title="cierres_por_estudiante_y_materia" data-export-heading="Resultados de cierre" data-export-subtitle="Cierres por estudiante y materia"><thead><tr><th>Estudiante</th><th>Curso</th><th>Materia</th><th>Profesor</th><?php foreach($periodos as $p):?><th><?php echo $e($p['nombre']);?></th><?php endforeach;?><th>Estado</th></tr></thead><tbody>
 <?php foreach($grupos as $g):$ultima=null;foreach($periodos as $idP=>$p){if(isset($g['notas'][$idP])){$ultima=$g['notas'][$idP];}}$notaUltima=$ultima['calificacionCierre']??null;?><tr data-grade-row data-search="<?php echo $e(implode(' ',[$g['estudiante'],$g['curso'],$g['materia'],$g['docente']]));?>"><td><strong><?php echo $e($g['estudiante']);?></strong></td><td><?php echo $e($g['curso']);?></td><td><?php echo $e($g['materia']);?></td><td><?php echo $e($g['docente']);?></td><?php foreach($periodos as $idP=>$p):$n=$g['notas'][$idP]['calificacionCierre']??null;?><td><span class="grade-result <?php echo $n===null?'is-empty':((float)$n>=7?'is-approved':'is-failed');?>"><?php echo $n===null?'—':$e(number_format((float)$n,2));?></span></td><?php endforeach;?><td><?php if($notaUltima===null):?><span class="badge badge-light">Pendiente</span><?php elseif((float)$notaUltima>=7):?><span class="badge badge-success">Aprobado</span><?php else:?><span class="badge badge-danger">Desaprobado</span><?php endif;?></td></tr><?php endforeach;?></tbody></table><?php if($puedeExportar):?><div class="p-2 border-top" data-grade-export-actions></div><?php endif;?></div><?php endif;?></div></div>
 
 <?php elseif($vista==='curso'):?>
@@ -42,7 +42,7 @@ if($vista==='curso'&&$cursoBoletin){
     <div class="card-header section-header-soft d-flex flex-wrap justify-content-between align-items-center"><div><h4 class="card-title mb-1"><?php echo $e($cursoBoletin['curso']); ?></h4><small class="text-muted">Las notas sin confirmar se identifican como provisorias.</small></div><label class="management-search mb-0"><i class="fas fa-search"></i><input type="search" class="form-control form-control-sm" placeholder="Buscar estudiante..." data-grade-search></label></div>
     <div class="card-body p-0">
       <?php if(empty($estudiantesBoletin)):?><div class="empty-state my-4"><i class="fas fa-user-graduate"></i><h4>No hay estudiantes activos en este curso</h4></div><?php else:?>
-        <div class="table-responsive"><table class="table table-hover table-bordered mb-0 grade-export-table" data-export-title="boletin_<?php echo $e($cursoBoletin['curso']); ?>"><thead><tr><th>Estudiante</th><?php foreach($cursoBoletin['materias'] as $materiaBoletin):?><th class="text-center"><?php echo $e($materiaBoletin['materia']);?></th><?php endforeach;?></tr></thead><tbody>
+        <div class="table-responsive"><table class="table table-hover table-bordered mb-0 grade-export-table" data-export-title="boletin_<?php echo $e($cursoBoletin['curso']); ?>" data-export-heading="Boletín de calificaciones" data-export-subtitle="<?php echo $e($cursoBoletin['curso']); ?>"><thead><tr><th>Estudiante</th><?php foreach($cursoBoletin['materias'] as $materiaBoletin):?><th class="text-center"><?php echo $e($materiaBoletin['materia']);?></th><?php endforeach;?></tr></thead><tbody>
           <?php foreach($estudiantesBoletin as $estudianteBoletin):$idAlumnoBoletin=(int)$estudianteBoletin['idUsuario'];$nombreAlumnoBoletin=trim(($estudianteBoletin['apellidoUsuario']??'').' '.($estudianteBoletin['nombreUsuario']??''));?><tr data-grade-row data-search="<?php echo $e($nombreAlumnoBoletin);?>"><td><strong><?php echo $e($nombreAlumnoBoletin);?></strong></td><?php foreach($cursoBoletin['materias'] as $materiaBoletin):$cierreBoletin=$notasBoletin[$idAlumnoBoletin][(int)$materiaBoletin['idSeccion']]??null;$notaBoletin=$cierreBoletin['calificacionCierre']??null;?><td class="text-center align-middle"><?php if($notaBoletin===null):?><span class="text-muted">—</span><?php else:?><strong class="grade-result <?php echo (float)$notaBoletin>=7?'is-approved':'is-failed';?>"><?php echo $e(number_format((float)$notaBoletin,2,',','.'));?></strong><?php if((int)($cierreBoletin['confirmada']??0)!==1):?><small class="d-block text-muted">Provisorio</small><?php endif;?><?php endif;?></td><?php endforeach;?></tr><?php endforeach;?>
         </tbody></table><div class="p-2 border-top" data-grade-export-actions></div></div>
       <?php endif;?>
@@ -64,8 +64,63 @@ if($vista==='curso'&&$cursoBoletin){
 <?php elseif($vista==='estudiante'):?><div class="card glass-card"><div class="card-header section-header-soft"><h3 class="card-title mb-0">Mis calificaciones</h3></div><?php include __DIR__.'/calificaciones-lista.inc.php';?></div>
 <?php else:?><div class="card glass-card"><div class="card-header section-header-soft d-flex flex-wrap justify-content-between align-items-center"><div><h3 class="card-title mb-1">Registro detallado</h3><small class="text-muted">Historial cronológico de actividades, evaluaciones y cierres.</small></div><label class="management-search mb-0"><i class="fas fa-search"></i><input type="search" class="form-control form-control-sm" placeholder="Buscar..." data-grade-search></label></div><?php include __DIR__.'/calificaciones-lista.inc.php';?></div><?php endif;?>
 </div></section>
-<script>document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-grade-search]').forEach(function(input){input.addEventListener('input',function(){var q=this.value.toLowerCase().trim();if(window.jQuery&&jQuery.fn.DataTable){document.querySelectorAll('.grade-export-table').forEach(function(table){if(jQuery.fn.DataTable.isDataTable(table)){jQuery(table).DataTable().search(q).draw();}});}document.querySelectorAll('[data-grade-row]').forEach(function(row){row.style.display=((row.getAttribute('data-search')||'').toLowerCase().indexOf(q)!==-1)?'':'none';});});});
-<?php if($puedeExportar):?>
-document.querySelectorAll('.grade-export-table').forEach(function(table){if(!window.jQuery||!jQuery.fn.DataTable||jQuery.fn.DataTable.isDataTable(table)){return;}var $table=jQuery(table);var title=table.getAttribute('data-export-title')||'calificaciones';var instance=$table.DataTable({paging:true,pageLength:25,order:[],dom:'Bfrtip',buttons:[{extend:'csvHtml5',text:'CSV',title:title},{extend:'excelHtml5',text:'Excel',title:title},{extend:'pdfHtml5',text:'PDF',title:title,orientation:'landscape',pageSize:'A4'}],language:{search:'Buscar:',zeroRecords:'No se encontraron resultados',info:'Mostrando _START_ a _END_ de _TOTAL_ registros',paginate:{next:'Siguiente',previous:'Anterior'}}});var target=$table.closest('.table-responsive').find('[data-grade-export-actions]').first();if(!target.length){target=$table.closest('.card').find('[data-grade-export-actions]').first();}if(target.length){instance.buttons().container().appendTo(target);}});
-<?php endif;?>
-});</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-grade-search]').forEach(function(input) {
+    input.addEventListener('input', function() {
+      var q = this.value.toLowerCase().trim();
+      if (window.jQuery && jQuery.fn.DataTable) {
+        document.querySelectorAll('.grade-export-table').forEach(function(table) {
+          if (jQuery.fn.DataTable.isDataTable(table)) { jQuery(table).DataTable().search(q).draw(); }
+        });
+      }
+      document.querySelectorAll('[data-grade-row]').forEach(function(row) {
+        row.style.display = ((row.getAttribute('data-search') || '').toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+      });
+    });
+  });
+
+  function botonPdfCalificaciones(table, title) {
+    var heading = table.getAttribute('data-export-heading') || 'Calificaciones';
+    var subtitle = table.getAttribute('data-export-subtitle') || 'Informe académico';
+    return {
+      extend: 'pdfHtml5', text: 'PDF', title: heading, filename: title,
+      messageTop: subtitle, orientation: 'landscape', pageSize: 'A4',
+      customize: function(doc) {
+        doc.pageMargins = [28, 56, 28, 38];
+        doc.defaultStyle = { fontSize: 8, color: '#1f2937' };
+        doc.styles = doc.styles || {};
+        doc.styles.title = { fontSize: 16, bold: true, color: '#24114f', margin: [0, 0, 0, 5] };
+        doc.styles.message = { fontSize: 9, color: '#5b6475', margin: [0, 0, 0, 14] };
+        doc.styles.tableHeader = { bold: true, fontSize: 8, color: '#ffffff', fillColor: '#5420a0', alignment: 'center', margin: [0, 5, 0, 5] };
+        doc.header = function() { return { columns: [{ text: 'CAMPUS', bold: true, color: '#ff7a18', fontSize: 10 }, { text: 'INFORME ACADÉMICO', alignment: 'right', color: '#5420a0', bold: true, fontSize: 9 }], margin: [28, 18, 28, 0] }; };
+        doc.footer = function(page, pages) { return { columns: [{ text: 'Documento generado el ' + new Date().toLocaleDateString('es-AR'), color: '#6b7280', fontSize: 7 }, { text: 'Página ' + page + ' de ' + pages, alignment: 'right', color: '#6b7280', fontSize: 7 }], margin: [28, 0, 28, 16] }; };
+        var tabla = doc.content.filter(function(item) { return item.table; })[0];
+        if (tabla) {
+          tabla.layout = { hLineWidth: function() { return 0.4; }, vLineWidth: function() { return 0; }, hLineColor: function() { return '#d9dce5'; }, paddingLeft: function() { return 5; }, paddingRight: function() { return 5; }, paddingTop: function() { return 4; }, paddingBottom: function() { return 4; }, fillColor: function(row) { return row % 2 === 0 ? '#f8f7fc' : null; } };
+        }
+      }
+    };
+  }
+
+  <?php if($puedeExportar):?>
+  document.querySelectorAll('.grade-export-table').forEach(function(table) {
+    if (!window.jQuery || !jQuery.fn.DataTable || jQuery.fn.DataTable.isDataTable(table)) { return; }
+    var $table = jQuery(table);
+    var title = table.getAttribute('data-export-title') || 'calificaciones';
+    var instance = $table.DataTable({
+      paging: true, pageLength: 25, order: [], dom: 'Bfrtip',
+      buttons: [
+        { extend: 'csvHtml5', text: 'CSV', title: title },
+        { extend: 'excelHtml5', text: 'Excel', title: title },
+        botonPdfCalificaciones(table, title)
+      ],
+      language: { search: 'Buscar:', zeroRecords: 'No se encontraron resultados', info: 'Mostrando _START_ a _END_ de _TOTAL_ registros', paginate: { next: 'Siguiente', previous: 'Anterior' } }
+    });
+    var target = $table.closest('.table-responsive').find('[data-grade-export-actions]').first();
+    if (!target.length) { target = $table.closest('.card').find('[data-grade-export-actions]').first(); }
+    if (target.length) { instance.buttons().container().appendTo(target); }
+  });
+  <?php endif;?>
+});
+</script>

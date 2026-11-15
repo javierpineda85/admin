@@ -59,11 +59,6 @@ if (!$tieneAcceso) {
     return;
 }
 
-$calificaciones = $esEstudiante
-    ? ($idEstudianteContexto > 0
-        ? ControladorCalificaciones::crtCalificacionesPorEstudiante($idSeccion, $idEstudianteContexto)
-        : [])
-    : ControladorCalificaciones::crtCalificacionesPorSeccion($idSeccion);
 $contextoAcademico = ControladorCalificaciones::crtContextoAcademicoSeccion($idSeccion);
 $periodos = $contextoAcademico['periodos'] ?? [];
 $instrumentos = $contextoAcademico['instrumentos'] ?? [];
@@ -214,7 +209,7 @@ if (!empty($seccion['bannerSeccion'])) {
             <div class="empty-state py-4"><i class="fas fa-table"></i><p class="mb-0">La planilla aparecerá cuando existan tareas o evaluaciones con estudiantes.</p></div>
           <?php else: ?>
             <div class="table-responsive" style="max-height: 65vh;">
-              <table class="table table-bordered table-sm mb-0 grade-export-table" data-gradebook-table data-export-title="planilla_<?php echo $e($seccion['nombreCurso'] ?? 'curso'); ?>_<?php echo $e($seccion['tituloSeccion'] ?? 'materia'); ?>_<?php echo $e($periodoActual['nombre'] ?? 'periodo'); ?>">
+              <table class="table table-bordered table-sm mb-0 grade-export-table" data-gradebook-table data-export-title="planilla_<?php echo $e($seccion['nombreCurso'] ?? 'curso'); ?>_<?php echo $e($seccion['tituloSeccion'] ?? 'materia'); ?>_<?php echo $e($periodoActual['nombre'] ?? 'periodo'); ?>" data-export-heading="Planilla de calificaciones" data-export-subtitle="<?php echo $e(($seccion['nombreCurso'] ?? 'Curso').' · '.($seccion['tituloSeccion'] ?? 'Materia').' · '.($periodoActual['nombre'] ?? 'Período')); ?>">
                 <thead class="thead-light"><tr>
                   <th style="position:sticky;left:0;top:0;z-index:4;min-width:230px;background:#f4f6f9;">Estudiante</th>
                   <?php foreach($evaluaciones as $evaluacionColumna): ?>
@@ -449,45 +444,6 @@ if (!empty($seccion['bannerSeccion'])) {
       </div>
     <?php endif; ?>
 
-    <div class="card glass-card">
-      <div class="card-header section-header-soft d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">Calificaciones ligadas a actividades</h3>
-        <a href="index.php?r=detalle-seccion&idSeccion=<?php echo (int) $idSeccion; ?>" class="btn btn-light border btn-sm">Volver a la materia</a>
-      </div>
-      <div class="card-body">
-        <?php if (empty($calificaciones)): ?>
-          <div class="empty-state py-4">
-            <i class="fas fa-star"></i>
-            <h4>No hay calificaciones de actividades</h4>
-            <p class="mb-0">Cuando haya trabajos calificados, se mostraran en esta seccion.</p>
-          </div>
-        <?php else: ?>
-          <div class="table-responsive">
-            <table class="table table-hover table-bordered mb-0">
-              <thead>
-                <tr>
-                  <?php if (!$esEstudiante): ?><th>Estudiante</th><?php endif; ?>
-                  <th>Actividad</th><th>Tipo</th><th>Nota</th><th>Devolucion</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($calificaciones as $calificacion): ?>
-                  <tr>
-                    <?php if (!$esEstudiante): ?>
-                      <td><?php echo $e(trim(($calificacion['apellidoUsuario'] ?? '') . ' ' . ($calificacion['nombreUsuario'] ?? ''))); ?></td>
-                    <?php endif; ?>
-                    <td><?php echo $e($calificacion['nombreLeccion'] ?? 'Actividad'); ?></td>
-                    <td><?php echo $e($calificacion['tipoLeccion'] ?? ''); ?></td>
-                    <td><strong><?php echo $e(number_format((float) ($calificacion['calificacion'] ?? 0),2,',','.')); ?></strong></td>
-                    <td><?php echo $e($calificacion['devolucion'] ?: 'Sin devolucion'); ?></td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        <?php endif; ?>
-      </div>
-    </div>
   </div>
 </section>
 
@@ -570,6 +526,29 @@ if (!empty($seccion['bannerSeccion'])) {
       });
     }
 
+    function botonPdfCalificaciones(table, title) {
+      var heading = table.getAttribute('data-export-heading') || 'Calificaciones';
+      var subtitle = table.getAttribute('data-export-subtitle') || 'Informe académico';
+      return {
+        extend: 'pdfHtml5', text: 'PDF', title: heading, filename: title,
+        messageTop: subtitle, orientation: 'landscape', pageSize: 'A4',
+        customize: function(doc) {
+          doc.pageMargins = [28, 56, 28, 38];
+          doc.defaultStyle = { fontSize: 8, color: '#1f2937' };
+          doc.styles = doc.styles || {};
+          doc.styles.title = { fontSize: 16, bold: true, color: '#24114f', margin: [0, 0, 0, 5] };
+          doc.styles.message = { fontSize: 9, color: '#5b6475', margin: [0, 0, 0, 14] };
+          doc.styles.tableHeader = { bold: true, fontSize: 8, color: '#ffffff', fillColor: '#5420a0', alignment: 'center', margin: [0, 5, 0, 5] };
+          doc.header = function() { return { columns: [{ text: 'CAMPUS', bold: true, color: '#ff7a18', fontSize: 10 }, { text: 'INFORME ACADÉMICO', alignment: 'right', color: '#5420a0', bold: true, fontSize: 9 }], margin: [28, 18, 28, 0] }; };
+          doc.footer = function(page, pages) { return { columns: [{ text: 'Documento generado el ' + new Date().toLocaleDateString('es-AR'), color: '#6b7280', fontSize: 7 }, { text: 'Página ' + page + ' de ' + pages, alignment: 'right', color: '#6b7280', fontSize: 7 }], margin: [28, 0, 28, 16] }; };
+          var tabla = doc.content.filter(function(item) { return item.table; })[0];
+          if (tabla) {
+            tabla.layout = { hLineWidth: function() { return 0.4; }, vLineWidth: function() { return 0; }, hLineColor: function() { return '#d9dce5'; }, paddingLeft: function() { return 5; }, paddingRight: function() { return 5; }, paddingTop: function() { return 4; }, paddingBottom: function() { return 4; }, fillColor: function(row) { return row % 2 === 0 ? '#f8f7fc' : null; } };
+          }
+        }
+      };
+    }
+
     document.querySelectorAll('.grade-export-table').forEach(function(table) {
       if (!window.jQuery || !jQuery.fn.DataTable || jQuery.fn.DataTable.isDataTable(table)) {
         return;
@@ -584,7 +563,7 @@ if (!empty($seccion['bannerSeccion'])) {
         buttons: [
           { extend: 'csvHtml5', text: 'CSV', title: title },
           { extend: 'excelHtml5', text: 'Excel', title: title },
-          { extend: 'pdfHtml5', text: 'PDF', title: title, orientation: 'landscape', pageSize: 'A4' }
+          botonPdfCalificaciones(table, title)
         ],
         language: {
           search: 'Buscar:', zeroRecords: 'No se encontraron resultados',
@@ -621,14 +600,14 @@ if (!empty($seccion['bannerSeccion'])) {
 <?php endif; ?>
 
 <script>
-  if (window.jQuery) {
-    jQuery('#devolucionNotaModal').on('show.bs.modal', function(event) {
-      var trigger = jQuery(event.relatedTarget);
-      var modal = jQuery(this);
-      modal.find('[data-feedback-student]').text(trigger.data('estudiante') || '');
-      modal.find('[data-feedback-activity]').text(trigger.data('actividad') || '');
-      modal.find('[data-feedback-grade]').text(trigger.data('nota') || '');
-      modal.find('[data-feedback-comment]').text(trigger.data('devolucion') || 'Sin devolución.');
-    });
-  }
+  document.addEventListener('click', function(event) {
+    var trigger = event.target.closest('[data-target="#devolucionNotaModal"]');
+    if (!trigger) { return; }
+    var modal = document.getElementById('devolucionNotaModal');
+    if (!modal) { return; }
+    modal.querySelector('[data-feedback-student]').textContent = trigger.getAttribute('data-estudiante') || '';
+    modal.querySelector('[data-feedback-activity]').textContent = trigger.getAttribute('data-actividad') || '';
+    modal.querySelector('[data-feedback-grade]').textContent = trigger.getAttribute('data-nota') || '';
+    modal.querySelector('[data-feedback-comment]').textContent = trigger.getAttribute('data-devolucion') || 'Sin devolución.';
+  });
 </script>

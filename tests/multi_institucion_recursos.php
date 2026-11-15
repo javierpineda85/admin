@@ -921,8 +921,9 @@ try {
         'HTTP asistencia: una clase ajena oculta en la planilla propia se rechaza antes de escribir');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones-seccion&idSeccion='.$materiaDemo);
     verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Materia Demo')
-        && str_contains($respuestaHttp['body'],'devolucionNotaModal'),
-        'HTTP calificaciones: planilla propia renderiza dentro del tenant');
+        && str_contains($respuestaHttp['body'],'devolucionNotaModal')
+        && !str_contains($respuestaHttp['body'],'Calificaciones ligadas a actividades'),
+        'HTTP calificaciones: planilla propia integra trabajos sin una tabla duplicada');
     $respuestaHttp=peticion($curlHttp,$urlHttp.'?r=calificaciones&vista=curso');
     verificar($respuestaHttp['codigo']===200 && str_contains($respuestaHttp['body'],'Ver boletín del curso')
         && str_contains($respuestaHttp['body'],'Curso Demo'),
