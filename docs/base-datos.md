@@ -56,6 +56,9 @@ Campos relevantes agregados al modulo de actividades:
 - `codigoBase`: guarda el fragmento fuente para las actividades de deteccion de errores en codigo.
 - `lenguajeCodigo`: permite adaptar la consigna de codigo segun el lenguaje elegido.
 - `variantesCodigo`: guarda alternativas validas para una misma correccion esperada.
+- `tipoArrastre` y `claveArrastre`: definen el comportamiento y la correspondencia de las tarjetas arrastrables.
+- `imagenOpcion` y `audioOpcion`: almacenan las rutas multimedia de una tarjeta de actividad.
+- `lecciones.id_periodo` y `calificaciones.id_periodo`: vinculan tareas y sus notas al período académico que corresponde.
 - `mensajes`: hilo principal del mensaje.
 - `mensajes_participantes`: estado por usuario, leido, papelera y eliminacion.
 - `mensajes_adjuntos`: archivos adjuntos.

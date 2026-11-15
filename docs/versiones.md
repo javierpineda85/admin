@@ -35,6 +35,27 @@ Por lo tanto, el orden natural coincide con el cronologico: `5.2026.08.29 < 5.20
 
 Todas las versiones nuevas deben usar el formato `<major>.<YYYY>.<MM>.<DD>`. Las versiones historicas ya publicadas conservan sus identificadores originales y no deben renumerarse, salvo que exista una razon tecnica explicita y documentada para hacerlo.
 
+## 5.2026.11.16 - Seguimiento, actividades interactivas y coordinación
+
+### Cambios principales
+
+- Las notas de trabajos se incorporan al período de calificación, se muestran en las planillas por materia y se consideran al calcular el cierre.
+- Calificaciones incorpora consultas por curso, boletín exportable y reportes PDF mejorados; las devoluciones de tareas quedan disponibles desde la planilla.
+- Actividades suma interacción de arrastrar y soltar, pares, secuencias, completar espacios y contenido multimedia opcional por tarjeta.
+- Se agrega el rol institucional `COORDINADOR`: consulta integral de contenidos, estudiantes, entregas, asistencia, resultados y calificaciones, sin permisos de edición.
+- El coordinador puede enviar mensajes únicamente a docentes y administradores de su institución.
+- El Campus avisa al estudiante por correo y por notificación interna cuando se carga o actualiza una nota de tarea, evaluación o cierre de período. El correo no contiene la calificación.
+
+### Despliegue
+
+- Ejecutar `sql/2026-11-16_actualizacion_produccion.sql` sobre un respaldo de la base de producción.
+- Configurar un remitente válido y el servicio PHP `mail()` en producción para habilitar los avisos de calificaciones.
+
+### Estado
+
+- Implementado en la rama `mejoras/5.2026.11.16`.
+- Pendiente de validación funcional final y publicación.
+
 ## 5.2026.09.04 - Gestion academica desde el campus
 
 ### Cambios principales

@@ -38,8 +38,18 @@
 
 - Nota numerica.
 - Devolucion textual.
-- Consulta por seccion y por estudiante.
-- Vista separada para seguimiento academico.
+- Consulta por sección, estudiante y curso.
+- Las notas de tareas se asignan a períodos y se integran al cálculo de cierre.
+- Planillas, boletín por curso y exportaciones en XLS, CSV y PDF.
+- Aviso interno y por correo al estudiante al registrar o actualizar una nota o cierre; el correo no incluye el valor de la nota.
+
+## Actividades
+
+- Multiple choice y verdadero/falso.
+- Completar espacios, incluso con varios espacios y saltos de línea.
+- Buscar pares y ordenar secuencias mediante arrastre.
+- Recurso externo embebible.
+- Tarjetas con texto, imagen, audio cargado o audio grabado cuando el tipo de actividad lo admite.
 
 ## Mensajes
 

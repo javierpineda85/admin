@@ -47,6 +47,15 @@ Trabaja solo sobre los cursos propios y las materias en las que esta asignado co
 - Corregir tareas y cargar devoluciones.
 - Enviar mensajes a estudiantes y a otros docentes/admins.
 
+## Coordinador académico
+
+Consulta de manera transversal la institución activa, sin modificar datos:
+
+- Ver cursos, materias, contenidos, recursos, actividades, resultados, entregas y adjuntos.
+- Consultar estudiantes, asistencia, calificaciones, devoluciones, cierres y exportaciones disponibles.
+- Enviar mensajes únicamente a docentes y administradores de la misma institución.
+- No puede crear, editar, borrar, corregir, inscribir, reasignar ni cerrar períodos.
+
 ## Estudiante
 
 Accede solo a lo que corresponde a su inscripcion:
@@ -69,6 +78,7 @@ Accede solo a lo que corresponde a su inscripcion:
 - Solo el administrador puede reasignar o quitar responsables de cursos y actualizar el equipo docente de una materia.
 - WordPress autentica la cuenta, pero el rol academico se administra desde Campus.
 - Las calificaciones siempre guardan nota y devolucion.
+- `secciones.tutor` corresponde a un docente adjunto; no representa un tutor legal de estudiantes.
 
 ## Roles cargados en el ensayo de fase 2
 
