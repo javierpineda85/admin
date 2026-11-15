@@ -7,7 +7,7 @@ class ModeloUsuarios
 {
     private static function normalizarRolesInstitucionales(array $roles)
     {
-        $permitidos = ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'];
+        $permitidos = ['ADMINISTRADOR', 'COORDINADOR', 'DOCENTE', 'ESTUDIANTE'];
         $normalizados = [];
         foreach ($roles as $rol) {
             $rol = strtoupper(trim((string) $rol));
@@ -266,7 +266,7 @@ class ModeloUsuarios
             $rolLocal = strtoupper(trim((string) ($usuarioLocal['rol'] ?? '')));
             $emailWp = strtolower(trim((string) ($usuarioWp['user_email'] ?? '')));
             $esSuperAdmin = $emailWp !== '' && in_array($emailWp, array_map('strtolower', WP_SUPER_ADMIN_EMAILS), true);
-            if (!$esSuperAdmin && in_array($rolLocal, ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'], true)) {
+            if (!$esSuperAdmin && in_array($rolLocal, ['ADMINISTRADOR', 'COORDINADOR', 'DOCENTE', 'ESTUDIANTE'], true)) {
                 $rol = $rolLocal;
             }
 
@@ -382,7 +382,7 @@ class ModeloUsuarios
                 INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario
                 LEFT JOIN perfiles p ON p.id_usuario=u.idUsuario
                 LEFT JOIN usuarios_instituciones_roles ur ON ur.id_usuario_institucion=ui.idUsuarioInstitucion
-                LEFT JOIN roles r ON r.idRol=ur.id_rol AND r.codigo IN ('ADMINISTRADOR','DOCENTE','ESTUDIANTE')
+                LEFT JOIN roles r ON r.idRol=ur.id_rol AND r.codigo IN ('ADMINISTRADOR','COORDINADOR','DOCENTE','ESTUDIANTE')
                 WHERE ui.id_institucion=:idInstitucion AND u.idUsuario=:idUsuario AND u.activo=1
                     AND " . ModeloTenant::sesionActiva() . "
                 GROUP BY ui.idUsuarioInstitucion,u.idUsuario,p.idPerfil
@@ -481,7 +481,7 @@ class ModeloUsuarios
                 GROUP_CONCAT(DISTINCT r.codigo ORDER BY r.codigo SEPARATOR ' · ') rol
                 FROM usuarios_instituciones ui INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario
                 LEFT JOIN usuarios_instituciones_roles ur ON ur.id_usuario_institucion=ui.idUsuarioInstitucion
-                LEFT JOIN roles r ON r.idRol=ur.id_rol AND r.codigo IN ('ADMINISTRADOR','DOCENTE','ESTUDIANTE')
+                LEFT JOIN roles r ON r.idRol=ur.id_rol AND r.codigo IN ('ADMINISTRADOR','COORDINADOR','DOCENTE','ESTUDIANTE')
                 WHERE ui.id_institucion=? AND u.activo=1 AND " . ModeloTenant::sesionActiva() . " " . $filtro . ' GROUP BY ui.idUsuarioInstitucion,u.idUsuario ORDER BY u.apellidoUsuario,u.nombreUsuario');
             $stmt->execute($parametros);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -630,13 +630,23 @@ class ModeloUsuarios
             require_once __DIR__ . '/tenant.modelo.php';
             $prioridadRol="CASE
                 WHEN ".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR'])." THEN 'ADMINISTRADOR'
+                WHEN ".ModeloTenant::usuarioConRol('u.idUsuario',['COORDINADOR'])." THEN 'COORDINADOR'
                 WHEN ".ModeloTenant::usuarioConRol('u.idUsuario',['DOCENTE'])." THEN 'DOCENTE'
                 ELSE 'ESTUDIANTE' END";
+            if ($rolActual === 'COORDINADOR') {
+                $stmt=Conexion::conectar()->prepare("SELECT DISTINCT u.idUsuario,u.nombreUsuario,u.apellidoUsuario,u.email,$prioridadRol rol
+                    FROM usuarios u INNER JOIN usuarios_instituciones ui ON ui.id_usuario=u.idUsuario
+                    WHERE ui.id_institucion=? AND ui.activo=1 AND u.activo=1 AND u.idUsuario<>?
+                    AND ".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR','DOCENTE'])."
+                    ORDER BY apellidoUsuario,nombreUsuario");
+                $stmt->execute([ModeloTenant::id(),(int)$idUsuarioActual]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             if (in_array($rolActual,['ADMINISTRADOR','DOCENTE'],true)) {
                 $stmt=Conexion::conectar()->prepare("SELECT DISTINCT u.idUsuario,u.nombreUsuario,u.apellidoUsuario,u.email,$prioridadRol rol
                     FROM usuarios u INNER JOIN usuarios_instituciones ui ON ui.id_usuario=u.idUsuario
                     WHERE ui.id_institucion=? AND ui.activo=1 AND u.activo=1 AND u.idUsuario<>?
-                    AND ".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR','DOCENTE','ESTUDIANTE'])."
+                    AND ".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR','COORDINADOR','DOCENTE','ESTUDIANTE'])."
                     ORDER BY apellidoUsuario,nombreUsuario");
                 $stmt->execute([ModeloTenant::id(),(int)$idUsuarioActual]);
                 return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -644,7 +654,7 @@ class ModeloUsuarios
             $stmt=Conexion::conectar()->prepare("SELECT DISTINCT u.idUsuario,u.nombreUsuario,u.apellidoUsuario,u.email,$prioridadRol rol
                 FROM usuarios u
                 WHERE u.activo=1 AND u.idUsuario<>:actual
-                AND ".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR','DOCENTE','ESTUDIANTE'])."
+                AND ".ModeloTenant::usuarioConRol('u.idUsuario',['ADMINISTRADOR','COORDINADOR','DOCENTE','ESTUDIANTE'])."
                 AND ((".ModeloTenant::usuarioConRol('u.idUsuario',['ESTUDIANTE'])." AND EXISTS(
                     SELECT 1 FROM asignacioncursos a1 INNER JOIN asignacioncursos a2 ON a2.id_seccion=a1.id_seccion
                     INNER JOIN cursos c ON c.idCurso=a1.id_seccion

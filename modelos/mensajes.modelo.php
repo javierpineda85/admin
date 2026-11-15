@@ -39,7 +39,7 @@ class ModeloMensajes
             INNER JOIN usuarios_instituciones_roles mur ON mur.id_usuario_institucion=mui.idUsuarioInstitucion
             INNER JOIN roles mr ON mr.idRol=mur.id_rol
             WHERE mui.id_usuario=$columna.idUsuario AND mui.id_institucion=".ModeloTenant::id()."
-            AND mui.activo=1 AND mr.codigo IN ('ADMINISTRADOR','DOCENTE','ESTUDIANTE')),'')";
+            AND mui.activo=1 AND mr.codigo IN ('ADMINISTRADOR','COORDINADOR','DOCENTE','ESTUDIANTE')),'')";
     }
 
     public static function mdlUsuariosPermitidosParaMensajes($idUsuarioActual, $rolActual)

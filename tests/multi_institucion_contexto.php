@@ -27,6 +27,7 @@ foreach (['usuarios', 'perfiles', 'cursos'] as $tabla) {
     $pdo->exec("CREATE TABLE `$tabla` LIKE `$origen`.`$tabla`");
 }
 ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-09-14_multi_institucion_01_expandir.sql');
+ejecutarMigracion($pdo, __DIR__ . '/../sql/2026-11-16_rol_coordinador_academico.sql');
 ModeloInstituciones::mdlVerificarEsquema();
 ModeloUsuarios::mdlAsegurarColumnasIntegracionWordPress();
 $mm = (int) $pdo->query("SELECT idInstitucion FROM instituciones WHERE slug='mentemotion'")->fetchColumn();
@@ -34,12 +35,12 @@ $pdo->exec("INSERT INTO instituciones(nombre,slug) VALUES ('Instituto Demo','ins
 $demo = (int) $pdo->lastInsertId();
 $ids = [];
 $password = 'Ensayo-' . bin2hex(random_bytes(12));
-foreach (['A','B','C','D','Super','SinRol'] as $letra) {
+foreach (['A','B','C','D','Coord','Super','SinRol'] as $letra) {
     $pdo->prepare("INSERT INTO usuarios(nombreUsuario,apellidoUsuario,email,pass,resetPass,imgUsuario,activo,rol) VALUES (?,'Ensayo',?,?,0,'',1,'ADMINISTRADOR')")
         ->execute([$letra, strtolower($letra) . '@campus.example', password_hash($password, PASSWORD_DEFAULT)]);
     $ids[$letra] = (int) $pdo->lastInsertId();
 }
-foreach ([['A',$mm,['DOCENTE']],['A',$demo,['ESTUDIANTE']],['B',$demo,['ADMINISTRADOR','DOCENTE']],['C',$mm,['ESTUDIANTE']],['SinRol',$mm,[]]] as [$letra,$institucion,$roles]) {
+foreach ([['A',$mm,['DOCENTE']],['A',$demo,['ESTUDIANTE']],['B',$demo,['ADMINISTRADOR','DOCENTE']],['C',$mm,['ESTUDIANTE']],['Coord',$demo,['COORDINADOR']],['SinRol',$mm,[]]] as [$letra,$institucion,$roles]) {
     $pdo->prepare('INSERT INTO usuarios_instituciones(id_usuario,id_institucion) VALUES (?,?)')->execute([$ids[$letra],$institucion]);
     $miembro = (int) $pdo->lastInsertId();
     foreach ($roles as $rol) {
@@ -74,6 +75,14 @@ verificar(ControladorPermisos::tieneRol('ADMINISTRADOR') && ControladorPermisos:
 verificar(ControladorPermisos::rolReal()==='ADMINISTRADOR' && ControladorPermisos::puedeAccederRuta('crear-usuario'), 'El rol principal es determinista y la autorización usa el conjunto');
 verificar(ControladorPermisos::usuarioTieneRolEnInstitucion($ids['A'], ['ESTUDIANTE'], $demo), 'La validación de asignaciones acepta el rol en la institución indicada');
 verificar(!ControladorPermisos::usuarioTieneRolEnInstitucion($ids['C'], ['ESTUDIANTE'], $demo), 'La validación de asignaciones rechaza membresías de otra institución');
+sesionPara($ids['Coord']);
+verificar(ControladorInstitucion::id()===$demo && ControladorPermisos::rolReal()==='COORDINADOR'
+    && ControladorPermisos::puedeAccederRuta('calificaciones')
+    && ControladorPermisos::puedeAccederRuta('asistencias')
+    && ControladorPermisos::puedeAccederRuta('resultados-actividad')
+    && !ControladorPermisos::puedeAccederRuta('crear-actividad')
+    && !ControladorPermisos::puedeAccederRuta('crear-usuario'),
+    'Coordinación académica consulta el seguimiento sin heredar permisos de edición');
 sesionPara($ids['C']);
 verificar(ControladorInstitucion::id()===$mm, 'C selecciona automáticamente su única institución');
 verificar(!ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version()), 'C no puede seleccionar Demo mediante ID manipulado');

@@ -15,7 +15,7 @@ class ControladorUsuarios
     {
         $entrada = $_POST['roles'] ?? ($_POST['rol'] ?? []);
         $entrada = is_array($entrada) ? $entrada : [$entrada];
-        $permitidos = ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'];
+        $permitidos = ['ADMINISTRADOR', 'COORDINADOR', 'DOCENTE', 'ESTUDIANTE'];
         $roles = [];
         foreach ($entrada as $rol) {
             $rol = strtoupper(trim((string) $rol));

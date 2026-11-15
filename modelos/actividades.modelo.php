@@ -228,7 +228,7 @@ class ModeloActividades
         list($condicionDestacada, $parametrosDestacada) = self::condicionesBooleanas('COALESCE(a.destacadaPublica, 0)', $soloDestacadas, 'destacadaFiltro');
         $parametrosComunes = array_merge($parametrosBusqueda, $parametrosTipo, $parametrosVisibilidad, $parametrosEstado, $parametrosDestacada);
 
-        if ($rol === 'ADMINISTRADOR') {
+        if (in_array($rol, ['ADMINISTRADOR', 'COORDINADOR'], true)) {
             $sql = "
                 SELECT a.*, s.tituloSeccion, c.nombreCurso, u.nombreUsuario, u.apellidoUsuario,
                        COALESCE(i.totalIntentos, 0) AS totalIntentos

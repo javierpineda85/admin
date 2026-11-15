@@ -71,7 +71,7 @@ $rolesActuales = preg_split('/\s*·\s*/', strtoupper((string) ($usuarioFormulari
           <div class="form-group">
             <label>Rol</label>
             <select class="custom-select" name="<?php echo $gestionInstitucional ? 'roles[]' : 'rol'; ?>" <?php echo $gestionInstitucional ? 'multiple size="3"' : ''; ?> required>
-              <?php foreach (['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'] as $rol): ?>
+              <?php foreach (['ADMINISTRADOR', 'COORDINADOR', 'DOCENTE', 'ESTUDIANTE'] as $rol): ?>
                 <option value="<?php echo $rol; ?>" <?php echo in_array($rol, $rolesActuales, true) ? 'selected' : ''; ?>><?php echo $rol; ?></option>
               <?php endforeach; ?>
             </select>

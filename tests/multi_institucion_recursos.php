@@ -75,7 +75,7 @@ verificar($detalleUsuarioB!==false && !array_key_exists('pass',$detalleUsuarioB)
 $pdo->prepare('UPDATE usuarios SET ultimaConexion=NULL WHERE idUsuario IN (?,?,?)')->execute([$ids['A'],$ids['B'],$ids['C']]);
 $pdo->prepare('UPDATE usuarios SET ultimaConexion=NOW() WHERE idUsuario IN (?,?)')->execute([$ids['B'],$ids['C']]);
 verificar(array_map('intval',array_column(ModeloUsuarios::mdlUsuariosConectadosRecientes(60),'idUsuario'))===[$ids['B']], 'Listado de conectados excluye usuarios de otras instituciones');
-verificar(array_map('intval',array_column(ModeloUsuarios::mdlUsuariosNoConectadosRecientes(60),'idUsuario'))===[$ids['A']], 'Listado de no conectados queda limitado a la membresía institucional');
+verificar(array_map('intval',array_column(ModeloUsuarios::mdlUsuariosNoConectadosRecientes(60),'idUsuario'))===[$ids['A'],$ids['Coord']], 'Listado de no conectados queda limitado a la membresía institucional');
 verificar(ModeloUsuarios::mdlContarUsuariosConectadosRecientes(60)===1, 'Contador de conectados usa el tenant activo');
 $perfilCAntes=(int)$pdo->query('SELECT COUNT(*) FROM perfiles WHERE id_usuario='.(int)$ids['C'])->fetchColumn();
 $_POST=['id_usuario'=>$ids['C'],'contenidoPerfil'=>'Intento cruzado'];
@@ -399,6 +399,14 @@ $preguntaPublica=ModeloActividades::mdlPreguntasConOpciones($actividadPublica)[0
 $destinatariosAdmin=ModeloMensajes::mdlUsuariosPermitidosParaMensajes($ids['B'],'ADMINISTRADOR');
 verificar(in_array($ids['A'],array_map('intval',array_column($destinatariosAdmin,'idUsuario')),true)
     && !in_array($ids['C'],array_map('intval',array_column($destinatariosAdmin,'idUsuario')),true), 'Mensajería administrativa ofrece solo miembros de la institución activa');
+$sesionAdministrador=$_SESSION;
+sesionPara($ids['Coord']); ControladorInstitucion::seleccionar($demo,ControladorInstitucion::csrf(),ControladorInstitucion::version());
+$destinatariosCoordinacion=ModeloMensajes::mdlUsuariosPermitidosParaMensajes($ids['Coord'],'COORDINADOR');
+$rolesDestinatariosCoordinacion=array_unique(array_column($destinatariosCoordinacion,'rol'));
+verificar(!in_array($ids['A'],array_map('intval',array_column($destinatariosCoordinacion,'idUsuario')),true)
+    && count(array_diff($rolesDestinatariosCoordinacion,['ADMINISTRADOR','DOCENTE']))===0,
+    'Coordinación académica solo puede seleccionar docentes y administradores para mensajería');
+$_SESSION=$sesionAdministrador;
 verificar(array_column(ModeloMensajes::mdlSeccionesParaMensajes($ids['B'],'ADMINISTRADOR'),'idSeccion')===[$materiaDemo], 'Selector de materias para mensajes queda limitado al tenant');
 verificar(ModeloMensajes::mdlDestinatariosDeSeccion($materiaDemo)===[$ids['A']], 'Envío por materia incorpora solo estudiantes institucionales inscriptos');
 $mensajeDemo=ModeloMensajes::mdlGuardarMensaje([

@@ -143,6 +143,19 @@
                 </li>
               </ul>
             </li>
+          <?php elseif (ControladorPermisos::esCoordinador()): ?>
+            <li class="nav-item">
+              <a href="index.php?r=listado-cursos" class="nav-link">
+                <i class="nav-icon fas fa-copy text-success"></i>
+                <p>Cursos</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="index.php?r=listado-materias" class="nav-link">
+                <i class="nav-icon fas fa-book-open text-success"></i>
+                <p>Materias</p>
+              </a>
+            </li>
           <?php elseif (ControladorPermisos::esDocente()): ?>
             <li class="nav-item">
               <a href="#" class="nav-link">

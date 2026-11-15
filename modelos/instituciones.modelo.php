@@ -5,7 +5,7 @@ class ModeloInstituciones
 {
     private static function codigosRolesPermitidos()
     {
-        return ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'];
+        return ['ADMINISTRADOR', 'COORDINADOR', 'DOCENTE', 'ESTUDIANTE'];
     }
 
     private static function exigirSuperAdmin()
@@ -221,7 +221,7 @@ class ModeloInstituciones
         self::exigirSuperAdmin();
         $permitidos = self::codigosRolesPermitidos();
         $marcadores = implode(',', array_fill(0, count($permitidos), '?'));
-        $stmt = Conexion::conectar()->prepare("SELECT codigo,nombre FROM roles WHERE codigo IN ($marcadores) ORDER BY FIELD(codigo,'ADMINISTRADOR','DOCENTE','ESTUDIANTE')");
+        $stmt = Conexion::conectar()->prepare("SELECT codigo,nombre FROM roles WHERE codigo IN ($marcadores) ORDER BY FIELD(codigo,'ADMINISTRADOR','COORDINADOR','DOCENTE','ESTUDIANTE')");
         $stmt->execute($permitidos);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -232,7 +232,7 @@ class ModeloInstituciones
         $stmt = Conexion::conectar()->query("SELECT ui.idUsuarioInstitucion,ui.id_usuario,ui.id_institucion,ui.activo,
                 ui.fechaAlta,ui.fechaBaja,ui.motivoBaja,u.nombreUsuario,u.apellidoUsuario,u.email,u.activo usuarioActivo,
                 i.nombre institucion,i.activo institucionActiva,
-                GROUP_CONCAT(DISTINCT r.codigo ORDER BY FIELD(r.codigo,'ADMINISTRADOR','DOCENTE','ESTUDIANTE') SEPARATOR ',') roles
+                GROUP_CONCAT(DISTINCT r.codigo ORDER BY FIELD(r.codigo,'ADMINISTRADOR','COORDINADOR','DOCENTE','ESTUDIANTE') SEPARATOR ',') roles
             FROM usuarios_instituciones ui
             INNER JOIN usuarios u ON u.idUsuario=ui.id_usuario
             INNER JOIN instituciones i ON i.idInstitucion=ui.id_institucion

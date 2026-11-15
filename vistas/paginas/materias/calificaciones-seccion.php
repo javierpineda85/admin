@@ -8,7 +8,9 @@ $vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva()
 $esEstudiante = ControladorPermisos::esEstudiante();
 $esDocente = ControladorPermisos::esDocente();
 $esAdmin = ControladorPermisos::esAdministrador();
+$esCoordinador = ControladorPermisos::esCoordinador();
 $puedeGestionar = $esAdmin || $esDocente;
+$puedeConsultar = $puedeGestionar || $esCoordinador;
 $idEstudianteContexto = $esEstudiante ? ControladorPermisos::idEstudianteContexto() : 0;
 $estudianteContexto = $vistaEstudianteSimulada && $idEstudianteContexto > 0
     ? ControladorUsuarios::crtUsuarioCompleto($idEstudianteContexto)
@@ -69,11 +71,11 @@ foreach ($periodos as $periodoDisponible) {
 }
 if (!$periodoActual && $periodos) { $periodoActual = $periodos[0]; $idPeriodoActual = (int) $periodoActual['idPeriodo']; }
 $periodoCerrado = strtoupper((string) ($periodoActual['estado'] ?? 'ABIERTO')) === 'CERRADO';
-$evaluacionesTodas = $puedeGestionar ? ControladorCalificaciones::crtEvaluacionesPorSeccion($idSeccion) : [];
+$evaluacionesTodas = $puedeConsultar ? ControladorCalificaciones::crtEvaluacionesPorSeccion($idSeccion) : [];
 $evaluaciones = array_values(array_filter($evaluacionesTodas, static function ($evaluacion) use ($idPeriodoActual) {
     return (int) ($evaluacion['id_periodo'] ?? 0) === $idPeriodoActual;
 }));
-$trabajosPeriodo = $puedeGestionar && $idPeriodoActual > 0
+$trabajosPeriodo = $puedeConsultar && $idPeriodoActual > 0
     ? ControladorCalificaciones::crtCalificacionesTrabajosPorPeriodo($idSeccion,$idPeriodoActual)
     : [];
 $trabajosPorLeccion = [];
@@ -86,7 +88,7 @@ foreach ($trabajosPeriodo as $trabajoPeriodo) {
         $notasPorTrabajo[$idTrabajoPeriodo][(int) $trabajoPeriodo['id_estudiante']] = $trabajoPeriodo;
     }
 }
-$cierresPeriodo = $puedeGestionar ? ControladorCalificaciones::crtCierresPeriodo($idPeriodoActual,$idSeccion) : [];
+$cierresPeriodo = $puedeConsultar ? ControladorCalificaciones::crtCierresPeriodo($idPeriodoActual,$idSeccion) : [];
 $cierresPorEstudiante = [];
 foreach($cierresPeriodo as $cierreIndice){$cierresPorEstudiante[(int)$cierreIndice['id_estudiante']]=$cierreIndice;}
 $estadisticasPeriodo = ['aprobados'=>0,'desaprobados'=>0,'sinCierre'=>0,'cierres'=>count($cierresPeriodo)];
@@ -98,15 +100,15 @@ foreach($cierresPeriodo as $cierreEstadistica){
 $evaluacionesEstudiante = $esEstudiante && $idEstudianteContexto > 0
     ? ControladorCalificaciones::crtEvaluacionesPorEstudiante($idSeccion, $idEstudianteContexto)
     : [];
-$estudiantesEvaluacion = $puedeGestionar
+$estudiantesEvaluacion = $puedeConsultar
     ? ControladorCalificaciones::crtEstudiantesPorCurso((int) ($seccion['id_curso'] ?? 0))
     : [];
-if($puedeGestionar && strtoupper((string)($periodoActual['tipo']??''))==='INTENSIFICACION'){$estudiantesEvaluacion=ControladorCalificaciones::crtEstudiantesIntensificacion((int)($seccion['id_curso']??0),$idSeccion);}
+if($puedeConsultar && strtoupper((string)($periodoActual['tipo']??''))==='INTENSIFICACION'){$estudiantesEvaluacion=ControladorCalificaciones::crtEstudiantesIntensificacion((int)($seccion['id_curso']??0),$idSeccion);}
 $cierresEstudiante = $esEstudiante && $idEstudianteContexto > 0
     ? ControladorCalificaciones::crtCierresEstudianteSeccion($idSeccion,$idEstudianteContexto)
     : [];
 $notasPorEvaluacion = [];
-if ($puedeGestionar) {
+if ($puedeConsultar) {
     foreach ($evaluaciones as $evaluacionPlanilla) {
         $idEvaluacionPlanilla = (int) $evaluacionPlanilla['idEvaluacion'];
         foreach (ControladorCalificaciones::crtCalificacionesEvaluacion($idEvaluacionPlanilla) as $notaPlanilla) {
@@ -150,7 +152,7 @@ if (!empty($seccion['bannerSeccion'])) {
       </div>
     <?php endif; ?>
 
-    <?php if ($puedeGestionar): ?>
+    <?php if ($puedeConsultar): ?>
       <div class="card glass-card mb-4">
         <div class="card-body">
           <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
@@ -165,7 +167,7 @@ if (!empty($seccion['bannerSeccion'])) {
             <?php endforeach; ?>
           </div>
           <div class="d-flex flex-wrap">
-            <?php if (!$periodoCerrado): ?>
+            <?php if ($puedeGestionar && !$periodoCerrado): ?>
               <button type="button" class="btn btn-primary btn-sm mr-2 mb-2" data-toggle="modal" data-target="#nuevaEvaluacionModal"><i class="fas fa-plus mr-1"></i>Agregar evaluación</button>
               <form method="post" class="mr-2 mb-2"><input type="hidden" name="accion" value="calcular_cierre_periodo"><input type="hidden" name="id_seccion" value="<?php echo (int)$idSeccion; ?>"><input type="hidden" name="id_periodo" value="<?php echo $idPeriodoActual; ?>"><button class="btn btn-success btn-sm"><i class="fas fa-calculator mr-1"></i>Calcular cierre</button></form>
               <form method="post" class="mb-2" onsubmit="return confirm('Al cerrar el período ya no se podrán modificar evaluaciones ni notas. ¿Continuar?');">
@@ -185,7 +187,7 @@ if (!empty($seccion['bannerSeccion'])) {
         <?php endforeach; ?>
       </div>
 
-      <?php if (!empty($cierresPeriodo)): ?>
+      <?php if ($puedeGestionar && !empty($cierresPeriodo)): ?>
         <div class="card glass-card mb-4">
           <div class="card-header section-header-soft"><h3 class="card-title mb-0">Cierre del período</h3><small class="text-muted">El promedio es una sugerencia. La calificación de cierre queda a criterio del docente.</small></div>
           <form method="post"><input type="hidden" name="accion" value="guardar_cierre_periodo"><input type="hidden" name="id_seccion" value="<?php echo (int)$idSeccion; ?>"><input type="hidden" name="id_periodo" value="<?php echo $idPeriodoActual; ?>">
@@ -299,9 +301,9 @@ if (!empty($seccion['bannerSeccion'])) {
                       <?php if ($evaluacion['promedio'] !== null): ?>
                         <span class="badge badge-light border">Promedio: <?php echo $e($evaluacion['promedio']); ?></span>
                       <?php endif; ?>
-                      <button type="button" class="btn btn-outline-primary btn-sm ml-2" data-toggle="collapse" data-target="#notas-evaluacion-<?php echo $idEvaluacionActual; ?>" aria-expanded="false"><i class="fas fa-pen mr-1"></i><?php echo $periodoCerrado?'Ver detalle':'Cargar notas'; ?></button>
+                      <button type="button" class="btn btn-outline-primary btn-sm ml-2" data-toggle="collapse" data-target="#notas-evaluacion-<?php echo $idEvaluacionActual; ?>" aria-expanded="false"><i class="fas fa-<?php echo $puedeGestionar && !$periodoCerrado ? 'pen' : 'eye'; ?> mr-1"></i><?php echo $puedeGestionar && !$periodoCerrado ? 'Cargar notas' : 'Ver detalle'; ?></button>
                     </div>
-                    <?php if (!$periodoCerrado): ?><div class="dropdown">
+                    <?php if ($puedeGestionar && !$periodoCerrado): ?><div class="dropdown">
                       <button type="button" class="btn btn-light border btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Más opciones para <?php echo $e($evaluacion['temaEvaluacion']); ?>">
                         <i class="fas fa-ellipsis-v"></i>
                       </button>
@@ -332,7 +334,7 @@ if (!empty($seccion['bannerSeccion'])) {
                   </div>
                 </div>
 
-                <?php if (!$periodoCerrado): ?><div class="collapse evaluation-edit-panel" id="editar-evaluacion-<?php echo $idEvaluacionActual; ?>">
+                <?php if ($puedeGestionar && !$periodoCerrado): ?><div class="collapse evaluation-edit-panel" id="editar-evaluacion-<?php echo $idEvaluacionActual; ?>">
                   <form method="post">
                     <input type="hidden" name="accion" value="editar_evaluacion">
                     <input type="hidden" name="id_evaluacion" value="<?php echo $idEvaluacionActual; ?>">
@@ -383,18 +385,18 @@ if (!empty($seccion['bannerSeccion'])) {
                             <tr>
                               <td><?php echo $e(trim(($estudiante['apellidoUsuario'] ?? '') . ' ' . ($estudiante['nombreUsuario'] ?? ''))); ?></td>
                               <td>
-                                <input type="number" name="calificaciones[<?php echo (int) $estudiante['idUsuario']; ?>]" class="form-control form-control-sm" min="0" max="10" step="0.01" value="<?php echo $e($nota['calificacion'] ?? ''); ?>" <?php echo $periodoCerrado?'disabled':''; ?>>
+                                <input type="number" name="calificaciones[<?php echo (int) $estudiante['idUsuario']; ?>]" class="form-control form-control-sm" min="0" max="10" step="0.01" value="<?php echo $e($nota['calificacion'] ?? ''); ?>" <?php echo (!$puedeGestionar || $periodoCerrado)?'disabled':''; ?>>
                               </td>
-                              <td><label class="mb-0"><input type="checkbox" name="ausentes[]" value="<?php echo (int)$estudiante['idUsuario']; ?>" <?php echo ($nota['estadoAsistencia']??'')==='AUSENTE'?'checked':''; ?> <?php echo $periodoCerrado?'disabled':''; ?>> Ausente</label></td>
+                              <td><label class="mb-0"><input type="checkbox" name="ausentes[]" value="<?php echo (int)$estudiante['idUsuario']; ?>" <?php echo ($nota['estadoAsistencia']??'')==='AUSENTE'?'checked':''; ?> <?php echo (!$puedeGestionar || $periodoCerrado)?'disabled':''; ?>> Ausente</label></td>
                               <td>
-                                <input type="text" name="devoluciones[<?php echo (int) $estudiante['idUsuario']; ?>]" class="form-control form-control-sm" value="<?php echo $e($nota['devolucion'] ?? ''); ?>" placeholder="Comentario para el estudiante" <?php echo $periodoCerrado?'disabled':''; ?>>
+                                <input type="text" name="devoluciones[<?php echo (int) $estudiante['idUsuario']; ?>]" class="form-control form-control-sm" value="<?php echo $e($nota['devolucion'] ?? ''); ?>" placeholder="Comentario para el estudiante" <?php echo (!$puedeGestionar || $periodoCerrado)?'disabled':''; ?>>
                               </td>
                             </tr>
                           <?php endforeach; ?>
                         </tbody>
                       </table>
                     </div>
-                    <?php if (!$periodoCerrado): ?><div class="evaluation-grades-footer">
+                    <?php if ($puedeGestionar && !$periodoCerrado): ?><div class="evaluation-grades-footer">
                       <button type="submit" class="btn btn-primary btn-sm">
                         <i class="fas fa-save mr-1"></i>Guardar cambios de notas
                       </button>
@@ -467,7 +469,7 @@ if (!empty($seccion['bannerSeccion'])) {
   </div>
 </div>
 
-<?php if ($puedeGestionar): ?>
+<?php if ($puedeConsultar): ?>
   <div class="modal fade" id="nuevaEvaluacionModal" tabindex="-1" role="dialog" aria-labelledby="nuevaEvaluacionTitulo" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document"><div class="modal-content"><form method="post">
       <input type="hidden" name="accion" value="crear_evaluacion"><input type="hidden" name="id_seccion" value="<?php echo (int)$idSeccion; ?>"><input type="hidden" name="id_periodo" value="<?php echo $idPeriodoActual; ?>">

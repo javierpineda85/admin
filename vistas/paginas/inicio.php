@@ -40,6 +40,8 @@ if (ControladorPermisos::esDocente()) {
 $mensajeRol = 'Tu panel esta listo para trabajar.';
 if (ControladorPermisos::esAdministrador()) {
   $mensajeRol = 'Administras usuarios, cursos, materias y la estructura completa del sistema.';
+} elseif (ControladorPermisos::esCoordinador()) {
+  $mensajeRol = 'Supervisás cursos, contenidos, trayectorias y resultados académicos sin modificar su configuración.';
 } elseif (ControladorPermisos::esDocente()) {
   $mensajeRol = 'Tu espacio centraliza aulas, materiales, tareas, foros y calificaciones.';
 } elseif ($vistaEstudianteSimulada) {
@@ -100,6 +102,17 @@ if (ControladorPermisos::esAdministrador()) {
     'icon' => 'fas fa-hourglass-half',
     'class' => 'context-item--warning',
   ];
+} elseif (ControladorPermisos::esCoordinador()) {
+  $contextoPanel['titulo'] = 'Tu panel de coordinación';
+  $contextoPanel['subtitulo'] = 'Seguimiento académico integral';
+  $contextoPanel['descripcion'] = 'Consultá contenidos, entregas, asistencia y calificaciones para acompañar las trayectorias de cada estudiante.';
+  $contextoPanel['items'][] = [
+    'label' => 'Entregas a seguir',
+    'value' => (int) ($tarjetasDashboard['Pendientes']['value'] ?? 0),
+    'note' => 'Trabajos todavía sin calificación',
+    'icon' => 'fas fa-clipboard-check',
+    'class' => 'context-item--warning',
+  ];
 } elseif (ControladorPermisos::esEstudiante()) {
   $contextoPanel['titulo'] = 'Tu panel de estudiante';
   $contextoPanel['subtitulo'] = 'Clases, tareas y tu avance';
@@ -125,7 +138,7 @@ if (ControladorPermisos::esAdministrador()) {
 }
 
 $primeraMateriaDashboard = [];
-if (ControladorPermisos::esAdministrador()) {
+if (ControladorPermisos::esAdministrador() || ControladorPermisos::esCoordinador()) {
   $materiasDashboard = ControladorMaterias::crtListarMateriasGestion();
   $primeraMateriaDashboard = !empty($materiasDashboard) ? [$materiasDashboard[0]] : [];
 } elseif (ControladorPermisos::esDocente()) {

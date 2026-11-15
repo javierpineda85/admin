@@ -2,7 +2,7 @@
 
 class ControladorPermisos
 {
-    private const PRIORIDAD_ROLES = ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'];
+    private const PRIORIDAD_ROLES = ['ADMINISTRADOR', 'COORDINADOR', 'DOCENTE', 'ESTUDIANTE'];
 
     private static function normalizarRol($rol)
     {
@@ -78,6 +78,11 @@ class ControladorPermisos
         return self::rolActual() === 'DOCENTE';
     }
 
+    public static function esCoordinador()
+    {
+        return self::rolActual() === 'COORDINADOR';
+    }
+
     public static function esEstudiante()
     {
         return self::rolActual() === 'ESTUDIANTE';
@@ -138,6 +143,13 @@ class ControladorPermisos
                 'resultados-actividad',
                 'vista-estudiante',
             ],
+            'COORDINADOR' => [
+                'perfil-usuario', 'perfil-publico', 'editar-perfil',
+                'listado-cursos', 'detalle-curso', 'detalle-seccion', 'listado-materias',
+                'calificaciones-seccion', 'calificaciones', 'asistencias', 'asistencia-seccion', 'asistencia-curso',
+                'bandeja-entrada', 'nuevo-mensaje', 'mensajes-enviados', 'papelera', 'detalle-mensaje',
+                'listado-actividades', 'ver-actividad', 'resultados-actividad',
+            ],
             'ESTUDIANTE' => [
                 'perfil-usuario',
                 'perfil-publico',
@@ -176,6 +188,7 @@ class ControladorPermisos
 
         $visibles = [
             'DOCENTE' => ['perfil', 'cursos', 'mensajes', 'actividades'],
+            'COORDINADOR' => ['perfil', 'cursos', 'mensajes', 'actividades'],
             'ESTUDIANTE' => ['perfil', 'cursos', 'mensajes', 'actividades'],
         ];
 

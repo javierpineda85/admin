@@ -308,7 +308,7 @@ class ControladorActividades
             return false;
         }
 
-        if (ControladorPermisos::esAdministrador() || self::puedeGestionarActividad($actividad)) {
+        if (ControladorPermisos::esAdministrador() || ControladorPermisos::esCoordinador() || self::puedeGestionarActividad($actividad)) {
             return true;
         }
 

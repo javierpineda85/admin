@@ -17,7 +17,9 @@ $rolReal = ControladorPermisos::rolReal();
 $vistaEstudianteSimulada = ControladorPermisos::vistaEstudianteActiva() && in_array($rolReal, ['ADMINISTRADOR', 'DOCENTE'], true);
 $esAdmin = ControladorPermisos::esAdministrador();
 $esDocente = ControladorPermisos::esDocente();
+$esCoordinador = ControladorPermisos::esCoordinador();
 $puedeGestionar = $esAdmin || $esDocente;
+$puedeConsultar = $puedeGestionar || $esCoordinador;
 $idUsuarioActual = (int) ($_SESSION['usuario']['id'] ?? 0);
 $idEstudianteContexto = ControladorPermisos::esEstudiante()
   ? ControladorPermisos::idEstudianteContexto()

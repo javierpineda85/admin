@@ -493,7 +493,7 @@ class ModeloTenant
     {
         if (!self::activo()) { return '1=1'; }
         self::identificador($columna);
-        $permitidos = ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'];
+        $permitidos = ['ADMINISTRADOR', 'COORDINADOR', 'DOCENTE', 'ESTUDIANTE'];
         if (!$roles || array_diff($roles, $permitidos)) { throw new InvalidArgumentException('Rol inválido.'); }
         $lista = "'" . implode("','", $roles) . "'";
         return 'EXISTS (SELECT 1 FROM usuarios_instituciones tenant_ui

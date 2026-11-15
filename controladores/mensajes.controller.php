@@ -186,6 +186,11 @@ class ControladorMensajes
                 continue;
             }
 
+            if ($rolRemitente === 'COORDINADOR' && !in_array($rolDestinatario, ['DOCENTE', 'ADMINISTRADOR'], true)) {
+                $_SESSION['error_message'] = 'La coordinación académica solo puede escribir a docentes o administradores.';
+                return false;
+            }
+
             if ($rolRemitente === 'ESTUDIANTE') {
                 if (in_array($rolDestinatario, ['DOCENTE', 'ADMINISTRADOR'], true) && ModeloUsuarios::mdlDocenteTutorDeCursosEstudiante($idRemitente, $idDestinatario)) {
                     continue;

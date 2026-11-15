@@ -49,7 +49,7 @@ class ControladorDescargas
             $idSeccion = (int) ($leccion['id_modulo'] ?? 0);
             $materia = ModeloMaterias::mdlBuscarMateriaPorId($idSeccion);
             $idCurso = (int) ($materia['id_curso'] ?? 0);
-            $autorizado = ControladorPermisos::esAdministrador()
+            $autorizado = ControladorPermisos::esAdministrador() || ControladorPermisos::esCoordinador()
                 || (ControladorPermisos::esDocente()
                     && ControladorLecciones::crtSeccionAsignadaDocente($idSeccion, $idUsuario))
                 || (ControladorPermisos::esEstudiante()
@@ -71,7 +71,7 @@ class ControladorDescargas
     private static function exigirAccesoEntrega($entrega, $idUsuario)
     {
         if (!$entrega) { throw new RuntimeException('Acceso institucional denegado.'); }
-        if (ControladorPermisos::esAdministrador()) { return; }
+        if (ControladorPermisos::esAdministrador() || ControladorPermisos::esCoordinador()) { return; }
         if (ControladorPermisos::esDocente()
             && ControladorLecciones::crtSeccionAsignadaDocente((int) $entrega['id_seccion'], $idUsuario)) { return; }
         if (ControladorPermisos::esEstudiante()

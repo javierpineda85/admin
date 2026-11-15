@@ -1,15 +1,16 @@
 <?php
 $esEstudiante = ControladorPermisos::esEstudiante();
+$esCoordinador = ControladorPermisos::esCoordinador();
 $e = static function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
 $disponible = ModeloAsistenciasCurso::disponible();
-$cursos = !$esEstudiante && $disponible ? ModeloAsistenciasCurso::cursos(ControladorPermisos::esAdministrador() ? 0 : (int)($_SESSION['usuario']['id'] ?? 0)) : [];
+$cursos = !$esEstudiante && $disponible ? ModeloAsistenciasCurso::cursos((ControladorPermisos::esAdministrador() || ControladorPermisos::esCoordinador()) ? 0 : (int)($_SESSION['usuario']['id'] ?? 0)) : [];
 $resumen = $esEstudiante && $disponible ? ModeloAsistenciasCurso::resumenEstudiante(ControladorPermisos::idEstudianteContexto()) : [];
 $historial = $esEstudiante ? ControladorAsistencias::crtResumenEstudiante(ControladorPermisos::idEstudianteContexto()) : array_filter(ControladorAsistencias::crtSecciones(), static function ($s) { return (int)$s['clases'] > 0; });
 ?>
 <section class="content page-fade"><div class="container-fluid">
   <div class="entity-hero mb-4"><div class="entity-hero__content">
     <span class="entity-kicker mb-3">Seguimiento académico</span><h1 class="entity-title mb-2">Asistencia por curso</h1>
-    <p class="entity-lead mb-0"><?php echo $esEstudiante ? 'Tu asistencia diaria en cada curso.' : 'Elegí un curso para tomar asistencia una vez por fecha o consultar su historial.'; ?></p>
+    <p class="entity-lead mb-0"><?php echo $esEstudiante ? 'Tu asistencia diaria en cada curso.' : ($esCoordinador ? 'Consultá el historial de asistencia de todos los cursos.' : 'Elegí un curso para tomar asistencia una vez por fecha o consultar su historial.'); ?></p>
   </div></div>
   <?php if (!$disponible): ?><div class="alert alert-info">La asistencia por curso todavía no está habilitada. Contactá con la administración del campus.</div><?php endif; ?>
   <?php if ($esEstudiante): ?>
@@ -31,7 +32,7 @@ $historial = $esEstudiante ? ControladorAsistencias::crtResumenEstudiante(Contro
     <?php foreach ($cursos as $curso): ?>
       <div class="col-md-6 col-xl-4 mb-3" data-attendance-course="<?php echo $e($curso['curso']); ?>"><div class="card glass-card h-100"><div class="card-body">
         <h4><?php echo $e($curso['curso']); ?></h4><p><strong><?php echo (int)$curso['clases']; ?></strong> clases registradas</p>
-        <a class="btn btn-primary btn-sm" href="index.php?r=asistencia-curso&amp;idCurso=<?php echo (int)$curso['idCurso']; ?>"><i class="fas fa-user-check mr-1"></i>Abrir asistencia</a>
+        <a class="btn btn-primary btn-sm" href="index.php?r=asistencia-curso&amp;idCurso=<?php echo (int)$curso['idCurso']; ?>"><i class="fas fa-user-check mr-1"></i><?php echo $esCoordinador ? 'Ver asistencia' : 'Abrir asistencia'; ?></a>
       </div></div></div>
     <?php endforeach; ?>
     </div><p class="text-muted <?php echo $cursos ? 'd-none' : ''; ?>" id="sin-cursos-asistencia">No hay cursos para mostrar.</p>

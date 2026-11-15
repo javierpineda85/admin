@@ -5,7 +5,7 @@ $e = static function ($valor) {
   return htmlspecialchars((string) $valor, ENT_QUOTES, 'UTF-8');
 };
 
-if (!$actividad || !ControladorActividades::puedeGestionarActividad($actividad)) {
+if (!$actividad || !(ControladorPermisos::esCoordinador() || ControladorActividades::puedeGestionarActividad($actividad))) {
 ?>
   <section class="content page-fade">
     <div class="container-fluid">

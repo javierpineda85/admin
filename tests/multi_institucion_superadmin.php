@@ -20,7 +20,7 @@ $_GET['r'] = 'superadmin';
 verificar(ControladorPermisos::puedeAccederRuta('superadmin'), 'La ruta global reconoce únicamente al SuperAdmin');
 $datos = ControladorSuperAdmin::crtDatosPanel();
 verificar((int) $datos['resumen']['instituciones'] === 2, 'El panel global muestra las dos instituciones iniciales');
-verificar(count($datos['membresias']) >= 4 && array_column($datos['roles'], 'codigo') === ['ADMINISTRADOR', 'DOCENTE', 'ESTUDIANTE'], 'El panel expone membresías y roles institucionales');
+verificar(count($datos['membresias']) >= 5 && array_column($datos['roles'], 'codigo') === ['ADMINISTRADOR', 'COORDINADOR', 'DOCENTE', 'ESTUDIANTE'], 'El panel expone membresías y roles institucionales');
 
 $idNueva = ModeloInstituciones::mdlCrearInstitucion([
     'nombre' => 'Academia Norte',

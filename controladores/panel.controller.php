@@ -14,17 +14,21 @@ class ControladorPanel
             ? ControladorPermisos::idEstudianteContexto()
             : self::idUsuarioActual();
 
+        $rol = ControladorPermisos::rolActual();
+        if ($rol === 'COORDINADOR') { $rol = 'ADMINISTRADOR'; }
         return ModeloPanel::mdlResumenDashboard(
             $idUsuarioResumen,
-            ControladorPermisos::rolActual()
+            $rol
         );
     }
 
     public static function crtIndicadoresCabecera()
     {
+        $rol = ControladorPermisos::rolActual();
+        if ($rol === 'COORDINADOR') { $rol = 'ADMINISTRADOR'; }
         return ModeloPanel::mdlIndicadoresCabecera(
             self::idUsuarioActual(),
-            ControladorPermisos::rolActual()
+            $rol
         );
     }
 
